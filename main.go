@@ -97,6 +97,11 @@ type suspendedMsg struct{ id string }
 type resumedMsg struct{ id string }
 type retriedMsg struct{ id string }
 
+// actionExecutedMsg is sent when a config-driven action completes successfully
+type actionExecutedMsg struct {
+	label string // the action label for feedback
+}
+
 type errMsg struct{ err error }
 
 // Messages for the flash indicator
@@ -252,6 +257,11 @@ type model struct {
 	activeModal     ModalType
 	modalConfirmKey string // The key to press to confirm (e.g., "ctrl+d")
 	pendingDeleteID string // ID pending deletion confirmation
+
+	// Pending config-driven action awaiting confirmation
+	pendingAction     *config.ActionDef // action definition awaiting confirm
+	pendingActionID   string            // resolved ID for the pending action
+	pendingActionPath string            // resolved path for the pending action
 
 	// Edit modal state
 	editInput     textinput.Model
@@ -1008,7 +1018,49 @@ func (m *model) nextEnvironment() tea.Cmd {
 	return m.checkEnvironmentHealthCmd(m.currentEnv)
 }
 
+// resolveActionID extracts the ID value from the selected row for a given action.
+// It uses the action's IDColumn (defaults to "id") and finds the matching table column.
+func (m *model) resolveActionID(action config.ActionDef) string {
+	row := m.table.SelectedRow()
+	if len(row) == 0 {
+		return ""
+	}
+	idCol := action.IDColumn
+	if idCol == "" {
+		idCol = "id"
+	}
+	cols := m.table.Columns()
+	for i, col := range cols {
+		if col.Title == idCol && i < len(row) {
+			return stripFocusIndicatorPrefix(row[i])
+		}
+	}
+	// Fallback: use first column
+	if len(row) > 0 {
+		return stripFocusIndicatorPrefix(row[0])
+	}
+	return ""
+}
+
+// executeActionCmd creates a command that performs a config-driven REST action.
+func (m model) executeActionCmd(action config.ActionDef, resolvedPath string) tea.Cmd {
+	env, ok := m.config.Environments[m.currentEnv]
+	if !ok {
+		return nil
+	}
+	c := client.NewClient(env)
+	label := action.Label
+	return func() tea.Msg {
+		if err := c.ExecuteAction(action.Method, resolvedPath, action.Body); err != nil {
+			return errMsg{err}
+		}
+		return actionExecutedMsg{label: label}
+	}
+}
+
 // buildActionsForRoot returns context-specific action items for the current root resource.
+// Actions are loaded from the config file's table definitions. A "View as JSON" action
+// is always appended as the last item.
 func (m *model) buildActionsForRoot() []actionItem {
 	root := m.currentRoot
 	if len(m.breadcrumb) > 0 {
@@ -1017,98 +1069,49 @@ func (m *model) buildActionsForRoot() []actionItem {
 
 	var items []actionItem
 
-	switch root {
-	case "process-instance", "process-instances":
-		items = append(items,
-			actionItem{key: "v", label: "View Variables", cmd: func(m *model) tea.Cmd {
-				row := m.table.SelectedRow()
-				if len(row) == 0 {
-					return nil
+	// Find table definition for current root and load config-driven actions
+	if m.config != nil {
+		tableKey := m.currentTableKey()
+		for _, td := range m.config.Tables {
+			if td.Name == tableKey || td.Name == root {
+				for _, action := range td.Actions {
+					act := action // capture loop variable
+					items = append(items, actionItem{
+						key:   act.Key,
+						label: act.Label,
+						cmd: func(m *model) tea.Cmd {
+							id := m.resolveActionID(act)
+							if id == "" {
+								return nil
+							}
+							resolvedPath := strings.Replace(act.Path, "{id}", id, 1)
+							if act.Confirm {
+								m.pendingAction = &act
+								m.pendingActionID = id
+								m.pendingActionPath = resolvedPath
+								m.activeModal = ModalConfirmDelete
+								return nil
+							}
+							return tea.Batch(m.executeActionCmd(act, resolvedPath), flashOnCmd())
+						},
+					})
 				}
-				id := stripFocusIndicatorPrefix(row[0])
-				// Trigger drilldown to variables
-				m.selectedInstanceID = id
-				m.viewMode = "variables"
-				m.breadcrumb = append(m.breadcrumb, "variables")
-				m.contentHeader = fmt.Sprintf("process-instances(%s)", id)
-				m.table.SetCursor(0)
-				return tea.Batch(m.fetchVariablesCmd(id), flashOnCmd())
-			}},
-			actionItem{key: "s", label: "Suspend Instance", cmd: func(m *model) tea.Cmd {
-				row := m.table.SelectedRow()
-				if len(row) == 0 {
-					return nil
-				}
-				id := stripFocusIndicatorPrefix(row[0])
-				return m.suspendInstanceCmd(id, true)
-			}},
-			actionItem{key: "r", label: "Resume Instance", cmd: func(m *model) tea.Cmd {
-				row := m.table.SelectedRow()
-				if len(row) == 0 {
-					return nil
-				}
-				id := stripFocusIndicatorPrefix(row[0])
-				return m.suspendInstanceCmd(id, false)
-			}},
-			actionItem{key: "y", label: "View as JSON", cmd: func(m *model) tea.Cmd {
-				row := m.table.SelectedRow()
-				if len(row) == 0 {
-					return nil
-				}
-				m.detailContent = m.buildDetailContent(row)
-				m.detailScroll = 0
-				m.activeModal = ModalDetailView
-				return nil
-			}},
-		)
-	case "job", "jobs":
-		items = append(items,
-			actionItem{key: "r", label: "Retry (set retries=1)", cmd: func(m *model) tea.Cmd {
-				row := m.table.SelectedRow()
-				if len(row) == 0 {
-					return nil
-				}
-				id := stripFocusIndicatorPrefix(row[0])
-				return m.setJobRetriesCmd(id, 1)
-			}},
-			actionItem{key: "y", label: "View as JSON", cmd: func(m *model) tea.Cmd {
-				row := m.table.SelectedRow()
-				if len(row) == 0 {
-					return nil
-				}
-				m.detailContent = m.buildDetailContent(row)
-				m.detailScroll = 0
-				m.activeModal = ModalDetailView
-				return nil
-			}},
-		)
-	case "incident", "incidents":
-		items = append(items,
-			actionItem{key: "y", label: "View as JSON", cmd: func(m *model) tea.Cmd {
-				row := m.table.SelectedRow()
-				if len(row) == 0 {
-					return nil
-				}
-				m.detailContent = m.buildDetailContent(row)
-				m.detailScroll = 0
-				m.activeModal = ModalDetailView
-				return nil
-			}},
-		)
-	default:
-		items = append(items,
-			actionItem{key: "y", label: "View as JSON", cmd: func(m *model) tea.Cmd {
-				row := m.table.SelectedRow()
-				if len(row) == 0 {
-					return nil
-				}
-				m.detailContent = m.buildDetailContent(row)
-				m.detailScroll = 0
-				m.activeModal = ModalDetailView
-				return nil
-			}},
-		)
+				break
+			}
+		}
 	}
+
+	// Always add "View as JSON" as the last action
+	items = append(items, actionItem{key: "y", label: "View as JSON", cmd: func(m *model) tea.Cmd {
+		row := m.table.SelectedRow()
+		if len(row) == 0 {
+			return nil
+		}
+		m.detailContent = m.buildDetailContent(row)
+		m.detailScroll = 0
+		m.activeModal = ModalDetailView
+		return nil
+	}})
 
 	return items
 }
@@ -1260,7 +1263,6 @@ func (m *model) visibleColumnIndex(def *config.TableDef, column string) int {
 			if strings.EqualFold(c.Name, "id") {
 				return idx
 			}
-			idx++
 		}
 	}
 	return -1
@@ -1973,7 +1975,7 @@ func (m model) fetchGenericCmd(root string) tea.Cmd {
 			if strings.Contains(urlStr, "?") {
 				urlStr = fmt.Sprintf("%s&firstResult=%d&maxResults=%d", urlStr, offset, limit)
 			} else {
-				urlStr = fmt.Sprintf("%s?firstResult=%d&maxResults=%d", urlStr, offset, limit)
+				urlStr = urlStr + fmt.Sprintf("?firstResult=%d&maxResults=%d", offset, limit)
 			}
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -2000,18 +2002,10 @@ func (m model) fetchGenericCmd(root string) tea.Cmd {
 		if err := dec.Decode(&items); err != nil {
 			return errMsg{err}
 		}
-		// try to also fetch count from <root>/count endpoint
-		// best-effort: do not fail overall if count endpoint is missing
+
+		// Try to load count
 		count := -1
-		countURL := base + "/" + strings.TrimLeft(apiPath, "/") + "/count"
-		// carry filter params to count URL too
-		for k, v := range paramsCopy {
-			if strings.Contains(countURL, "?") {
-				countURL = fmt.Sprintf("%s&%s=%s", countURL, k, v)
-			} else {
-				countURL = fmt.Sprintf("%s?%s=%s", countURL, k, v)
-			}
-		}
+		countURL := base + "/process-instance/count"
 		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel2()
 		req2, err2 := http.NewRequestWithContext(ctx2, http.MethodGet, countURL, nil)
@@ -2027,11 +2021,8 @@ func (m model) fetchGenericCmd(root string) tea.Cmd {
 					dec2 := json.NewDecoder(resp2.Body)
 					if err3 := dec2.Decode(&cntBody); err3 == nil {
 						if v, ok := cntBody["count"]; ok {
-							switch n := v.(type) {
-							case float64:
+							if n, ok := v.(float64); ok {
 								count = int(n)
-							case int:
-								count = n
 							}
 						}
 					}
@@ -2421,6 +2412,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if s == "ctrl+d" {
 				// Confirm delete
 				m.activeModal = ModalNone
+				// Config-driven action confirmation
+				if m.pendingAction != nil {
+					act := *m.pendingAction
+					resolvedPath := m.pendingActionPath
+					m.pendingAction = nil
+					m.pendingActionID = ""
+					m.pendingActionPath = ""
+					return m, tea.Batch(m.executeActionCmd(act, resolvedPath), flashOnCmd())
+				}
+				// Legacy: terminate process instance
 				if m.pendingDeleteID != "" {
 					return m, tea.Batch(m.terminateInstanceCmd(m.pendingDeleteID), flashOnCmd())
 				}
@@ -2428,6 +2429,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Cancel
 				m.activeModal = ModalNone
 				m.pendingDeleteID = ""
+				m.pendingAction = nil
+				m.pendingActionID = ""
+				m.pendingActionPath = ""
 				m.footerError = "Cancelled"
 				return m, tea.Tick(2*time.Second, func(time.Time) tea.Msg { return clearErrorMsg{} })
 			}
@@ -3222,6 +3226,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case retriedMsg:
 		msg2, kind, cmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ Retried %s", msg.id), 3*time.Second)
+		m.footerError = msg2
+		m.footerStatusKind = kind
+		return m, cmd
+	case actionExecutedMsg:
+		msg2, kind, cmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ %s", msg.label), 3*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
 		return m, cmd
@@ -4428,11 +4437,12 @@ func main() {
 		return
 	}
 
-			skinName := *skin
-		if skinName == "" && envCfg.Skin != "" {
-			skinName = envCfg.Skin
-		}
-		log.Printf("DEBUG: skinName resolved to: %s", skinName)
+	skinName := *skin
+	if skinName == "" && envCfg.Skin != "" {
+		skinName = envCfg.Skin
+	}
+	log.Printf("DEBUG: skinName resolved to: %s", skinName)
+
 	m := newModelEnvApp(envCfg, appCfg, skinName)
 	m.debugEnabled = *debug
 	if *noSplash {

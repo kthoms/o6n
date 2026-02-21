@@ -601,6 +601,36 @@ func (c *CompatClient) TerminateInstance(instanceID string) error {
 	return nil
 }
 
+// ExecuteAction performs a generic REST API action on a resource.
+// method is the HTTP method (GET, PUT, POST, DELETE).
+// path is the URL path (e.g. /process-instance/123/suspended) already resolved with the ID.
+// body is an optional JSON string to send as the request body.
+func (c *CompatClient) ExecuteAction(method, path, body string) error {
+	c.logf("API: ExecuteAction(%s %s)", method, path)
+	urlStr := strings.TrimRight(c.env.URL, "/") + path
+	var bodyReader io.Reader
+	if body != "" {
+		bodyReader = strings.NewReader(body)
+	}
+	r, err := http.NewRequestWithContext(c.authContext, method, urlStr, bodyReader)
+	if err != nil {
+		return err
+	}
+	if body != "" {
+		r.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := c.httpClient.Do(r)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		data, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("action failed (%d): %s", resp.StatusCode, string(data))
+	}
+	return nil
+}
+
 // SetProcessInstanceVariable sets a process variable on an instance (legacy API used by UI).
 func (c *CompatClient) SetProcessInstanceVariable(instanceID, varName string, value interface{}, valueType string) error {
 	v := operaton.NewVariableValueDto()

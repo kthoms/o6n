@@ -34,11 +34,23 @@ type DrillDownDef struct {
 	Column string `yaml:"column,omitempty"` // source column to read the value from (defaults to id)
 }
 
+// ActionDef defines an action that can be performed on a selected item
+type ActionDef struct {
+	Key      string `yaml:"key"`                 // shortcut key (e.g. "s", "r", "ctrl+d")
+	Label    string `yaml:"label"`               // display label (e.g. "Suspend Instance")
+	Method   string `yaml:"method"`              // HTTP method: GET, PUT, POST, DELETE
+	Path     string `yaml:"path"`                // URL path with {id} placeholder (e.g. /process-instance/{id}/suspended)
+	Body     string `yaml:"body,omitempty"`       // optional JSON body to send
+	Confirm  bool   `yaml:"confirm,omitempty"`    // require double-press confirmation
+	IDColumn string `yaml:"id_column,omitempty"`  // column to read ID from (defaults to "id")
+}
+
 // TableDef defines a named table and its columns
 type TableDef struct {
 	Name      string         `yaml:"name"`
 	Columns   []ColumnDef    `yaml:"columns"`
 	Drilldown []DrillDownDef `yaml:"drilldown,omitempty"`
+	Actions   []ActionDef    `yaml:"actions,omitempty"`
 }
 
 // EnvConfig holds environment-specific configuration (moved to o8n-env.yaml)

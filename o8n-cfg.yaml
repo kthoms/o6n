@@ -21,12 +21,27 @@ tables:
         - target: history-external-task-log
           param: externalTaskId
           column: id
+      actions:
+        - key: u
+          label: Unlock
+          method: POST
+          path: /external-task/{id}/unlock
+        - key: r
+          label: Set Retries
+          method: PUT
+          path: /external-task/{id}/retries
+          body: '{"retries":3}'
+        - key: x
+          label: Extend Lock
+          method: POST
+          path: /external-task/{id}/extendLock
+          body: '{"newDuration":600000}'
     - name: job
       columns:
         - name: id
-          visible: false
-          width: ""
-          align: ""
+          visible: true
+          width: 20%
+          align: left
         - name: jobDefinitionId
           visible: false
           width: ""
@@ -40,25 +55,25 @@ tables:
           width: ""
           align: ""
         - name: processDefinitionKey
-          visible: false
-          width: ""
-          align: ""
+          visible: true
+          width: 25%
+          align: left
         - name: executionId
           visible: false
           width: ""
           align: ""
         - name: retries
           visible: true
-          width: ""
+          width: 10%
           align: center
         - name: exceptionMessage
-          visible: false
-          width: 20%
+          visible: true
+          width: 25%
           align: left
         - name: failedActivityId
-          visible: false
-          width: ""
-          align: ""
+          visible: true
+          width: 20%
+          align: left
         - name: suspended
           visible: false
           width: ""
@@ -83,36 +98,61 @@ tables:
         - target: history-job-log
           param: jobId
           column: id
+      actions:
+        - key: r
+          label: Retry (retries=1)
+          method: PUT
+          path: /job/{id}/retries
+          body: '{"retries":1}'
+        - key: x
+          label: Execute Job
+          method: POST
+          path: /job/{id}/execute
+        - key: s
+          label: Suspend Job
+          method: PUT
+          path: /job/{id}/suspended
+          body: '{"suspended":true}'
+        - key: a
+          label: Activate Job
+          method: PUT
+          path: /job/{id}/suspended
+          body: '{"suspended":false}'
+        - key: ctrl+d
+          label: Delete Job
+          method: DELETE
+          path: /job/{id}
+          confirm: true
     - name: job-definition
       columns:
         - name: id
-          visible: false
-          width: ""
-          align: ""
+          visible: true
+          width: 20%
+          align: left
         - name: processInstanceId
           visible: false
           width: ""
           align: ""
         - name: processDefinitionKey
-          visible: false
-          width: ""
-          align: ""
+          visible: true
+          width: 25%
+          align: left
         - name: activityId
-          visible: false
-          width: ""
-          align: ""
+          visible: true
+          width: 20%
+          align: left
         - name: jobType
-          visible: false
-          width: ""
-          align: ""
+          visible: true
+          width: 15%
+          align: left
         - name: jobConfiguration
           visible: false
           width: ""
           align: ""
         - name: suspended
-          visible: false
-          width: ""
-          align: ""
+          visible: true
+          width: 10%
+          align: center
         - name: overridingJobPriority
           visible: false
           width: ""
@@ -129,6 +169,17 @@ tables:
         - target: job
           param: jobDefinitionId
           column: id
+      actions:
+        - key: s
+          label: Suspend Job Definition
+          method: PUT
+          path: /job-definition/{id}/suspended
+          body: '{"suspended":true}'
+        - key: a
+          label: Activate Job Definition
+          method: PUT
+          path: /job-definition/{id}/suspended
+          body: '{"suspended":false}'
     - name: process-definition
       columns:
         - name: key
@@ -154,6 +205,25 @@ tables:
         - target: history-process-instance
           param: processDefinitionId
           column: id
+      actions:
+        - key: s
+          label: Suspend Definition
+          method: PUT
+          path: /process-definition/key/{id}/suspended
+          body: '{"suspended":true,"includeProcessInstances":false}'
+          id_column: key
+        - key: a
+          label: Activate Definition
+          method: PUT
+          path: /process-definition/key/{id}/suspended
+          body: '{"suspended":false,"includeProcessInstances":false}'
+          id_column: key
+        - key: ctrl+d
+          label: Delete Definition
+          method: DELETE
+          path: /process-definition/key/{id}
+          id_column: key
+          confirm: true
     - name: process-instance
       columns:
         - name: id
@@ -185,6 +255,22 @@ tables:
         - target: variable-instance
           param: processInstanceId
           column: id
+      actions:
+        - key: s
+          label: Suspend Instance
+          method: PUT
+          path: /process-instance/{id}/suspended
+          body: '{"suspended":true}'
+        - key: r
+          label: Resume Instance
+          method: PUT
+          path: /process-instance/{id}/suspended
+          body: '{"suspended":false}'
+        - key: ctrl+d
+          label: Delete Instance
+          method: DELETE
+          path: /process-instance/{id}
+          confirm: true
     - name: process-variables
       columns:
         - name: name
@@ -218,6 +304,31 @@ tables:
         - target: history-detail
           param: taskId
           column: id
+      actions:
+        - key: c
+          label: Complete Task
+          method: POST
+          path: /task/{id}/complete
+          body: '{}'
+        - key: k
+          label: Claim Task
+          method: POST
+          path: /task/{id}/claim
+          body: '{}'
+        - key: u
+          label: Unclaim Task
+          method: POST
+          path: /task/{id}/unclaim
+        - key: d
+          label: Delegate Task
+          method: POST
+          path: /task/{id}/delegate
+          body: '{}'
+        - key: ctrl+d
+          label: Delete Task
+          method: DELETE
+          path: /task/{id}
+          confirm: true
     - name: authorization
       columns:
         - name: id
@@ -236,6 +347,12 @@ tables:
           visible: true
           width: 25%
           align: left
+      actions:
+        - key: ctrl+d
+          label: Delete Authorization
+          method: DELETE
+          path: /authorization/{id}
+          confirm: true
     - name: batch
       columns:
         - name: id
@@ -258,6 +375,22 @@ tables:
         - target: history-batch
           param: batchId
           column: id
+      actions:
+        - key: s
+          label: Suspend Batch
+          method: PUT
+          path: /batch/{id}/suspended
+          body: '{"suspended":true}'
+        - key: a
+          label: Activate Batch
+          method: PUT
+          path: /batch/{id}/suspended
+          body: '{"suspended":false}'
+        - key: ctrl+d
+          label: Delete Batch
+          method: DELETE
+          path: /batch/{id}
+          confirm: true
     - name: batch-statistics
       columns:
         - name: id
@@ -294,6 +427,10 @@ tables:
           visible: true
           width: 25%
           align: left
+      drilldown:
+        - target: history-decision-instance
+          param: decisionDefinitionKey
+          column: key
     - name: decision-requirements-definition
       columns:
         - name: key
@@ -334,6 +471,15 @@ tables:
         - target: process-definition
           param: deploymentId
           column: id
+        - target: decision-definition
+          param: deploymentId
+          column: id
+      actions:
+        - key: ctrl+d
+          label: Delete Deployment
+          method: DELETE
+          path: /deployment/{id}
+          confirm: true
     - name: event-subscription
       columns:
         - name: id
@@ -370,6 +516,11 @@ tables:
           visible: true
           width: 25%
           align: left
+      actions:
+        - key: g
+          label: Signal Execution
+          method: POST
+          path: /execution/{id}/signal
     - name: filter
       columns:
         - name: id
@@ -388,6 +539,12 @@ tables:
           visible: true
           width: 20%
           align: left
+      actions:
+        - key: ctrl+d
+          label: Delete Filter
+          method: DELETE
+          path: /filter/{id}
+          confirm: true
     - name: group
       columns:
         - name: id
@@ -406,6 +563,12 @@ tables:
         - target: history-identity-link-log
           param: groupId
           column: id
+      actions:
+        - key: ctrl+d
+          label: Delete Group
+          method: DELETE
+          path: /group/{id}
+          confirm: true
     - name: history-activity-instance
       columns:
         - name: id
@@ -464,6 +627,12 @@ tables:
           visible: true
           width: 30%
           align: left
+      actions:
+        - key: ctrl+d
+          label: Delete Historic Batch
+          method: DELETE
+          path: /history/batch/{id}
+          confirm: true
     - name: history-decision-definition-cleanable-decision-instance-report
       columns:
         - name: decisionDefinitionKey
@@ -630,6 +799,12 @@ tables:
           visible: true
           width: 30%
           align: left
+      actions:
+        - key: ctrl+d
+          label: Delete Historic Instance
+          method: DELETE
+          path: /history/process-instance/{id}
+          confirm: true
     - name: history-task
       columns:
         - name: id
@@ -702,6 +877,12 @@ tables:
           visible: true
           width: 20%
           align: left
+      actions:
+        - key: ctrl+d
+          label: Resolve Incident
+          method: DELETE
+          path: /incident/{id}
+          confirm: true
     - name: tenant
       columns:
         - name: id
@@ -722,6 +903,12 @@ tables:
         - target: deployment
           param: tenantIdIn
           column: id
+      actions:
+        - key: ctrl+d
+          label: Delete Tenant
+          method: DELETE
+          path: /tenant/{id}
+          confirm: true
     - name: user
       columns:
         - name: id
@@ -744,6 +931,16 @@ tables:
         - target: history-user-operation
           param: userId
           column: id
+      actions:
+        - key: l
+          label: Unlock User
+          method: POST
+          path: /user/{id}/unlock
+        - key: ctrl+d
+          label: Delete User
+          method: DELETE
+          path: /user/{id}
+          confirm: true
     - name: variable-instance
       columns:
         - name: name
