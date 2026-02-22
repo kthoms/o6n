@@ -262,9 +262,10 @@ type model struct {
 	viewMode string
 
 	// Modal state
-	activeModal     ModalType
-	modalConfirmKey string // The key to press to confirm (e.g., "ctrl+d")
-	pendingDeleteID string // ID pending deletion confirmation
+	activeModal        ModalType
+	modalConfirmKey    string // The key to press to confirm (e.g., "ctrl+d")
+	pendingDeleteID    string // ID pending deletion confirmation
+	pendingDeleteLabel string // Display label for the item pending deletion
 
 	// Pending config-driven action awaiting confirmation
 	pendingAction     *config.ActionDef // action definition awaiting confirm
@@ -519,8 +520,8 @@ func (m *model) renderCompactHeader(width int) string {
 		row2Parts = append(row2Parts, part)
 	}
 	row2 := strings.Join(row2Parts, "  ")
-	if len(row2) > width-4 {
-		row2 = row2[:width-7] + "..."
+	if lipgloss.Width(row2) > width-4 {
+		row2 = truncateString(row2, width-7) + "..."
 	}
 
 	// Join rows
@@ -641,10 +642,17 @@ func newModel(cfg *config.Config) model {
 	// compute content height reserving header/context/footer lines so header is visible
 	// compactHeader (2 lines) + content header (1 line) = 3 header lines total
 	headerLines := 3
-	contextSelectionLines := 1
-	footerLines := 2  // breadcrumb line + status line
+	footerLines := 2 // breadcrumb line + status line
+	contextSelectionLines := 0
+	if m.showRootPopup {
+		contextSelectionLines = 1
+	}
+	searchBarLines := 0
+	if m.searchMode {
+		searchBarLines = 1
+	}
 	// reserve an extra safe line to avoid off-by-one overflow
-	contentHeight := m.lastHeight - headerLines - contextSelectionLines - footerLines - 1
+	contentHeight := m.lastHeight - headerLines - contextSelectionLines - searchBarLines - footerLines - 1
 	if contentHeight < 3 {
 		contentHeight = 3
 	}
@@ -707,28 +715,25 @@ func newModelEnvApp(envCfg *config.EnvConfig, appCfg *config.AppConfig, skinName
 
 // renderConfirmDeleteModal renders a modal for confirming delete action
 func (m *model) renderConfirmDeleteModal(width, height int) string {
-	selected := m.table.SelectedRow()
-	if len(selected) == 0 {
+	if m.pendingDeleteID == "" {
 		return ""
 	}
+	resourceLabel := strings.ToUpper(m.currentRoot)
 
-	instanceID := fmt.Sprintf("%v", selected[0])
-	defName := "Unknown"
-	if len(selected) > 1 {
-		defName = fmt.Sprintf("%v", selected[1])
+	nameDetail := ""
+	if m.pendingDeleteLabel != "" {
+		nameDetail = fmt.Sprintf("Name:          %s\n", m.pendingDeleteLabel)
 	}
 
 	modalContent := fmt.Sprintf(
-		"⚠️  DELETE PROCESS INSTANCE\n\n"+
-			"You are about to DELETE this instance:\n\n"+
-			"Instance ID:   %s\n"+
-			"Definition:    %s\n\n"+
-			"⚠️  WARNING: This action CANNOT be undone!\n"+
-			"The instance will be terminated.\n\n"+
+		"⚠️  DELETE %s\n\n"+
+			"You are about to DELETE this item:\n\n"+
+			"ID:            %s\n"+
+			"%s\n"+
+			"⚠️  WARNING: This action CANNOT be undone!\n\n"+
 			"Ctrl+d  Confirm Delete    Esc  Cancel",
-		instanceID, defName)
+		resourceLabel, m.pendingDeleteID, nameDetail)
 
-	// Get color for styling
 	color := ""
 	if m.config != nil {
 		if env, ok := m.config.Environments[m.currentEnv]; ok {
@@ -746,6 +751,24 @@ func (m *model) renderConfirmDeleteModal(width, height int) string {
 
 	// Return just the styled box — overlayCenter handles centering
 	return modal
+}
+
+// renderConfirmQuitModal renders a modal asking the user to confirm quitting.
+func (m *model) renderConfirmQuitModal(width, height int) string {
+	color := ""
+	if m.config != nil {
+		if env, ok := m.config.Environments[m.currentEnv]; ok {
+			color = env.UIColor
+		}
+	}
+	modalContent := "Quit o8n?\n\nPress Ctrl+c again to confirm.\n\nCtrl+c  Quit    Esc  Cancel"
+	modalStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(color)).
+		Padding(1, 2).
+		Width(40)
+	modal := modalStyle.Render(modalContent)
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, modal)
 }
 
 // renderHelpScreen renders the help screen modal
@@ -1632,6 +1655,9 @@ func (m *model) applyDefinitions(defs []config.ProcessDefinition) {
 	normRows := normalizeRows(rows, colsCount)
 	m.table.SetColumns(cols)
 	m.setTableRowsSorted(normRows)
+	if m.sortColumn >= 0 {
+		m.applySortIndicatorToColumns()
+	}
 	m.viewMode = "definitions"
 }
 
@@ -1671,6 +1697,9 @@ func (m *model) applyInstances(instances []config.ProcessInstance) {
 	m.table.SetColumns(cols)
 	m.setTableRowsSorted(normRows)
 	m.viewMode = "instances"
+	if m.sortColumn >= 0 {
+		m.applySortIndicatorToColumns()
+	}
 	// restore cursor position requested for paging operations
 	if m.pendingCursorAfterPage >= 0 {
 		last := len(normRows) - 1
@@ -1719,7 +1748,25 @@ func (m *model) applyVariables(vars []config.Variable) {
 	normRows := normalizeRows(rows, colsCount)
 	m.table.SetColumns(cols)
 	m.setTableRowsSorted(normRows)
+	if m.sortColumn >= 0 {
+		m.applySortIndicatorToColumns()
+	}
 	m.viewMode = "variables"
+}
+
+// computePaneHeight recalculates the table pane height based on current overlay state.
+func (m *model) computePaneHeight() int {
+	h := m.lastHeight - 3 - 2 - 1 // header(3) - footer(2) - safe(1)
+	if m.showRootPopup {
+		h -= 1
+	}
+	if m.searchMode {
+		h -= 1
+	}
+	if h < 3 {
+		h = 3
+	}
+	return h
 }
 
 // getPageSize returns the preferred number of rows to load per page
@@ -2149,6 +2196,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.footerError = ""
 					m.footerStatusKind = footerStatusNone
 				}
+				m.paneHeight = m.computePaneHeight()
+				m.table.SetHeight(m.paneHeight - 1)
 				return m, nil
 			case "enter":
 				m.searchMode = false
@@ -2157,6 +2206,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// keep filtered rows as current table rows
 				m.originalRows = nil
 				m.filteredRows = nil
+				m.paneHeight = m.computePaneHeight()
+				m.table.SetHeight(m.paneHeight - 1)
 				return m, nil
 			default:
 				var cmd tea.Cmd
@@ -2204,6 +2255,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// Clear sort: reset and re-fetch
 					m.sortColumn = -1
 					m.sortAscending = true
+					m.applySortIndicatorToColumns()
 					m.activeModal = ModalNone
 					root := m.currentRoot
 					if len(m.breadcrumb) > 0 {
@@ -2222,6 +2274,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					rows := m.table.Rows()
 					sorted := sortTableRows(rows, m.sortColumn, m.sortAscending)
 					m.table.SetRows(sorted)
+					m.applySortIndicatorToColumns()
 				}
 				m.activeModal = ModalNone
 				return m, nil
@@ -2479,6 +2532,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Cancel
 				m.activeModal = ModalNone
 				m.pendingDeleteID = ""
+				m.pendingDeleteLabel = ""
 				m.pendingAction = nil
 				m.pendingActionID = ""
 				m.pendingActionPath = ""
@@ -2497,6 +2551,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.showRootPopup = false
 			}
+			m.paneHeight = m.computePaneHeight()
+			m.table.SetHeight(m.paneHeight - 1)
 			return m, nil
 		}
 
@@ -2516,6 +2572,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.searchInput.SetValue("")
 				m.searchTerm = ""
 				m.searchInput.Focus()
+				m.paneHeight = m.computePaneHeight()
+				m.table.SetHeight(m.paneHeight - 1)
 				// Warn user if search is scoped to current page only
 				currentRoot := m.currentRoot
 				if len(m.breadcrumb) > 0 {
@@ -2537,7 +2595,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "ctrl+c":
 			// Quit via <ctrl>+c only; do not exit on plain 'q'
-			return m, tea.Quit
+			if m.activeModal == ModalConfirmQuit {
+				return m, tea.Quit
+			}
+			m.activeModal = ModalConfirmQuit
+			return m, nil
 		case "ctrl+e":
 			// Open environment selection popup
 			if m.activeModal == ModalNone && !m.showActionsMenu {
@@ -2627,6 +2689,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "esc":
+			if m.activeModal == ModalConfirmQuit {
+				m.activeModal = ModalNone
+				return m, nil
+			}
 			if m.showRootPopup {
 				m.showRootPopup = false
 				m.rootInput = ""
@@ -3066,6 +3132,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				row := m.table.SelectedRow()
 				if len(row) > 0 {
 					m.pendingDeleteID = stripFocusIndicatorPrefix(fmt.Sprintf("%v", row[0]))
+					if len(row) > 1 {
+						m.pendingDeleteLabel = fmt.Sprintf("%v", row[1])
+					} else {
+						m.pendingDeleteLabel = ""
+					}
 					m.activeModal = ModalConfirmDelete
 				}
 				return m, nil
@@ -3278,6 +3349,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		normalized := normalizeRows(rows, len(cols))
 		colorized := colorizeRows(msg.root, normalized, cols)
 		m.setTableRowsSorted(colorized)
+		if m.sortColumn >= 0 {
+			m.applySortIndicatorToColumns()
+		}
 		// restore pending cursor after page operations for generic loads
 		if m.pendingCursorAfterPage >= 0 {
 			r := m.table.Rows()
@@ -3476,30 +3550,57 @@ func (m model) View() string {
 		}
 	}
 
-	// render context selection box (1 line)
+	// render context selection box
 	var contextSelectionBox string
 	if m.showRootPopup {
 		completion := ""
-		if m.rootInput != "" {
-			for _, rc := range m.rootContexts {
-				if strings.HasPrefix(rc, m.rootInput) && rc != m.rootInput {
-					completion = rc[len(m.rootInput):]
-					break
-				}
+		matchingContexts := []string{}
+		for _, rc := range m.rootContexts {
+			if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+				matchingContexts = append(matchingContexts, rc)
 			}
+		}
+		if m.rootInput != "" && len(matchingContexts) > 0 && matchingContexts[0] != m.rootInput {
+			completion = matchingContexts[0][len(m.rootInput):]
 		}
 
 		inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(color))
+		hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 		displayText := inputStyle.Render(m.rootInput) + completionStyle.Render(completion)
+		hintLine := hintStyle.Render("Tab:complete  Enter:switch  Esc:cancel")
+
+		var listLines []string
+		maxShow := 8
+		shown := matchingContexts
+		extra := 0
+		if len(shown) > maxShow {
+			extra = len(shown) - maxShow
+			shown = shown[:maxShow]
+		}
+		for i, rc := range shown {
+			cursor := "  "
+			if i == 0 && len(shown) > 0 {
+				cursor = "\u25b8 "
+			}
+			listLines = append(listLines, fmt.Sprintf("%s%s", cursor, rc))
+		}
+		if extra > 0 {
+			listLines = append(listLines, fmt.Sprintf("  \u2026 %d more", extra))
+		}
+		listText := strings.Join(listLines, "\n")
+
+		fullContent := displayText + "\n" + hintLine
+		if len(listLines) > 0 {
+			fullContent = fullContent + "\n" + listText
+		}
 
 		boxStyle := lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderForeground(lipgloss.Color(color)).
 			Width(m.lastWidth-4).
 			Padding(0, 1)
-		contextSelectionBox = boxStyle.Render(displayText)
+		contextSelectionBox = boxStyle.Render(fullContent)
 	} else {
-		// do not render an empty boxed context selection when popup is inactive
 		contextSelectionBox = ""
 	}
 
@@ -3533,26 +3634,6 @@ func (m model) View() string {
 			Width(pw - 4).
 			Padding(0, 1)
 		searchBar = searchStyle.Render(m.searchInput.View())
-	}
-
-	// Apply sort indicator to column headers if sorted
-	if m.sortColumn >= 0 {
-		cols := m.table.Columns()
-		if m.sortColumn < len(cols) {
-			// Make a copy to avoid mutating the original
-			newCols := make([]table.Column, len(cols))
-			copy(newCols, cols)
-			indicator := " ▲"
-			if !m.sortAscending {
-				indicator = " ▼"
-			}
-			// Remove any previous indicator from all columns
-			for i := range newCols {
-				newCols[i].Title = strings.TrimSuffix(strings.TrimSuffix(newCols[i].Title, " ▲"), " ▼")
-			}
-			newCols[m.sortColumn].Title = newCols[m.sortColumn].Title + indicator
-			m.table.SetColumns(newCols)
-		}
 	}
 
 	mainBox := renderBoxWithTitle(m.table.View(), pw, m.paneHeight, title, color)
@@ -3601,24 +3682,6 @@ func (m model) View() string {
 	}
 	rightPart := rpStyle.Render(remoteSymbol + latencyStr + paginationStr)
 
-	// Build status message with icon based on footerStatusKind
-	statusMessage := ""
-	if m.footerError != "" {
-		icon := ""
-		style := lipgloss.NewStyle()
-		switch m.footerStatusKind {
-		case footerStatusError:
-			icon, style = "✗ ", errorFooterStyle
-		case footerStatusSuccess:
-			icon, style = "✓ ", successFooterStyle
-		case footerStatusLoading:
-			icon, style = spinnerFrames[m.spinnerFrame%len(spinnerFrames)]+" ", loadingFooterStyle
-		default: // footerStatusInfo
-			icon, style = "ℹ ", infoFooterStyle
-		}
-		statusMessage = style.Render(icon + m.footerError)
-	}
-
 	// Layout footer: [breadcrumb] | [status] | [remote]
 	// Format: leftPart | middlePart | rightPart (all separated by " | ")
 	totalW := m.lastWidth
@@ -3637,17 +3700,37 @@ func (m model) View() string {
 		middleW = 0
 	}
 
-	// Truncate or pad status message to fit available space
-	statusWidth := lipgloss.Width(statusMessage)
-	if statusWidth > middleW && middleW > 0 {
-		// Simple truncation: remove from the end until it fits
-		// Note: This is a simplification; proper UTF-8 aware truncation would be more complex
-		truncMsg := statusMessage
-		for lipgloss.Width(truncMsg) > middleW && len(truncMsg) > 0 {
-			truncMsg = truncMsg[:len(truncMsg)-1]
+	// Build status message: truncate plain text first, then style
+	statusMessage := ""
+	if m.footerError != "" {
+		var plainIcon string
+		var style lipgloss.Style
+		switch m.footerStatusKind {
+		case footerStatusError:
+			plainIcon = "✗ "
+			style = errorFooterStyle
+		case footerStatusSuccess:
+			plainIcon = "✓ "
+			style = successFooterStyle
+		case footerStatusLoading:
+			plainIcon = spinnerFrames[m.spinnerFrame%len(spinnerFrames)] + " "
+			style = loadingFooterStyle
+		default: // footerStatusInfo
+			plainIcon = "ℹ "
+			style = infoFooterStyle
 		}
-		statusMessage = truncMsg
+		plainText := m.footerError
+		iconWidth := lipgloss.Width(plainIcon)
+		maxText := middleW - iconWidth
+		if maxText < 0 {
+			maxText = 0
+		}
+		if lipgloss.Width(plainText) > maxText {
+			plainText = truncateString(plainText, maxText)
+		}
+		statusMessage = style.Render(plainIcon + plainText)
 	}
+
 	// Pad to fill the column
 	padW := middleW - lipgloss.Width(statusMessage)
 	if padW > 0 {
@@ -3674,6 +3757,8 @@ func (m model) View() string {
 		return m.renderDetailView(m.lastWidth, m.lastHeight)
 	} else if m.activeModal == ModalEnvironment {
 		return m.renderEnvPopup(m.lastWidth, m.lastHeight)
+	} else if m.activeModal == ModalConfirmQuit {
+		return m.renderConfirmQuitModal(m.lastWidth, m.lastHeight)
 	}
 
 	// If actions menu is active, overlay it
@@ -4082,6 +4167,29 @@ func (m *model) setTableRowsSorted(rows []table.Row) {
 	m.table.SetRows(rows)
 }
 
+// applySortIndicatorToColumns updates column titles to reflect the active sort column and direction.
+// Must be called from Update() whenever m.sortColumn or m.sortAscending changes.
+func (m *model) applySortIndicatorToColumns() {
+	cols := m.table.Columns()
+	if len(cols) == 0 {
+		return
+	}
+	newCols := make([]table.Column, len(cols))
+	copy(newCols, cols)
+	// strip any existing sort indicator from all columns
+	for i := range newCols {
+		newCols[i].Title = strings.TrimSuffix(strings.TrimSuffix(newCols[i].Title, " ▲"), " ▼")
+	}
+	if m.sortColumn >= 0 && m.sortColumn < len(newCols) {
+		indicator := " ▲"
+		if !m.sortAscending {
+			indicator = " ▼"
+		}
+		newCols[m.sortColumn].Title = newCols[m.sortColumn].Title + indicator
+	}
+	m.table.SetColumns(newCols)
+}
+
 // renderSortPopup renders the column sort selection popup.
 func (m *model) renderSortPopup(width, height int) string {
 	cols := m.table.Columns()
@@ -4269,7 +4377,11 @@ func (m *model) renderEnvPopup(width, height int) string {
 			url = env.URL
 		}
 
-		line := fmt.Sprintf("%s%s %s  %s", cursor, statusIcon, envStyle.Render(name), url)
+		activeMarker := ""
+		if name == m.currentEnv {
+			activeMarker = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render(" ✓")
+		}
+		line := fmt.Sprintf("%s%s %s%s  %s", cursor, statusIcon, envStyle.Render(name), activeMarker, url)
 		b.WriteString(line + "\n")
 	}
 
