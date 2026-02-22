@@ -210,6 +210,7 @@ type editSavedMsg struct {
 	rowIndex int
 	colIndex int
 	value    string
+	dataKey  string // API field name to update in rowData
 }
 
 type editableColumn struct {
@@ -373,6 +374,7 @@ type model struct {
 	// Version number
 	version      string
 	debugEnabled bool
+	debugCh      chan string
 
 	// Environment connection status tracking
 	envStatus map[string]EnvironmentStatus
@@ -581,6 +583,7 @@ func newModel(cfg *config.Config) model {
 		version:                appVersion,
 		variablesByName:        map[string]config.Variable{},
 		debugEnabled:           false,
+		debugCh:                make(chan string, 1),
 		pageOffsets:            make(map[string]int),
 		pageTotals:             make(map[string]int),
 		pendingCursorAfterPage: -1,
@@ -674,6 +677,14 @@ func newModel(cfg *config.Config) model {
 	} else {
 		m.currentRoot = dao.ResourceProcessDefinitions
 	}
+
+	// start single debug writer goroutine (runs for process lifetime)
+	go func(ch chan string) {
+		_ = os.MkdirAll("./debug", 0755)
+		for s := range ch {
+			_ = os.WriteFile("./debug/last-screen.txt", []byte(s), 0644)
+		}
+	}(m.debugCh)
 
 	return m
 }
@@ -780,7 +791,10 @@ NAVIGATION               │  ACTIONS                │  GLOBAL
 ↑/↓/j/k  Navigate list   │  Ctrl+e  Switch env     │  ?     This help
 PgUp/Dn  Page up/down    │  Ctrl+r  Auto-refresh   │  :     Switch view
 gg/G     Top/bottom      │  Space   Actions menu   │  Ctrl+c Quit
-Ctrl+d/u Half-page       │                         │
+Ctrl+u    Half-page up    │
+Ctrl+d    Half-page dn   │
+          (Terminate in  │
+           Instances)    │                         │
 Enter    Drill down      │  VIEW SPECIFIC          │  CONTEXT
 Esc      Go back         │  (varies by view)       │  ──────────────────
                          │                         │  Tab    Complete
@@ -810,11 +824,19 @@ Press any key to close`
 		}
 	}
 
+	helpWidth := width - 6
+	if helpWidth > 76 {
+		helpWidth = 76
+	}
+	if helpWidth < 40 {
+		helpWidth = 40
+	}
+
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(color)).
 		Padding(1, 2).
-		Width(76)
+		Width(helpWidth)
 
 	modal := modalStyle.Render(helpContent)
 
@@ -1658,6 +1680,11 @@ func (m *model) applyDefinitions(defs []config.ProcessDefinition) {
 	if m.sortColumn >= 0 {
 		m.applySortIndicatorToColumns()
 	}
+	// re-apply locked search filter if active
+	if !m.searchMode && m.searchTerm != "" {
+		filtered := filterRows(m.table.Rows(), m.searchTerm)
+		m.table.SetRows(filtered)
+	}
 	m.viewMode = "definitions"
 }
 
@@ -1699,6 +1726,11 @@ func (m *model) applyInstances(instances []config.ProcessInstance) {
 	m.viewMode = "instances"
 	if m.sortColumn >= 0 {
 		m.applySortIndicatorToColumns()
+	}
+	// re-apply locked search filter if active
+	if !m.searchMode && m.searchTerm != "" {
+		filtered := filterRows(m.table.Rows(), m.searchTerm)
+		m.table.SetRows(filtered)
 	}
 	// restore cursor position requested for paging operations
 	if m.pendingCursorAfterPage >= 0 {
@@ -1750,6 +1782,11 @@ func (m *model) applyVariables(vars []config.Variable) {
 	m.setTableRowsSorted(normRows)
 	if m.sortColumn >= 0 {
 		m.applySortIndicatorToColumns()
+	}
+	// re-apply locked search filter if active
+	if !m.searchMode && m.searchTerm != "" {
+		filtered := filterRows(m.table.Rows(), m.searchTerm)
+		m.table.SetRows(filtered)
 	}
 	m.viewMode = "variables"
 }
@@ -2133,7 +2170,7 @@ func (m model) terminateInstanceCmd(id string) tea.Cmd {
 	}
 }
 
-func (m model) setVariableCmd(instanceID, varName string, value interface{}, valueType string, rowIndex, colIndex int, displayValue string) tea.Cmd {
+func (m model) setVariableCmd(instanceID, varName string, value interface{}, valueType string, rowIndex, colIndex int, displayValue string, dataKey string) tea.Cmd {
 	if instanceID == "" || varName == "" {
 		return func() tea.Msg { return errMsg{fmt.Errorf("missing instance or variable name")} }
 	}
@@ -2146,7 +2183,7 @@ func (m model) setVariableCmd(instanceID, varName string, value interface{}, val
 		if err := c.SetProcessInstanceVariable(instanceID, varName, value, valueType); err != nil {
 			return errMsg{err}
 		}
-		return editSavedMsg{rowIndex: rowIndex, colIndex: colIndex, value: displayValue}
+		return editSavedMsg{rowIndex: rowIndex, colIndex: colIndex, value: displayValue, dataKey: dataKey}
 	}
 }
 
@@ -2499,7 +2536,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.activeModal = ModalNone
 					m.editError = ""
 					m.editInput.Blur()
-					return m, tea.Batch(m.setVariableCmd(m.selectedInstanceID, varName, parsedValue, typeName, rowIndex, colIndex, displayValue), flashOnCmd())
+					return m, tea.Batch(m.setVariableCmd(m.selectedInstanceID, varName, parsedValue, typeName, rowIndex, colIndex, displayValue, varName), flashOnCmd())
 				}
 				m.editError = "Editing not supported for this table"
 				return m, nil
@@ -2633,6 +2670,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showRootPopup {
 				m.rootInput += s
 				return m, nil
+			}
+			if m.searchMode {
+				msg2, kind, cmd := setFooterStatus(footerStatusInfo,
+					"Clear search first (Esc) to sort all results", 3*time.Second)
+				m.footerError = msg2
+				m.footerStatusKind = kind
+				return m, cmd
 			}
 			if m.activeModal == ModalNone && !m.showActionsMenu {
 				m.activeModal = ModalSort
@@ -3352,6 +3396,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.sortColumn >= 0 {
 			m.applySortIndicatorToColumns()
 		}
+		// re-apply locked search filter if active
+		if !m.searchMode && m.searchTerm != "" {
+			filtered := filterRows(m.table.Rows(), m.searchTerm)
+			m.table.SetRows(filtered)
+		}
 		// restore pending cursor after page operations for generic loads
 		if m.pendingCursorAfterPage >= 0 {
 			r := m.table.Rows()
@@ -3381,6 +3430,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.table.SetRows(rows)
 			}
 		}
+		// keep rowData consistent with optimistic table update
+		if msg.dataKey != "" && msg.rowIndex >= 0 && msg.rowIndex < len(m.rowData) {
+			m.rowData[msg.rowIndex][msg.dataKey] = msg.value
+		}
 		msg2, kind, cmd := setFooterStatus(footerStatusSuccess, "✓ Saved", 2*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
@@ -3389,27 +3442,70 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// keep backward compatibility: only apply definitions to avoid auto-drilldown
 		m.applyDefinitions(msg.definitions)
 	case terminatedMsg:
+		// find index before removing (removeInstance shifts rows)
+		rows := m.table.Rows()
+		deleteIdx := -1
+		for i, r := range rows {
+			if rowInstanceID(r) == msg.id {
+				deleteIdx = i
+				break
+			}
+		}
 		m.removeInstance(msg.id)
+		// remove corresponding rowData entry
+		if deleteIdx >= 0 && deleteIdx < len(m.rowData) {
+			m.rowData = append(m.rowData[:deleteIdx], m.rowData[deleteIdx+1:]...)
+		}
+		// show success feedback (consistent with suspendedMsg/resumedMsg/retriedMsg)
+		msg2, kind, cmd := setFooterStatus(footerStatusSuccess,
+			fmt.Sprintf("✓ Terminated %s", msg.id), 3*time.Second)
+		m.footerError = msg2
+		m.footerStatusKind = kind
+		return m, cmd
 	case suspendedMsg:
-		msg2, kind, cmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ Suspended %s", msg.id), 3*time.Second)
+		msg2, kind, statusCmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ Suspended %s", msg.id), 3*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
-		return m, cmd
+		m.isLoading = true
+		m.apiCallStarted = time.Now()
+		fetchCmd := m.fetchForRoot(m.currentRoot)
+		if fetchCmd == nil {
+			fetchCmd = m.fetchDefinitionsCmd()
+		}
+		return m, tea.Batch(statusCmd, fetchCmd, spinnerTickCmd())
 	case resumedMsg:
-		msg2, kind, cmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ Resumed %s", msg.id), 3*time.Second)
+		msg2, kind, statusCmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ Resumed %s", msg.id), 3*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
-		return m, cmd
+		m.isLoading = true
+		m.apiCallStarted = time.Now()
+		fetchCmd := m.fetchForRoot(m.currentRoot)
+		if fetchCmd == nil {
+			fetchCmd = m.fetchDefinitionsCmd()
+		}
+		return m, tea.Batch(statusCmd, fetchCmd, spinnerTickCmd())
 	case retriedMsg:
-		msg2, kind, cmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ Retried %s", msg.id), 3*time.Second)
+		msg2, kind, statusCmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ Retried %s", msg.id), 3*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
-		return m, cmd
+		m.isLoading = true
+		m.apiCallStarted = time.Now()
+		fetchCmd := m.fetchForRoot(m.currentRoot)
+		if fetchCmd == nil {
+			fetchCmd = m.fetchDefinitionsCmd()
+		}
+		return m, tea.Batch(statusCmd, fetchCmd, spinnerTickCmd())
 	case actionExecutedMsg:
-		msg2, kind, cmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ %s", msg.label), 3*time.Second)
+		msg2, kind, statusCmd := setFooterStatus(footerStatusSuccess, fmt.Sprintf("✓ %s", msg.label), 3*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
-		return m, cmd
+		m.isLoading = true
+		m.apiCallStarted = time.Now()
+		fetchCmd := m.fetchForRoot(m.currentRoot)
+		if fetchCmd == nil {
+			fetchCmd = m.fetchDefinitionsCmd()
+		}
+		return m, tea.Batch(statusCmd, fetchCmd, spinnerTickCmd())
 	case envStatusMsg:
 		// Update environment status
 		m.envStatus[msg.env] = msg.status
@@ -3778,10 +3874,10 @@ func (m model) View() string {
 	}
 	// Optionally write last rendered view to ./debug/last-screen.txt when debug enabled
 	if m.debugEnabled {
-		go func(s string) {
-			_ = os.MkdirAll("./debug", 0755)
-			_ = os.WriteFile("./debug/last-screen.txt", []byte(s), 0644)
-		}(baseView)
+		select {
+		case m.debugCh <- baseView:
+		default: // channel full — skip this frame, latest wins
+		}
 	}
 	return lipgloss.Place(w, h, lipgloss.Left, lipgloss.Top, baseView)
 }
@@ -4005,7 +4101,7 @@ func filterRows(rows []table.Row, term string) []table.Row {
 	var result []table.Row
 	for _, row := range rows {
 		for _, cell := range row {
-			if strings.Contains(strings.ToLower(cell), lower) {
+			if strings.Contains(strings.ToLower(ansi.Strip(cell)), lower) {
 				result = append(result, row)
 				break
 			}
