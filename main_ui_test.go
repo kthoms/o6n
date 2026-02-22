@@ -51,14 +51,11 @@ func TestSelectionChangeTriggersManualRefreshFlag(t *testing.T) {
 
 	// call Update with an unknown message type so Update goes through the default path
 	res, _ := m.Update(struct{}{})
-	m2, ok := res.(model)
+	_, ok := res.(model)
 	if !ok {
 		t.Fatalf("expected model type from Update result")
 	}
-
-	if !m2.manualRefreshTriggered {
-		t.Fatalf("expected manualRefreshTriggered to be true after selection change")
-	}
+	// manualRefreshTriggered field has been removed; test just verifies Update returns a valid model
 }
 
 func TestFetchCmdExecutesAndLoadsData(t *testing.T) {
@@ -402,13 +399,13 @@ func TestEditableColumnsMarkedWithIndicator(t *testing.T) {
 	if len(cols) < 2 {
 		t.Fatalf("expected at least 2 columns, got %d", len(cols))
 	}
-	// First column header should NOT contain the write emoji
-	if strings.Contains(cols[0].Title, "🖍️") {
+	// First column header should NOT contain the pencil marker
+	if strings.Contains(cols[0].Title, "✎") {
 		t.Errorf("name column header should not be marked editable, got: %s", cols[0].Title)
 	}
-	// Second column header SHOULD contain the write emoji
-	if !strings.Contains(cols[1].Title, "🖍️") {
-		t.Errorf("value column header should be marked editable with 🖍️, got: %s", cols[1].Title)
+	// Second column header SHOULD contain the pencil marker
+	if !strings.Contains(cols[1].Title, "✎") {
+		t.Errorf("value column header should be marked editable with ✎, got: %s", cols[1].Title)
 	}
 }
 

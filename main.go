@@ -107,6 +107,8 @@ type actionExecutedMsg struct {
 
 type errMsg struct{ err error }
 
+type healthTickMsg struct{}
+
 // Messages for the flash indicator
 type flashOnMsg struct{}
 type flashOffMsg struct{}
@@ -246,10 +248,6 @@ type model struct {
 	autoRefresh        bool
 	showKillModal      bool
 	selectedInstanceID string
-	// manualRefreshTriggered is set to true shortly after a manual refresh
-	// (selection-change when auto-refresh is off). It's used to render a
-	// small visual hint in the header.
-	manualRefreshTriggered bool
 
 	list  list.Model
 	table table.Model
@@ -499,8 +497,18 @@ func (m *model) renderCompactHeader(width int) string {
 	envInfo := fmt.Sprintf("%s %s", m.currentEnv, statusStyle.Render(statusSymbol))
 
 	row1 := fmt.Sprintf("o8n %s │ %s", m.version, envInfo)
-	if len(row1) > width-4 {
-		row1 = row1[:width-7] + "..."
+	if m.autoRefresh {
+		accentColor := lipgloss.Color("#00AAFF")
+		if m.config != nil {
+			if env, ok := m.config.Environments[m.currentEnv]; ok && env.UIColor != "" {
+				accentColor = lipgloss.Color(env.UIColor)
+			}
+		}
+		badge := lipgloss.NewStyle().Foreground(accentColor).Render("↺")
+		row1 = row1 + " " + badge
+	}
+	if lipgloss.Width(row1) > width-4 {
+		row1 = truncateString(row1, width-7) + "..."
 	}
 
 	// Row 2: Key hints (priority-based)
@@ -1029,6 +1037,7 @@ func (m model) Init() tea.Cmd {
 	for _, envName := range m.envNames {
 		cmds = append(cmds, m.checkEnvironmentHealthCmd(envName))
 	}
+	cmds = append(cmds, tea.Tick(60*time.Second, func(time.Time) tea.Msg { return healthTickMsg{} }))
 
 	return tea.Batch(cmds...)
 }
@@ -1047,13 +1056,6 @@ func (m *model) nextEnvironment() tea.Cmd {
 	idx = (idx + 1) % len(m.envNames)
 	m.currentEnv = m.envNames[idx]
 	m.applyStyle()
-	// persist active environment in the config file; best-effort
-	if m.config != nil {
-		m.config.Active = m.currentEnv
-		if err := config.SaveConfig("config.yaml", m.config); err != nil {
-			log.Printf("warning: failed to save config active environment: %v", err)
-		}
-	}
 	// Check health of the newly selected environment
 	return m.checkEnvironmentHealthCmd(m.currentEnv)
 }
@@ -1222,12 +1224,6 @@ func (m model) setJobRetriesCmd(id string, retries int) tea.Cmd {
 func (m *model) switchToEnvironment(name string) {
 	m.currentEnv = name
 	m.applyStyle()
-	if m.config != nil {
-		m.config.Active = m.currentEnv
-		if err := config.SaveConfig("config.yaml", m.config); err != nil {
-			log.Printf("warning: failed to save config active environment: %v", err)
-		}
-	}
 }
 
 func (m *model) resetViews() {
@@ -1499,42 +1495,6 @@ func (m *model) startEdit(tableKey string) string {
 
 // buildColumnsFor builds table.Column slice for a named table using the config definitions
 // totalWidth is the available characters for the table content; if zero, returns reasonable defaults
-// addEditableMarkers adds [E] suffix to editable columns in table rows
-func (m *model) addEditableMarkers(rows []table.Row, tableName string) []table.Row {
-	def := m.findTableDef(tableName)
-	if def == nil {
-		return rows
-	}
-	// find which visible column indices are editable
-	editableIndices := make(map[int]bool)
-	visIdx := 0
-	for _, c := range def.Columns {
-		if !c.IsVisible() {
-			continue
-		}
-		if c.Editable {
-			editableIndices[visIdx] = true
-		}
-		visIdx++
-	}
-	if len(editableIndices) == 0 {
-		return rows
-	}
-	// clone and mark editable cells
-	marked := make([]table.Row, len(rows))
-	for i, row := range rows {
-		marked[i] = make(table.Row, len(row))
-		for j, cell := range row {
-			if editableIndices[j] {
-				marked[i][j] = fmt.Sprintf("%v [E]", cell)
-			} else {
-				marked[i][j] = cell
-			}
-		}
-	}
-	return marked
-}
-
 func (m *model) buildColumnsFor(tableName string, totalWidth int) []table.Column {
 	def := m.findTableDef(tableName)
 	if def == nil {
@@ -1556,7 +1516,7 @@ func (m *model) buildColumnsFor(tableName string, totalWidth int) []table.Column
 		}
 		title := strings.ToUpper(c.Name)
 		if c.Editable {
-			title = title + " 🖍️"
+			title = title + " ✎"
 		}
 		headerLen := lipgloss.Width(title)
 
@@ -2599,7 +2559,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.autoRefresh {
 				m.isLoading = true
 				m.apiCallStarted = time.Now()
-				return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), tea.Tick(refreshInterval, func(time.Time) tea.Msg { return refreshMsg{} }), spinnerTickCmd())
+				initialCmd := m.fetchForRoot(m.currentRoot)
+				if initialCmd == nil {
+					initialCmd = m.fetchDefinitionsCmd()
+				}
+				return m, tea.Batch(initialCmd, flashOnCmd(), tea.Tick(refreshInterval, func(time.Time) tea.Msg { return refreshMsg{} }), spinnerTickCmd())
 			}
 			return m, nil
 		case "s":
@@ -3179,8 +3143,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case refreshMsg:
 		if m.autoRefresh {
-			return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), tea.Tick(refreshInterval, func(time.Time) tea.Msg { return refreshMsg{} }))
+			cmd := m.fetchForRoot(m.currentRoot)
+			if cmd == nil {
+				cmd = m.fetchDefinitionsCmd()
+			}
+			return m, tea.Batch(cmd, flashOnCmd(), tea.Tick(refreshInterval, func(time.Time) tea.Msg { return refreshMsg{} }), spinnerTickCmd())
 		}
+	case healthTickMsg:
+		return m, tea.Batch(
+			m.checkEnvironmentHealthCmd(m.currentEnv),
+			tea.Tick(60*time.Second, func(time.Time) tea.Msg { return healthTickMsg{} }),
+		)
 	case flashOnMsg:
 		m.flashActive = true
 		// schedule turning the flash off after 200ms
@@ -3266,6 +3239,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Build rows from items; also capture raw data for drilldown column lookup
 		rows := make([]table.Row, 0, len(msg.items))
 		rd := make([]map[string]interface{}, 0, len(msg.items))
+		hasDrilldown := def != nil && len(def.Drilldown) > 0
 		for _, it := range msg.items {
 			rd = append(rd, it)
 			if len(cols) == 0 {
@@ -3290,6 +3264,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				r[i] = val
+			}
+			if hasDrilldown && len(r) > 0 {
+				r[0] = "▶ " + r[0]
 			}
 			rows = append(rows, r)
 		}
@@ -3364,7 +3341,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.envStatus[msg.env] = msg.status
 	case errMsg:
 		// display error in footer with 8s auto-clear
-		msg2, kind, cmd := setFooterStatus(footerStatusError, msg.err.Error(), 8*time.Second)
+		errText := friendlyError(m.currentEnv, msg.err)
+		msg2, kind, cmd := setFooterStatus(footerStatusError, errText, 8*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
 		m.isLoading = false
@@ -3384,10 +3362,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 	newIndex := m.list.Index()
 	changed := prevIndex != newIndex || newIndex != m.lastListIndex
-	// only set manualRefreshTriggered; do NOT fetch instances on selection change
-	if changed && !m.autoRefresh {
-		m.manualRefreshTriggered = true
-	}
+	_ = changed
 	m.lastListIndex = newIndex
 
 	// Defensive: ensure table rows match the number of columns before updating
@@ -3724,6 +3699,32 @@ func (m model) View() string {
 		}(baseView)
 	}
 	return lipgloss.Place(w, h, lipgloss.Left, lipgloss.Top, baseView)
+}
+
+// truncateString truncates s to at most n visible characters (runes), safe for Unicode.
+func truncateString(s string, n int) string {
+	runes := []rune(s)
+	if len(runes) <= n {
+		return s
+	}
+	return string(runes[:n])
+}
+
+// friendlyError translates raw Go network errors into user-friendly messages.
+func friendlyError(env string, err error) string {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "connection refused"):
+		return fmt.Sprintf("Cannot connect to %s — is the engine running?", env)
+	case strings.Contains(msg, "timeout") || strings.Contains(msg, "deadline exceeded"):
+		return fmt.Sprintf("Request timed out — %s may be slow or unreachable", env)
+	case strings.Contains(msg, "certificate") || strings.Contains(msg, "x509"):
+		return fmt.Sprintf("TLS/certificate error — check HTTPS config for %s", env)
+	case strings.Contains(msg, "no such host"):
+		return fmt.Sprintf("Unknown host for %s — check the base URL in config", env)
+	default:
+		return msg
+	}
 }
 
 // stripFocusIndicatorPrefix removes the drilldown indicator (▶ ) from the beginning of a string.
@@ -4330,6 +4331,9 @@ func normalizeRows(rows []table.Row, colsCount int) []table.Row {
 		empty := make(table.Row, colsCount)
 		for i := range empty {
 			empty[i] = ""
+		}
+		if colsCount > 0 {
+			empty[0] = "No results"
 		}
 		return []table.Row{empty}
 	}

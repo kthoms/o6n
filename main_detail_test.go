@@ -35,7 +35,7 @@ func TestDetailViewerScrolling(t *testing.T) {
 	}
 	m.detailContent = content
 	m.detailScroll = 0
-	m.detailMaxScroll = 40
+	// detailMaxScroll is now computed dynamically in Update() based on content and terminal height
 
 	// j scrolls down
 	m2, _ := sendKeyString(m, "j")
