@@ -50,6 +50,9 @@ type envStatusMsg struct {
 	err    error
 }
 
+// spinnerFrames is the Braille dot spinner animation sequence.
+var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
 // Package-level style constants used in View — cached here to avoid per-frame allocations.
 var (
 	// completionStyle renders the greyed-out autocomplete ghost text in the root popup.
@@ -114,6 +117,8 @@ type clearErrorMsg struct{}
 // clearPendingGMsg resets the pendingG flag after timeout
 type clearPendingGMsg struct{}
 
+type spinnerTickMsg struct{}
+
 // footerStatusKind represents the type of feedback message in the footer
 type footerStatusKind int
 
@@ -141,6 +146,10 @@ func setFooterStatus(kind footerStatusKind, msg string, clearAfter time.Duration
 		cmd = tea.Tick(clearAfter, func(time.Time) tea.Msg { return clearErrorMsg{} })
 	}
 	return msg, kind, cmd
+}
+
+func spinnerTickCmd() tea.Cmd {
+	return tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return spinnerTickMsg{} })
 }
 
 type processDefinitionItem struct {
@@ -287,6 +296,8 @@ type model struct {
 	// flashActive indicates the footer flash should be shown
 	flashActive bool
 
+	spinnerFrame int
+
 	// last known terminal size (set on WindowSizeMsg)
 	lastWidth  int
 	lastHeight int
@@ -421,7 +432,7 @@ func (m *model) getKeyHints(width int) []KeyHint {
 		)
 		// Terminate instance hint in instances view
 		if width >= 100 {
-			hints = append(hints, KeyHint{"<ctrl>+d", "terminate", 7})
+			hints = append(hints, KeyHint{"Ctrl+d", "terminate", 7})
 		}
 	} else if m.viewMode == "variables" {
 		hints = append(hints,
@@ -435,15 +446,24 @@ func (m *model) getKeyHints(width int) []KeyHint {
 	}
 
 	// Add other hints based on width thresholds
+	if width >= 88 && m.activeModal == ModalNone {
+		hints = append(hints, KeyHint{"s", "sort", 5})
+	}
+	if width >= 100 && m.activeModal == ModalNone {
+		hints = append(hints, KeyHint{"Space", "actions", 6})
+	}
+	if width >= 112 && m.activeModal == ModalNone {
+		hints = append(hints, KeyHint{"y", "detail", 6})
+	}
 	if width >= 90 {
-		hints = append(hints, KeyHint{"<ctrl>-r", "refresh", 6})
+		hints = append(hints, KeyHint{"Ctrl+r", "refresh", 6})
 	}
 	hints = append(hints, KeyHint{"PgDn/PgUp", "page", 3})
 	if width >= 110 {
-		hints = append(hints, KeyHint{"<ctrl>+c", "quit", 8})
+		hints = append(hints, KeyHint{"Ctrl+c", "quit", 8})
 	}
-	if width >= 130 {
-		hints = append(hints, KeyHint{"<ctrl>+e", "env", 9})
+	if width >= 105 {
+		hints = append(hints, KeyHint{"Ctrl+e", "env", 9})
 	}
 
 	return hints
@@ -479,7 +499,7 @@ func (m *model) renderCompactHeader(width int) string {
 	statusStyle := lipgloss.NewStyle().Foreground(statusColor)
 	envInfo := fmt.Sprintf("%s %s", m.currentEnv, statusStyle.Render(statusSymbol))
 
-	row1 := fmt.Sprintf("[H] o8n %s │ %s", m.version, envInfo)
+	row1 := fmt.Sprintf("o8n %s │ %s", m.version, envInfo)
 	if len(row1) > width-4 {
 		row1 = row1[:width-7] + "..."
 	}
@@ -496,11 +516,8 @@ func (m *model) renderCompactHeader(width int) string {
 		row2 = row2[:width-7] + "..."
 	}
 
-	// Row 3: Empty spacer
-	row3 := ""
-
 	// Join rows
-	header := fmt.Sprintf("%s\n%s\n%s", row1, row2, row3)
+	header := fmt.Sprintf("%s\n%s", row1, row2)
 
 	// Render header using default terminal colors (no forced background/foreground).
 	headerStyle := lipgloss.NewStyle().Width(width).Padding(0, 1).Bold(true)
@@ -615,8 +632,8 @@ func newModel(cfg *config.Config) model {
 		m.paneWidth = m.lastWidth - 4
 	}
 	// compute content height reserving header/context/footer lines so header is visible
-	// compactHeader (3 lines) + content header (1 line) = 4 header lines total
-	headerLines := 4
+	// compactHeader (2 lines) + content header (1 line) = 3 header lines total
+	headerLines := 3
 	contextSelectionLines := 1
 	footerLines := 2  // breadcrumb line + status line
 	// reserve an extra safe line to avoid off-by-one overflow
@@ -701,7 +718,7 @@ func (m *model) renderConfirmDeleteModal(width, height int) string {
 			"Definition:    %s\n\n"+
 			"⚠️  WARNING: This action CANNOT be undone!\n"+
 			"The instance will be terminated.\n\n"+
-			"<ctrl>+d  Confirm Delete    Esc  Cancel",
+			"Ctrl+d  Confirm Delete    Esc  Cancel",
 		instanceID, defName)
 
 	// Get color for styling
@@ -728,23 +745,22 @@ func (m *model) renderConfirmDeleteModal(width, height int) string {
 func (m *model) renderHelpScreen(width, height int) string {
 	helpContent := `o8n Help
 
-NAVIGATION              │  ACTIONS                │  GLOBAL
-─────────────────────   │  ────────────────────   │  ──────────────────
-↑/↓/j/k  Navigate list  │  <ctrl>+e  Switch env   │  ?     This help
-PgUp/Dn  Page up/down   │  <ctrl>-r  Auto-refresh │  :     Switch view
-gg/G     Top/bottom     │  <ctrl>+d  Delete item  │  <ctrl>+c Quit
-Ctrl+d/u Half-page      │  <ctrl>-R  Force refresh│
-Enter    Drill down     │  Space     Actions menu │  CONTEXT
-Esc      Go back        │  VIEW SPECIFIC          │  ───────────────────
-                        │  (varies by view)       │  Tab      Complete
-SEARCH                  │                         │  Enter    Confirm
-─────────────────────   │  In Process Instances:  │  Esc      Cancel
-/        Search/filter  │  v  View variables      │  s        Sort
-Esc      Clear filter   │  <ctrl>+d Kill instance │  y        Detail view
-Enter    Lock filter    │  s  Suspend instance    │
-                        │  r  Resume instance     │
-					   │  In Variables:          │
-					   │  e  Edit value          │
+NAVIGATION               │  ACTIONS                │  GLOBAL
+──────────────────────   │  ────────────────────   │  ──────────────────
+↑/↓/j/k  Navigate list   │  Ctrl+e  Switch env     │  ?     This help
+PgUp/Dn  Page up/down    │  Ctrl+r  Auto-refresh   │  :     Switch view
+gg/G     Top/bottom      │  Space   Actions menu   │  Ctrl+c Quit
+Ctrl+d/u Half-page       │                         │
+Enter    Drill down      │  VIEW SPECIFIC          │  CONTEXT
+Esc      Go back         │  (varies by view)       │  ──────────────────
+                         │                         │  Tab    Complete
+SEARCH                   │  In Instances:          │  Enter  Confirm
+──────────────────────   │  v/Enter  Drill vars    │  Esc    Cancel
+/        Search/filter   │  Ctrl+d   Terminate     │  s      Sort
+Esc      Clear filter    │  Space    Actions menu  │  y      Detail view
+Enter    Lock filter     │                         │
+                         │  In Variables:          │
+                         │  e        Edit value    │
 
 Current View: ` + m.viewMode + `
 Environment: ` + m.currentEnv + `
@@ -2314,7 +2330,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.resetViews()
 						m.isLoading = true
 						m.apiCallStarted = time.Now()
-						return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), m.checkEnvironmentHealthCmd(targetEnv))
+						return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), m.checkEnvironmentHealthCmd(targetEnv), spinnerTickCmd())
 					}
 				}
 				return m, nil
@@ -2518,7 +2534,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.autoRefresh {
 				m.isLoading = true
 				m.apiCallStarted = time.Now()
-				return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), tea.Tick(refreshInterval, func(time.Time) tea.Msg { return refreshMsg{} }))
+				return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), tea.Tick(refreshInterval, func(time.Time) tea.Msg { return refreshMsg{} }), spinnerTickCmd())
 			}
 			return m, nil
 		case "s":
@@ -2646,12 +2662,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							}
 							m.isLoading = true
 							m.apiCallStarted = time.Now()
-							return m, tea.Batch(m.fetchForRoot(rc), flashOnCmd())
+							return m, tea.Batch(m.fetchForRoot(rc), flashOnCmd(), spinnerTickCmd())
 						}
 						// fallback to definitions fetch
 						m.isLoading = true
 					m.apiCallStarted = time.Now()
-						return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd())
+						return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), spinnerTickCmd())
 					}
 				}
 				// no exact match: ignore
@@ -3068,8 +3084,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// store terminal size for View footer alignment
 		m.lastWidth = width
 		m.lastHeight = height
-		// Reserve lines: compact header is 4 rows (with top spacer), context selection 1 line (when active), footer 1 line
-		headerLines := 4 // compactHeader placed at 4 rows
+		// Reserve lines: compact header is 3 rows, context selection 1 line (when active), footer 1 line
+		headerLines := 3 // compactHeader placed at 3 rows
 		contextSelectionLines := 1
 		footerLines := 1
 		// content height = terminal height minus header, context box, and footer
@@ -3106,6 +3122,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Tick(200*time.Millisecond, func(time.Time) tea.Msg { return flashOffMsg{} })
 	case flashOffMsg:
 		m.flashActive = false
+	case spinnerTickMsg:
+		if m.isLoading {
+			m.spinnerFrame = (m.spinnerFrame + 1) % len(spinnerFrames)
+			return m, spinnerTickCmd()
+		}
 	case definitionsLoadedMsg:
 		m.pageTotals[dao.ResourceProcessDefinitions] = msg.count
 		m.applyDefinitions(msg.definitions)
@@ -3404,8 +3425,8 @@ func (m model) View() string {
 
 	// Main UI - use compact 3-row header
 	compactHeader := m.renderCompactHeader(m.lastWidth)
-	// Ensure compact header occupies exactly 4 rows (one extra top spacer)
-	compactHeader = lipgloss.Place(m.lastWidth, 4, lipgloss.Left, lipgloss.Center, compactHeader)
+	// Ensure compact header occupies exactly 3 rows
+	compactHeader = lipgloss.Place(m.lastWidth, 3, lipgloss.Left, lipgloss.Center, compactHeader)
 
 	// get border color
 	color := ""
@@ -3551,7 +3572,7 @@ func (m model) View() string {
 		case footerStatusSuccess:
 			icon, style = "✓ ", successFooterStyle
 		case footerStatusLoading:
-			icon, style = "⟳ ", loadingFooterStyle
+			icon, style = spinnerFrames[m.spinnerFrame%len(spinnerFrames)]+" ", loadingFooterStyle
 		default: // footerStatusInfo
 			icon, style = "ℹ ", infoFooterStyle
 		}

@@ -121,7 +121,7 @@ func TestWin2_KeyHintsRespectTerminalWidth(t *testing.T) {
 	hints := m.getKeyHints(80)
 	hasDelete := false
 	for _, h := range hints {
-		if strings.Contains(h.Key, "ctrl") && strings.Contains(h.Description, "terminate") {
+		if strings.Contains(h.Key, "Ctrl") && strings.Contains(h.Description, "terminate") {
 			hasDelete = true
 		}
 	}
@@ -133,7 +133,7 @@ func TestWin2_KeyHintsRespectTerminalWidth(t *testing.T) {
 	hints = m.getKeyHints(100)
 	hasDelete = false
 	for _, h := range hints {
-		if strings.Contains(h.Key, "ctrl") && strings.Contains(h.Description, "terminate") {
+		if strings.Contains(h.Key, "Ctrl") && strings.Contains(h.Description, "terminate") {
 			hasDelete = true
 		}
 	}
