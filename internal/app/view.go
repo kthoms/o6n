@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -10,6 +11,10 @@ import (
 	"github.com/kthoms/o8n/internal/contentassist"
 	"github.com/kthoms/o8n/internal/validation"
 )
+
+// lastRenderedView holds the most recently rendered frame, used for screen dumps on errors.
+// Package-level because View() has a value receiver and cannot mutate model fields.
+var lastRenderedView string
 
 // getKeyHints returns context-aware keyboard hints based on current view and terminal width
 func (m *model) getKeyHints(width int) []KeyHint {
@@ -564,14 +569,17 @@ func (m model) View() string {
 			end = len(items)
 		}
 		shown := items[offset:end]
+		selectedStyle := lipgloss.NewStyle().Foreground(col(m.skin, "borderFocus")).Bold(true)
 		var listLines []string
 		for i, rc := range shown {
 			globalIdx := offset + i
 			cursor := "  "
 			if globalIdx == m.popup.cursor {
 				cursor = "\u25b8 "
+				listLines = append(listLines, selectedStyle.Render(fmt.Sprintf("%s%s", cursor, rc)))
+			} else {
+				listLines = append(listLines, fmt.Sprintf("%s%s", cursor, rc))
 			}
-			listLines = append(listLines, fmt.Sprintf("%s%s", cursor, rc))
 		}
 		listText := strings.Join(listLines, "\n")
 
@@ -786,12 +794,11 @@ func (m model) View() string {
 	if h <= 0 {
 		h = 24
 	}
-	// Optionally write last rendered view to ./debug/last-screen.txt when debug enabled
+	// Capture last rendered frame for screen dumps (used by error/panic logging)
+	lastRenderedView = baseView
 	if m.debugEnabled {
-		select {
-		case m.debugCh <- baseView:
-		default: // channel full — skip this frame, latest wins
-		}
+		_ = os.MkdirAll("./debug", 0755)
+		_ = os.WriteFile("./debug/last-screen.txt", []byte(baseView), 0644)
 	}
 	return lipgloss.Place(w, h, lipgloss.Left, lipgloss.Top, baseView)
 }

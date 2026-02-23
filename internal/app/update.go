@@ -3,6 +3,8 @@ package app
 import (
 	"fmt"
 	"log"
+	"os"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"time"
@@ -13,7 +15,25 @@ import (
 	"github.com/kthoms/o8n/internal/dao"
 )
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
+	defer func() {
+		if r := recover(); r != nil {
+			stack := debug.Stack()
+			id := fmt.Sprintf("%d", time.Now().UnixNano())
+			_ = os.MkdirAll("./debug", 0755)
+			screenFile := fmt.Sprintf("./debug/screen-%s.txt", id)
+			_ = os.WriteFile(screenFile, []byte(lastRenderedView), 0644)
+			log.Printf("[panic] %v | screen: debug/screen-%s.txt\n%s", r, id, stack)
+			// Mutate return values to surface error in UI without crashing
+			recovered := m
+			recovered.footerError = fmt.Sprintf("internal error: %v — see debug/o8n.log", r)
+			recovered.footerStatusKind = footerStatusError
+			recovered.isLoading = false
+			retModel = recovered
+			retCmd = nil
+		}
+	}()
+
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -1194,6 +1214,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Resize UI to take full terminal size
 		width := msg.Width
 		height := msg.Height
+		if m.debugEnabled {
+			log.Printf("[resize] %dx%d", width, height)
+		}
 		// store terminal size for View footer alignment
 		m.lastWidth = width
 		m.lastHeight = height
@@ -1492,11 +1515,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.popup.items = m.availableSkins
 		}
 	case errMsg:
+		// Clear stale table rows so old data doesn't persist alongside the error
+		m.table.SetRows([]table.Row{})
+		m.isLoading = false
+		// Log error always (not just in debug mode) — stack trace only in debug mode
+		id := fmt.Sprintf("%d", time.Now().UnixNano())
+		_ = os.MkdirAll("./debug", 0755)
+		screenFile := fmt.Sprintf("./debug/screen-%s.txt", id)
+		_ = os.WriteFile(screenFile, []byte(lastRenderedView), 0644)
+		if m.debugEnabled {
+			log.Printf("[error] %v | screen: debug/screen-%s.txt\n%s", msg.err, id, debug.Stack())
+		} else {
+			log.Printf("[error] %v | screen: debug/screen-%s.txt", msg.err, id)
+		}
 		errText := friendlyError(m.currentEnv, msg.err) + " — Ctrl+r to retry"
 		msg2, kind, cmd := setFooterStatus(footerStatusError, errText, 8*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
-		m.isLoading = false
 		return m, cmd
 	case clearErrorMsg:
 		m.footerError = ""

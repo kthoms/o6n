@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"sort"
@@ -284,6 +285,9 @@ func (m model) fetchDataCmd() tea.Cmd {
 
 // fetchForRoot returns a command that fetches data for the given root resource.
 func (m model) fetchForRoot(root string) tea.Cmd {
+	if m.debugEnabled {
+		log.Printf("[cmd] fetch root=%s", root)
+	}
 	return m.fetchGenericCmd(root)
 }
 
@@ -377,7 +381,7 @@ func (m model) fetchGenericCmd(root string) tea.Cmd {
 		defer cancel()
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
 		if err != nil {
-			return errMsg{err}
+			return errMsg{fmt.Errorf("GET %s: %w", urlStr, err)}
 		}
 		req.Header.Set("Accept", "application/json")
 		if env.Username != "" {
@@ -385,17 +389,17 @@ func (m model) fetchGenericCmd(root string) tea.Cmd {
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return errMsg{err}
+			return errMsg{fmt.Errorf("GET %s: %w", urlStr, err)}
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode >= 400 {
 			data, _ := io.ReadAll(resp.Body)
-			return errMsg{fmt.Errorf("failed to fetch %s: %s", root, string(data))}
+			return errMsg{fmt.Errorf("GET %s: HTTP %d: %s", urlStr, resp.StatusCode, string(data))}
 		}
 		var items []map[string]interface{}
 		dec := json.NewDecoder(resp.Body)
 		if err := dec.Decode(&items); err != nil {
-			return errMsg{err}
+			return errMsg{fmt.Errorf("GET %s: decode: %w", urlStr, err)}
 		}
 
 		// Try to load count using the correct count endpoint for this table.

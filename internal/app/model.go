@@ -353,7 +353,6 @@ type model struct {
 	// Version number
 	version      string
 	debugEnabled bool
-	debugCh      chan string
 	quitting     bool // set true before tea.Quit so View() returns "" to clear screen
 
 	// Environment connection status tracking
@@ -438,7 +437,6 @@ func newModel(cfg *config.Config) model {
 		version:                appVersion,
 		variablesByName:        map[string]config.Variable{},
 		debugEnabled:           false,
-		debugCh:                make(chan string, 1),
 		pageOffsets:            make(map[string]int),
 		pageTotals:             make(map[string]int),
 		pendingCursorAfterPage: -1,
@@ -524,19 +522,15 @@ func newModel(cfg *config.Config) model {
 
 	// set root contexts and currentRoot
 	m.rootContexts = loadRootContexts("resources/operaton-rest-api.json")
-	if len(m.rootContexts) > 0 {
-		m.currentRoot = dao.ResourceProcessDefinitions
-	} else {
-		m.currentRoot = dao.ResourceProcessDefinitions
-	}
-
-	// start single debug writer goroutine (runs for process lifetime)
-	go func(ch chan string) {
-		_ = os.MkdirAll("./debug", 0755)
-		for s := range ch {
-			_ = os.WriteFile("./debug/last-screen.txt", []byte(s), 0644)
+	// Filter to only contexts that have a TableDef in config — prevents broken contexts
+	filtered := m.rootContexts[:0]
+	for _, rc := range m.rootContexts {
+		if m.findTableDef(rc) != nil {
+			filtered = append(filtered, rc)
 		}
-	}(m.debugCh)
+	}
+	m.rootContexts = filtered
+	m.currentRoot = dao.ResourceProcessDefinitions
 
 	return m
 }
