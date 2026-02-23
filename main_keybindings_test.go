@@ -209,7 +209,7 @@ func TestErrMsgDisplaysInFooter(t *testing.T) {
 	res, cmd := m.Update(errMsg{err: fmt.Errorf("connection refused")})
 	m2 := res.(model)
 
-	if m2.footerError != "Cannot connect to local — is the engine running?" {
+	if m2.footerError != "Cannot connect to local — is the engine running? — Ctrl+r to retry" {
 		t.Errorf("expected friendly error message for connection refused, got %q", m2.footerError)
 	}
 	if cmd == nil {

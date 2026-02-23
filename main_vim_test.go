@@ -107,15 +107,25 @@ func TestVimKeysDisabledInModal(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
 	m.activeModal = ModalHelp
+	m.lastHeight = 30
 	cols := []table.Column{{Title: "ID", Width: 10}}
 	m.table.SetColumns(cols)
 	m.table.SetRows([]table.Row{{"1"}, {"2"}, {"3"}})
 	m.table.SetCursor(0)
 
-	// j should dismiss help modal (any key dismisses help)
+	// j should scroll help (not dismiss), table cursor should not move
 	m2, _ := sendKeyString(m, "j")
-	if m2.activeModal != ModalNone {
-		t.Error("expected help modal to be dismissed")
+	if m2.activeModal != ModalHelp {
+		t.Error("expected help modal to remain open when j is pressed (scroll)")
+	}
+	if m2.table.Cursor() != 0 {
+		t.Error("expected table cursor to stay at 0 (j consumed by help scroll)")
+	}
+
+	// space (default key) should dismiss help modal
+	m3, _ := sendKeyString(m, " ")
+	if m3.activeModal != ModalNone {
+		t.Error("expected help modal to be dismissed by space")
 	}
 }
 

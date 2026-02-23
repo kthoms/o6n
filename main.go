@@ -66,6 +66,8 @@ var (
 	loadingFooterStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
 	// Validation error style for edit modal
 	validationErrorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true)
+	// Page counter style (neutral, separate from flash color)
+	pageCounterStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 )
 
 type refreshMsg struct{}
@@ -313,7 +315,8 @@ type model struct {
 	appConfig *config.AppConfig
 
 	// colon popup
-	showRootPopup bool
+	showRootPopup    bool
+	rootPopupCursor  int
 	// available root contexts (computed from API spec)
 	rootContexts []string
 	rootSelected int
@@ -395,6 +398,9 @@ type model struct {
 	// Detail viewer state
 	detailContent   string
 	detailScroll    int
+
+	// Help scroll offset
+	helpScroll int
 
 	// Environment popup state
 	showEnvPopup   bool
@@ -590,6 +596,7 @@ func newModel(cfg *config.Config) model {
 		genericParams:          make(map[string]string),
 		envStatus:              make(map[string]EnvironmentStatus),
 		sortColumn:             -1,
+		rootPopupCursor:        -1,
 	}
 
 	// edit input defaults
@@ -782,8 +789,43 @@ func (m *model) renderConfirmQuitModal(width, height int) string {
 	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, modal)
 }
 
+// renderHelpContentForLineCount returns the static help text for line-count purposes (scroll bound computation).
+func renderHelpContentForLineCount(viewMode, currentEnv string) string {
+	return `o8n Help
+
+NAVIGATION               │  ACTIONS                │  GLOBAL
+──────────────────────   │  ────────────────────   │  ──────────────────
+↑/↓/j/k  Navigate list   │  Ctrl+e  Switch env     │  ?     This help
+PgUp/Dn  Page up/down    │  Ctrl+r  Auto-refresh   │  :     Switch view
+gg/G     Top/bottom      │  Space   Actions menu   │  Ctrl+c Quit
+Ctrl+u    Half-page up    │
+Ctrl+d    Half-page dn   │
+          (Terminate in  │
+           Instances)    │                         │
+Enter    Drill down      │  VIEW SPECIFIC          │  CONTEXT
+Esc      Go back         │  (varies by view)       │  ──────────────────
+                         │                         │  Tab    Complete
+SEARCH                   │  In Instances:          │  Enter  Confirm
+──────────────────────   │  v/Enter  Drill vars    │  Esc    Cancel
+/        Search/filter   │  Ctrl+d   Terminate     │  s      Sort
+Esc      Clear filter    │  Space    Actions menu  │  y      Detail view
+Enter    Lock filter     │                         │
+                         │  In Variables:          │
+                         │  e        Edit value    │
+
+STATUS COLORS
+────────────────────────────────────────────
+● Running    ● Suspended    ✗ Failed/Incident    ○ Ended
+(green)      (yellow)       (red)                (dim)
+
+Current View: ` + viewMode + `
+Environment: ` + currentEnv + `
+
+j/k or ↑↓: scroll  Any other key: close`
+}
+
 // renderHelpScreen renders the help screen modal
-func (m *model) renderHelpScreen(width, height int) string {
+func (m model) renderHelpScreen(width, height int) string {
 	helpContent := `o8n Help
 
 NAVIGATION               │  ACTIONS                │  GLOBAL
@@ -814,7 +856,36 @@ STATUS COLORS
 Current View: ` + m.viewMode + `
 Environment: ` + m.currentEnv + `
 
-Press any key to close`
+j/k or ↑↓: scroll  Any other key: close`
+
+	// Apply scroll window
+	lines := strings.Split(helpContent, "\n")
+	visibleH := height - 8
+	if visibleH < 5 {
+		visibleH = 5
+	}
+	maxScroll := len(lines) - visibleH
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	scroll := m.helpScroll
+	if scroll > maxScroll {
+		scroll = maxScroll
+	}
+	start := scroll
+	end := start + visibleH
+	if end > len(lines) {
+		end = len(lines)
+	}
+	visibleLines := make([]string, end-start)
+	copy(visibleLines, lines[start:end])
+	if scroll > 0 {
+		visibleLines[0] = "  ↑ more above"
+	}
+	if end < len(lines) {
+		visibleLines = append(visibleLines, "  ↓ more below")
+	}
+	helpContent = strings.Join(visibleLines, "\n")
 
 	// Get color for styling
 	color := ""
@@ -2444,9 +2515,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Handle modal-specific keys first
 		if m.activeModal == ModalHelp {
-			// Any key closes help screen
-			m.activeModal = ModalNone
-			return m, nil
+			// compute help line count for scroll bounds
+			helpLines := strings.Split(renderHelpContentForLineCount(m.viewMode, m.currentEnv), "\n")
+			visibleH := m.lastHeight - 8
+			if visibleH < 5 {
+				visibleH = 5
+			}
+			maxScroll := len(helpLines) - visibleH
+			if maxScroll < 0 {
+				maxScroll = 0
+			}
+			switch s {
+			case "j", "down", "ctrl+d":
+				if m.helpScroll < maxScroll {
+					m.helpScroll++
+				}
+				return m, nil
+			case "k", "up", "ctrl+u":
+				if m.helpScroll > 0 {
+					m.helpScroll--
+				}
+				return m, nil
+			default:
+				m.activeModal = ModalNone
+				m.helpScroll = 0
+				return m, nil
+			}
 		}
 
 		if m.activeModal == ModalEdit {
@@ -2584,9 +2678,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !m.showRootPopup {
 				m.showRootPopup = true
 				m.rootInput = ""
+				m.rootPopupCursor = -1
 				m.footerError = ""
 			} else {
 				m.showRootPopup = false
+				m.rootPopupCursor = -1
 			}
 			m.paneHeight = m.computePaneHeight()
 			m.table.SetHeight(m.paneHeight - 1)
@@ -2600,6 +2696,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "?":
 			// Show help screen
 			m.activeModal = ModalHelp
+			m.helpScroll = 0
 			return m, nil
 		case "/":
 			// Enter search/filter mode
@@ -2740,6 +2837,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showRootPopup {
 				m.showRootPopup = false
 				m.rootInput = ""
+				m.rootPopupCursor = -1
 				return m, nil
 			}
 			// Pop from navigation stack and restore previous view state
@@ -2779,37 +2877,55 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "enter":
 			if m.showRootPopup {
-				// only switch if exact match to a known root context
+				// If cursor selects from popup list, use that context
+				matchingContexts := []string{}
 				for _, rc := range m.rootContexts {
-					if rc == m.rootInput {
-						m.currentRoot = rc
-						m.showRootPopup = false
-						m.rootInput = ""
-						// clear any footer error
-						m.footerError = ""
-						// clear drilldown filter params when switching root context
-						m.genericParams = make(map[string]string)
-						// reset breadcrumb and header
-						m.breadcrumb = []string{rc}
-						m.contentHeader = rc
-						// If we have a TableDef for this root, set columns and trigger the appropriate fetch
-						if def := m.findTableDef(rc); def != nil {
-							cols := m.buildColumnsFor(rc, m.paneWidth-4)
-							if len(cols) > 0 {
-								m.table.SetRows(normalizeRows(nil, len(cols)))
-								m.table.SetColumns(cols)
-							}
-							m.isLoading = true
-							m.apiCallStarted = time.Now()
-							return m, tea.Batch(m.fetchForRoot(rc), flashOnCmd(), spinnerTickCmd())
-						}
-						// fallback to definitions fetch
-						m.isLoading = true
-					m.apiCallStarted = time.Now()
-						return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), spinnerTickCmd())
+					if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+						matchingContexts = append(matchingContexts, rc)
 					}
 				}
-				// no exact match: ignore
+				selectedContext := ""
+				if m.rootPopupCursor >= 0 && m.rootPopupCursor < len(matchingContexts) {
+					selectedContext = matchingContexts[m.rootPopupCursor]
+				} else {
+					// fall back to exact match on input
+					for _, rc := range m.rootContexts {
+						if rc == m.rootInput {
+							selectedContext = rc
+							break
+						}
+					}
+				}
+				if selectedContext != "" {
+					rc := selectedContext
+					m.currentRoot = rc
+					m.showRootPopup = false
+					m.rootInput = ""
+					m.rootPopupCursor = -1
+					// clear any footer error
+					m.footerError = ""
+					// clear drilldown filter params when switching root context
+					m.genericParams = make(map[string]string)
+					// reset breadcrumb and header
+					m.breadcrumb = []string{rc}
+					m.contentHeader = rc
+					// If we have a TableDef for this root, set columns and trigger the appropriate fetch
+					if def := m.findTableDef(rc); def != nil {
+						cols := m.buildColumnsFor(rc, m.paneWidth-4)
+						if len(cols) > 0 {
+							m.table.SetRows(normalizeRows(nil, len(cols)))
+							m.table.SetColumns(cols)
+						}
+						m.isLoading = true
+						m.apiCallStarted = time.Now()
+						return m, tea.Batch(m.fetchForRoot(rc), flashOnCmd(), spinnerTickCmd())
+					}
+					// fallback to definitions fetch
+					m.isLoading = true
+					m.apiCallStarted = time.Now()
+					return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), spinnerTickCmd())
+				}
+				// no match: ignore
 				return m, nil
 			}
 
@@ -3056,13 +3172,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, nil
 		case "tab":
-			if m.showRootPopup && len(m.rootInput) > 0 {
-				// complete to first match
+			if m.showRootPopup {
+				// compute matching contexts
+				matchingContexts := []string{}
 				for _, rc := range m.rootContexts {
-					if strings.HasPrefix(rc, m.rootInput) {
-						m.rootInput = rc
-						break
+					if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+						matchingContexts = append(matchingContexts, rc)
 					}
+				}
+				if m.rootPopupCursor >= 0 && m.rootPopupCursor < len(matchingContexts) {
+					m.rootInput = matchingContexts[m.rootPopupCursor]
+				} else if len(m.rootInput) > 0 && len(matchingContexts) > 0 {
+					m.rootInput = matchingContexts[0]
 				}
 			}
 			return m, nil
@@ -3092,6 +3213,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.pageOffsets[root] = newOff
+			if newOff == curOff {
+				msg2, kind, cmd := setFooterStatus(footerStatusInfo, "Last page", 2*time.Second)
+				m.footerError = msg2
+				m.footerStatusKind = kind
+				return m, cmd
+			}
 			// keep selection stable
 			m.pendingCursorAfterPage = m.table.Cursor()
 			return m, tea.Batch(m.fetchForRoot(root), flashOnCmd())
@@ -3106,6 +3233,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if v, ok := m.pageOffsets[root]; ok {
 				curOff = v
 			}
+			if curOff == 0 {
+				msg2, kind, cmd := setFooterStatus(footerStatusInfo, "First page", 2*time.Second)
+				m.footerError = msg2
+				m.footerStatusKind = kind
+				return m, cmd
+			}
 			newOff := curOff - pageSize
 			if newOff < 0 {
 				newOff = 0
@@ -3117,6 +3250,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showRootPopup {
 				if len(m.rootInput) > 0 {
 					m.rootInput = m.rootInput[:len(m.rootInput)-1]
+					m.rootPopupCursor = -1
 				}
 				return m, nil
 			}
@@ -3128,7 +3262,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			if m.showRootPopup {
-				m.rootInput += s
+				matchingContexts := []string{}
+				for _, rc := range m.rootContexts {
+					if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+						matchingContexts = append(matchingContexts, rc)
+					}
+				}
+				maxShow := 8
+				if len(matchingContexts) > maxShow {
+					matchingContexts = matchingContexts[:maxShow]
+				}
+				if len(matchingContexts) > 0 {
+					if m.rootPopupCursor < 0 {
+						m.rootPopupCursor = 1
+					} else if m.rootPopupCursor < len(matchingContexts)-1 {
+						m.rootPopupCursor++
+					}
+				}
+				return m, nil
 			}
 			return m, nil
 		case "k":
@@ -3138,7 +3289,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			if m.showRootPopup {
-				m.rootInput += s
+				if m.rootPopupCursor > 0 {
+					m.rootPopupCursor--
+				} else if m.rootPopupCursor < 0 {
+					m.rootPopupCursor = 0
+				}
+				return m, nil
 			}
 			return m, nil
 		case "G":
@@ -3192,6 +3348,38 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.table.MoveDown(pageSize / 2)
 			return m, nil
+		case "up":
+			if m.showRootPopup {
+				if m.rootPopupCursor > 0 {
+					m.rootPopupCursor--
+				} else if m.rootPopupCursor < 0 {
+					m.rootPopupCursor = 0
+				}
+				return m, nil
+			}
+			// fall through to table navigation via component update
+		case "down":
+			if m.showRootPopup {
+				matchingContexts := []string{}
+				for _, rc := range m.rootContexts {
+					if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+						matchingContexts = append(matchingContexts, rc)
+					}
+				}
+				maxShow := 8
+				if len(matchingContexts) > maxShow {
+					matchingContexts = matchingContexts[:maxShow]
+				}
+				if len(matchingContexts) > 0 {
+					if m.rootPopupCursor < 0 {
+						m.rootPopupCursor = 1
+					} else if m.rootPopupCursor < len(matchingContexts)-1 {
+						m.rootPopupCursor++
+					}
+				}
+				return m, nil
+			}
+			// fall through to table navigation via component update
 		case "ctrl+u":
 			// Vim half-page up
 			pageSize := m.getPageSize()
@@ -3214,6 +3402,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showRootPopup {
 				if len(s) == 1 {
 					m.rootInput += s
+					m.rootPopupCursor = -1
 				}
 				return m, nil
 			}
@@ -3510,8 +3699,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Update environment status
 		m.envStatus[msg.env] = msg.status
 	case errMsg:
-		// display error in footer with 8s auto-clear
-		errText := friendlyError(m.currentEnv, msg.err)
+		errText := friendlyError(m.currentEnv, msg.err) + " — Ctrl+r to retry"
 		msg2, kind, cmd := setFooterStatus(footerStatusError, errText, 8*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
@@ -3663,7 +3851,7 @@ func (m model) View() string {
 		inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(color))
 		hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 		displayText := inputStyle.Render(m.rootInput) + completionStyle.Render(completion)
-		hintLine := hintStyle.Render("Tab:complete  Enter:switch  Esc:cancel")
+		hintLine := hintStyle.Render("↑↓:select  Tab/Enter:switch  Esc:cancel")
 
 		var listLines []string
 		maxShow := 8
@@ -3673,9 +3861,13 @@ func (m model) View() string {
 			extra = len(shown) - maxShow
 			shown = shown[:maxShow]
 		}
+		cursorPos := 0
+		if m.rootPopupCursor >= 0 && m.rootPopupCursor < len(shown) {
+			cursorPos = m.rootPopupCursor
+		}
 		for i, rc := range shown {
 			cursor := "  "
-			if i == 0 && len(shown) > 0 {
+			if i == cursorPos {
 				cursor = "\u25b8 "
 			}
 			listLines = append(listLines, fmt.Sprintf("%s%s", cursor, rc))
@@ -3712,14 +3904,23 @@ func (m model) View() string {
 
 	// render the main content box with title embedded into top border
 	// Append total count for current root if known
-	title := m.contentHeader
-	if total, ok := m.pageTotals[m.currentRoot]; ok && total >= 0 {
-		title = fmt.Sprintf("%s — %d items", m.contentHeader, total)
-	}
-	// Add search filter indicator to title
+	baseTitle := m.contentHeader
 	if m.searchTerm != "" {
-		title = fmt.Sprintf("%s [/%s/]", title, m.searchTerm)
+		var matchCount int
+		if m.filteredRows != nil {
+			matchCount = len(m.filteredRows)
+		} else {
+			matchCount = len(m.table.Rows())
+		}
+		if total, ok := m.pageTotals[m.currentRoot]; ok && total >= 0 {
+			baseTitle = fmt.Sprintf("%s [/%s/ — %d of %d]", m.contentHeader, m.searchTerm, matchCount, total)
+		} else {
+			baseTitle = fmt.Sprintf("%s [/%s/ — %d matches]", m.contentHeader, m.searchTerm, matchCount)
+		}
+	} else if total, ok := m.pageTotals[m.currentRoot]; ok && total >= 0 {
+		baseTitle = fmt.Sprintf("%s — %d items", m.contentHeader, total)
 	}
+	title := baseTitle
 
 	// Render search bar when in search mode
 	searchBar := ""
@@ -3776,7 +3977,11 @@ func (m model) View() string {
 			paginationStr = fmt.Sprintf(" [%d/%d]", currentPage, totalPages)
 		}
 	}
-	rightPart := rpStyle.Render(remoteSymbol + latencyStr + paginationStr)
+	pageIndicator := ""
+	if paginationStr != "" {
+		pageIndicator = pageCounterStyle.Render(paginationStr) + " "
+	}
+	rightPart := pageIndicator + rpStyle.Render(remoteSymbol+latencyStr)
 
 	// Layout footer: [breadcrumb] | [status] | [remote]
 	// Format: leftPart | middlePart | rightPart (all separated by " | ")

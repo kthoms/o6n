@@ -133,8 +133,8 @@ func TestContextBoxShowsHintLine(t *testing.T) {
 
 	out := m.View()
 
-	if !strings.Contains(out, "Tab:complete") {
-		t.Errorf("expected 'Tab:complete' hint in context popup, got:\n%s", out)
+	if !strings.Contains(out, "↑↓:select") {
+		t.Errorf("expected '↑↓:select' hint in context popup, got:\n%s", out)
 	}
 }
 

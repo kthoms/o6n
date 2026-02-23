@@ -17,8 +17,9 @@ func TestErrorMsgRenderedInFooter(t *testing.T) {
 	m = res.(model)
 
 	// Verify footer fields were set correctly
-	if m.footerError != testErr.Error() {
-		t.Errorf("expected footerError to be %q, got %q", testErr.Error(), m.footerError)
+	expectedFooter := testErr.Error() + " — Ctrl+r to retry"
+	if m.footerError != expectedFooter {
+		t.Errorf("expected footerError to be %q, got %q", expectedFooter, m.footerError)
 	}
 	if m.footerStatusKind != footerStatusError {
 		t.Errorf("expected footerStatusKind to be footerStatusError, got %v", m.footerStatusKind)
