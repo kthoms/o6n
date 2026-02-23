@@ -158,10 +158,11 @@ func TestComputePaneHeightWithPopup(t *testing.T) {
 	m := newTestModel(t)
 	m.lastHeight = 30
 	m.showRootPopup = true
+	m.rootContexts = nil // no contexts → popup height = 4 (2 borders + input + hint)
 	m.searchMode = false
 
 	h := m.computePaneHeight()
-	want := 23
+	want := 20 // 30 - 3(header) - 2(footer) - 1(safe) - 4(popup)
 	if h != want {
 		t.Errorf("expected pane height %d with popup, got %d", want, h)
 	}
@@ -184,10 +185,11 @@ func TestComputePaneHeightBothActive(t *testing.T) {
 	m := newTestModel(t)
 	m.lastHeight = 30
 	m.showRootPopup = true
+	m.rootContexts = nil // no contexts → popup height = 4
 	m.searchMode = true
 
 	h := m.computePaneHeight()
-	want := 22
+	want := 19 // 30 - 3 - 2 - 1 - 4(popup) - 1(search)
 	if h != want {
 		t.Errorf("expected pane height %d with both active, got %d", want, h)
 	}

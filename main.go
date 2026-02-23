@@ -653,16 +653,12 @@ func newModel(cfg *config.Config) model {
 	// compactHeader (2 lines) + content header (1 line) = 3 header lines total
 	headerLines := 3
 	footerLines := 2 // breadcrumb line + status line
-	contextSelectionLines := 0
-	if m.showRootPopup {
-		contextSelectionLines = 1
-	}
 	searchBarLines := 0
 	if m.searchMode {
 		searchBarLines = 1
 	}
 	// reserve an extra safe line to avoid off-by-one overflow
-	contentHeight := m.lastHeight - headerLines - contextSelectionLines - searchBarLines - footerLines - 1
+	contentHeight := m.lastHeight - headerLines - m.contextPopupHeight() - searchBarLines - footerLines - 1
 	if contentHeight < 3 {
 		contentHeight = 3
 	}
@@ -772,7 +768,8 @@ func (m *model) renderConfirmDeleteModal(width, height int) string {
 }
 
 // renderConfirmQuitModal renders a modal asking the user to confirm quitting.
-func (m *model) renderConfirmQuitModal(width, height int) string {
+// Returns just the styled box; View() wraps it with overlayCenter.
+func (m *model) renderConfirmQuitModal(_, _ int) string {
 	color := ""
 	if m.config != nil {
 		if env, ok := m.config.Environments[m.currentEnv]; ok {
@@ -786,7 +783,7 @@ func (m *model) renderConfirmQuitModal(width, height int) string {
 		Padding(1, 2).
 		Width(40)
 	modal := modalStyle.Render(modalContent)
-	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, modal)
+	return modal
 }
 
 // renderHelpContentForLineCount returns the static help text for line-count purposes (scroll bound computation).
@@ -1206,7 +1203,7 @@ func (m model) executeActionCmd(action config.ActionDef, resolvedPath string) te
 	if !ok {
 		return nil
 	}
-	c := client.NewClient(env)
+	c := client.NewClient(env, m.debugEnabled)
 	label := action.Label
 	return func() tea.Msg {
 		if err := c.ExecuteAction(action.Method, resolvedPath, action.Body); err != nil {
@@ -1309,7 +1306,7 @@ func (m model) suspendInstanceCmd(id string, suspend bool) tea.Cmd {
 	if !ok {
 		return nil
 	}
-	c := client.NewClient(env)
+	c := client.NewClient(env, m.debugEnabled)
 	return func() tea.Msg {
 		if err := c.SuspendProcessInstance(id, suspend); err != nil {
 			return errMsg{err}
@@ -1327,7 +1324,7 @@ func (m model) setJobRetriesCmd(id string, retries int) tea.Cmd {
 	if !ok {
 		return nil
 	}
-	c := client.NewClient(env)
+	c := client.NewClient(env, m.debugEnabled)
 	return func() tea.Msg {
 		if err := c.SetJobRetries(id, retries); err != nil {
 			return errMsg{err}
@@ -1862,12 +1859,31 @@ func (m *model) applyVariables(vars []config.Variable) {
 	m.viewMode = "variables"
 }
 
+// contextPopupHeight returns the rendered line-height of the context switcher popup,
+// or 0 when the popup is hidden. Used to shrink the content pane accordingly.
+func (m *model) contextPopupHeight() int {
+	if !m.showRootPopup {
+		return 0
+	}
+	matchCount := 0
+	for _, rc := range m.rootContexts {
+		if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+			matchCount++
+		}
+	}
+	const maxShow = 8
+	shown := matchCount
+	if shown > maxShow {
+		shown = maxShow + 1 // one extra for "… N more" line
+	}
+	// 2 border lines + 1 input line + 1 hint line + shown match lines
+	return 2 + 2 + shown
+}
+
 // computePaneHeight recalculates the table pane height based on current overlay state.
 func (m *model) computePaneHeight() int {
 	h := m.lastHeight - 3 - 2 - 1 // header(3) - footer(2) - safe(1)
-	if m.showRootPopup {
-		h -= 1
-	}
+	h -= m.contextPopupHeight()
 	if m.searchMode {
 		h -= 1
 	}
@@ -1897,7 +1913,7 @@ func (m model) fetchDefinitionsCmd() tea.Cmd {
 	if !ok {
 		return nil
 	}
-	c := client.NewClient(env)
+	c := client.NewClient(env, m.debugEnabled)
 	return func() tea.Msg {
 		defs, err := c.FetchProcessDefinitions()
 		if err != nil {
@@ -2033,7 +2049,7 @@ func (m model) fetchVariablesCmd(instanceID string) tea.Cmd {
 	if !ok {
 		return nil
 	}
-	c := client.NewClient(env)
+	c := client.NewClient(env, m.debugEnabled)
 	return func() tea.Msg {
 		vars, err := c.FetchVariables(instanceID)
 		if err != nil {
@@ -2061,7 +2077,7 @@ func (m model) fetchDataCmd() tea.Cmd {
 		}
 	}
 
-	c := client.NewClient(env)
+	c := client.NewClient(env, m.debugEnabled)
 
 	return func() tea.Msg {
 		defs, err := c.FetchProcessDefinitions()
@@ -2231,7 +2247,7 @@ func (m model) terminateInstanceCmd(id string) tea.Cmd {
 	if !ok {
 		return nil
 	}
-	c := client.NewClient(env)
+	c := client.NewClient(env, m.debugEnabled)
 
 	return func() tea.Msg {
 		if err := c.TerminateInstance(id); err != nil {
@@ -2249,7 +2265,7 @@ func (m model) setVariableCmd(instanceID, varName string, value interface{}, val
 	if !ok {
 		return nil
 	}
-	c := client.NewClient(env)
+	c := client.NewClient(env, m.debugEnabled)
 	return func() tea.Msg {
 		if err := c.SetProcessInstanceVariable(instanceID, varName, value, valueType); err != nil {
 			return errMsg{err}
@@ -2906,9 +2922,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.footerError = ""
 					// clear drilldown filter params when switching root context
 					m.genericParams = make(map[string]string)
+					// reset navigationStack so Esc doesn't take us back to stale state
+					m.navigationStack = nil
 					// reset breadcrumb and header
 					m.breadcrumb = []string{rc}
 					m.contentHeader = rc
+					// reset viewMode for new context so fallback drilldown doesn't misfire
+					switch rc {
+					case "process-definitions":
+						m.viewMode = "definitions"
+					case "process-instances":
+						m.viewMode = "instances"
+					default:
+						m.viewMode = rc
+					}
 					// If we have a TableDef for this root, set columns and trigger the appropriate fetch
 					if def := m.findTableDef(rc); def != nil {
 						cols := m.buildColumnsFor(rc, m.paneWidth-4)
@@ -3252,6 +3279,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.rootInput = m.rootInput[:len(m.rootInput)-1]
 					m.rootPopupCursor = -1
 				}
+				m.paneHeight = m.computePaneHeight()
+				m.table.SetHeight(m.paneHeight - 1)
 				return m, nil
 			}
 			return m, nil
@@ -3403,6 +3432,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if len(s) == 1 {
 					m.rootInput += s
 					m.rootPopupCursor = -1
+					m.paneHeight = m.computePaneHeight()
+					m.table.SetHeight(m.paneHeight - 1)
 				}
 				return m, nil
 			}
@@ -4059,7 +4090,8 @@ func (m model) View() string {
 	} else if m.activeModal == ModalEnvironment {
 		return m.renderEnvPopup(m.lastWidth, m.lastHeight)
 	} else if m.activeModal == ModalConfirmQuit {
-		return m.renderConfirmQuitModal(m.lastWidth, m.lastHeight)
+		overlay := m.renderConfirmQuitModal(m.lastWidth, m.lastHeight)
+		return overlayCenter(baseView, overlay)
 	}
 
 	// If actions menu is active, overlay it

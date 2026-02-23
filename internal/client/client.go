@@ -408,6 +408,26 @@ func (c *CompatClient) SetJobRetries(jobID string, retries int) error {
 // Use config package types for compatibility
 
 // CompatClient provides the historic API surface used by the rest of the app/tests.
+// loggingTransport wraps an http.RoundTripper to log requests to the access log.
+type loggingTransport struct {
+	base   http.RoundTripper
+	writer io.Writer
+	mu     sync.Mutex
+}
+
+func (t *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.mu.Lock()
+	fmt.Fprintf(t.writer, "[%s] %s %s\n", time.Now().Format(time.RFC3339), req.Method, req.URL)
+	t.mu.Unlock()
+	resp, err := t.base.RoundTrip(req)
+	if resp != nil {
+		t.mu.Lock()
+		fmt.Fprintf(t.writer, "  → %d\n", resp.StatusCode)
+		t.mu.Unlock()
+	}
+	return resp, err
+}
+
 type CompatClient struct {
 	env         cfgpkg.Environment
 	httpClient  *http.Client
@@ -423,9 +443,18 @@ func (c *CompatClient) logf(format string, args ...interface{}) {
 	fmt.Fprintf(w, format+"\n", args...)
 }
 
-// NewClient creates a CompatClient from the environment config (keeps previous API).
-func NewClient(env cfgpkg.Environment) *CompatClient {
+// NewClient creates a CompatClient from the environment config.
+// When debug is true, all HTTP requests are logged to ./debug/access.log.
+func NewClient(env cfgpkg.Environment, debug bool) *CompatClient {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
+
+	if debug {
+		_ = os.MkdirAll("./debug", 0o755)
+		fpath := filepath.Join(".", "debug", "access.log")
+		if f, err := os.OpenFile(fpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+			httpClient.Transport = &loggingTransport{base: http.DefaultTransport, writer: f}
+		}
+	}
 
 	cfg := operaton.NewConfiguration()
 	cfg.HTTPClient = httpClient

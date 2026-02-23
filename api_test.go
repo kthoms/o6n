@@ -14,7 +14,7 @@ import (
 
 func TestNewClientSetsTimeout(t *testing.T) {
 	env := config.Environment{URL: "http://example.com"}
-	c := client.NewClient(env)
+	c := client.NewClient(env, false)
 
 	if c == nil {
 		t.Fatal("expected non-nil client")
@@ -49,7 +49,7 @@ func TestFetchProcessDefinitions(t *testing.T) {
 		URL:      server.URL,
 		Username: username,
 		Password: password,
-	})
+	}, false)
 
 	defs, err := c.FetchProcessDefinitions()
 	if err != nil {
@@ -89,7 +89,7 @@ func TestFetchInstances(t *testing.T) {
 		URL:      server.URL,
 		Username: username,
 		Password: password,
-	})
+	}, false)
 
 	instances, err := c.FetchInstances("processDefinitionKey", processKey)
 	if err != nil {
@@ -128,7 +128,7 @@ func TestTerminateInstance(t *testing.T) {
 		URL:      server.URL,
 		Username: username,
 		Password: password,
-	})
+	}, false)
 
 	if err := c.TerminateInstance(instanceID); err != nil {
 		t.Fatalf("TerminateInstance returned error: %v", err)
@@ -144,7 +144,7 @@ func TestTerminateInstance_HTTPError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := client.NewClient(config.Environment{URL: server.URL})
+	c := client.NewClient(config.Environment{URL: server.URL}, false)
 	if err := c.TerminateInstance("bad"); err == nil {
 		t.Fatalf("expected error for bad status code")
 	}
