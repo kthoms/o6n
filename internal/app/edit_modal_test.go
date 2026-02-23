@@ -11,7 +11,7 @@ import (
 func TestRenderEditModal(t *testing.T) {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
-			"local": {UIColor: "#00FF00"},
+			"local": {},
 		},
 	}
 	m := newModel(cfg)

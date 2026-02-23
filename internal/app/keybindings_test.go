@@ -15,7 +15,7 @@ func newTestModel(t *testing.T) model {
 	t.Helper()
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
-			"local": {URL: "http://localhost:8080", UIColor: "#00A8E1"},
+			"local": {URL: "http://localhost:8080"},
 		},
 	}
 	return newModel(cfg)
@@ -60,16 +60,16 @@ func sendKeyString(m model, keyStr string) (model, tea.Cmd) {
 func TestTabCompletionInContextPopup(t *testing.T) {
 	m := newTestModel(t)
 	m.rootContexts = []string{"process-definition", "process-instance", "task"}
-	m.showRootPopup = true
-	m.rootInput = "proc"
+	m.popup.mode = popupModeContext
+	m.popup.input = "proc"
 
 	m2, _ := sendKeyString(m, "tab")
 
-	if !m2.showRootPopup {
+	if m2.popup.mode == popupModeNone {
 		t.Error("expected popup to remain open after Tab")
 	}
-	if m2.rootInput != "process-definition" {
-		t.Errorf("expected rootInput completed to 'process-definition', got %q", m2.rootInput)
+	if m2.popup.input != "process-definition" {
+		t.Errorf("expected rootInput completed to 'process-definition', got %q", m2.popup.input)
 	}
 }
 
@@ -77,21 +77,21 @@ func TestTabCompletionInContextPopup(t *testing.T) {
 func TestTabCompletionRequiresInput(t *testing.T) {
 	m := newTestModel(t)
 	m.rootContexts = []string{"process-definition"}
-	m.showRootPopup = true
-	m.rootInput = ""
+	m.popup.mode = popupModeContext
+	m.popup.input = ""
 
 	m2, _ := sendKeyString(m, "tab")
 
-	if m2.rootInput != "" {
-		t.Errorf("expected rootInput to stay empty, got %q", m2.rootInput)
+	if m2.popup.input != "" {
+		t.Errorf("expected rootInput to stay empty, got %q", m2.popup.input)
 	}
 }
 
 // TestTabNoPopupIsNoOp verifies Tab when popup is closed does nothing (no crash).
 func TestTabNoPopupIsNoOp(t *testing.T) {
 	m := newTestModel(t)
-	m.showRootPopup = false
-	m.rootInput = ""
+	m.popup.mode = popupModeNone
+	m.popup.input = ""
 
 	m2, _ := sendKeyString(m, "tab")
 	_ = m2 // must not panic
@@ -177,8 +177,8 @@ func TestCtrlDConfirmExecutesTerminate(t *testing.T) {
 func TestCtrlEOpensEnvPopup(t *testing.T) {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
-			"dev":   {URL: "http://dev", UIColor: "#FFA500"},
-			"local": {URL: "http://local", UIColor: "#00A8E1"},
+			"dev":   {URL: "http://dev"},
+			"local": {URL: "http://local"},
 		},
 		Active: "local",
 	}
@@ -248,7 +248,7 @@ func TestClearErrorMsgClearsFooter(t *testing.T) {
 // TestEditModalTabCyclesColumns verifies Tab cycles to the next editable column.
 func TestEditModalTabCyclesColumns(t *testing.T) {
 	cfg := &config.Config{
-		Environments: map[string]config.Environment{"local": {UIColor: "#00FF00"}},
+		Environments: map[string]config.Environment{"local": {}},
 		Tables: []config.TableDef{
 			{
 				Name: "process-variables",
@@ -298,7 +298,7 @@ func TestBreadcrumbNumericNavigation(t *testing.T) {
 	// simulate having drilled down: breadcrumb has 2 entries
 	m.breadcrumb = []string{"process-definition", "process-instance"}
 	m.viewMode = "process-instance"
-	m.showRootPopup = false
+	m.popup.mode = popupModeNone
 
 	// pressing "1" should navigate to breadcrumb index 0 (process-definitions)
 	res, _ := sendKeyString(m, "1")

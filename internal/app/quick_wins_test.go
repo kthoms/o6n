@@ -144,10 +144,11 @@ func TestWin2_KeyHintsRespectTerminalWidth(t *testing.T) {
 
 // TestWin3_InlineValidationStyling tests that validation errors are styled
 func TestWin3_InlineValidationStyling(t *testing.T) {
+	m := newTestModel(t)
 	// Verify the style renders correctly
-	styleStr := validationErrorStyle.Render("test")
+	styleStr := m.styles.ValidationError.Render("test")
 	if styleStr == "" {
-		t.Error("expected validationErrorStyle.Render to produce output")
+		t.Error("expected ValidationError.Render to produce output")
 	}
 
 	// Verify styled output contains the text

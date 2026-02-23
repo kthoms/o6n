@@ -1,0 +1,45 @@
+# -----------------------------------------------------------------------------
+# o8n-cyber — GitHub Dark palette with teal/blue dual accent
+# A lean, readable dark theme optimised for workflow engine UIs.
+# -----------------------------------------------------------------------------
+colors:
+  # Background & text
+  bg:       "#0D1117"
+  fg:       "#E6EDF3"
+  fgMuted:  "#7D8590"
+
+  # Accent pair
+  accent:    "#2F81F7"
+  accentAlt: "#3DC9B0"
+
+  # Surfaces
+  surface:    "#161B22"
+  surfaceAlt: "#1F2937"
+
+  # Semantic colours
+  success: "#3FB950"
+  warning: "#D29922"
+  danger:  "#F85149"
+  info:    "#58A6FF"
+
+  # Borders
+  borderFg:    "#30363D"
+  borderFocus: "#2F81F7"
+
+  # Breadcrumbs
+  crumbBg:       "#161B22"
+  crumbFg:       "#7D8590"
+  crumbActiveBg: "#2F81F7"
+  crumbActiveFg: "#E6EDF3"
+
+  # JSON syntax highlighting
+  jsonKey:    "#2F81F7"
+  jsonValue:  "#3DC9B0"
+  jsonNumber: "#D29922"
+  jsonBool:   "#F85149"
+
+  # Edit modal buttons
+  btnPrimaryBg:   "#238636"
+  btnPrimaryFg:   "#E6EDF3"
+  btnSecondaryBg: "#21262D"
+  btnSecondaryFg: "#7D8590"

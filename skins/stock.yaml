@@ -1,8 +1,34 @@
 # -----------------------------------------------------------------------------
 # Stock skin
 # -----------------------------------------------------------------------------
+colors:
+  bg:       "black"
+  fg:       "dodgerblue"
+  fgMuted:  "gray"
+  accent:   "aqua"
+  accentAlt: "orange"
+  surface:    "black"
+  surfaceAlt: "steelblue"
+  success: "greenyellow"
+  warning: "darkorange"
+  danger:  "orangered"
+  info:    "lightskyblue"
+  borderFg:    "dodgerblue"
+  borderFocus: "aqua"
+  crumbBg:       "steelblue"
+  crumbFg:       "black"
+  crumbActiveBg: "orange"
+  crumbActiveFg: "black"
+  jsonKey:    "steelblue"
+  jsonValue:  "papayawhip"
+  jsonNumber: "orange"
+  jsonBool:   "mediumpurple"
+  btnPrimaryBg:   "dodgerblue"
+  btnPrimaryFg:   "black"
+  btnSecondaryBg: "gray"
+  btnSecondaryFg: "black"
 
-# Skin...
+# Legacy schema retained for reference (ignored when colors: is present)
 o8n:
   body:
     fgColor: dodgerblue

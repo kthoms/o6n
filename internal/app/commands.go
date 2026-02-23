@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -535,4 +537,22 @@ func (m *model) checkEnvironmentHealthCmd(envName string) tea.Cmd {
 		// 4xx/5xx = unreachable/unhealthy
 		return envStatusMsg{env: envName, status: StatusUnreachable}
 	}
+}
+
+// listSkinsCmd scans the skins/ directory and returns available skin file names.
+func listSkinsCmd() tea.Cmd {
+return func() tea.Msg {
+entries, err := os.ReadDir("skins")
+if err != nil {
+return skinsLoadedMsg{names: nil}
+}
+var names []string
+for _, e := range entries {
+if !e.IsDir() && strings.HasSuffix(e.Name(), ".yaml") {
+names = append(names, strings.TrimSuffix(e.Name(), ".yaml"))
+}
+}
+sort.Strings(names)
+return skinsLoadedMsg{names: names}
+}
 }

@@ -56,9 +56,5 @@ func TestLoadConfig(t *testing.T) {
 	if testEnv.Password != "testpass" {
 		t.Errorf("Expected password 'testpass', got '%s'", testEnv.Password)
 	}
-
-	if testEnv.UIColor != "#00A8E1" {
-		t.Errorf("Expected UIColor '#00A8E1', got '%s'", testEnv.UIColor)
-	}
 }
 

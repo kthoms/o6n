@@ -80,26 +80,27 @@ func TestDetailViewerQCloses(t *testing.T) {
 }
 
 func TestSyntaxHighlightJSON(t *testing.T) {
+	m := newTestModel(t)
 	// Basic key-value pair
-	result := syntaxHighlightJSON(`  "name": "value"`)
+	result := m.syntaxHighlightJSON(`  "name": "value"`)
 	if result == "" {
 		t.Error("expected non-empty result from syntaxHighlightJSON")
 	}
 
 	// Number value
-	result2 := syntaxHighlightJSON(`  "count": 42`)
+	result2 := m.syntaxHighlightJSON(`  "count": 42`)
 	if result2 == "" {
 		t.Error("expected non-empty result for number value")
 	}
 
 	// Boolean value
-	result3 := syntaxHighlightJSON(`  "active": true`)
+	result3 := m.syntaxHighlightJSON(`  "active": true`)
 	if result3 == "" {
 		t.Error("expected non-empty result for boolean value")
 	}
 
 	// Non-JSON line should pass through
-	result4 := syntaxHighlightJSON("{")
+	result4 := m.syntaxHighlightJSON("{")
 	if result4 != "{" {
 		t.Errorf("expected '{' unchanged, got %q", result4)
 	}

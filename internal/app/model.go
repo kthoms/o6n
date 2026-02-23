@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -146,6 +147,29 @@ const (
 	ModalEnvironment
 )
 
+// popupMode identifies the active command palette mode.
+type popupMode int
+
+const (
+	popupModeNone    popupMode = iota
+	popupModeContext           // : key — switch resource context
+	popupModeSkin              // Ctrl+T key — switch skin/theme
+)
+
+// popupState holds the runtime state of the generic command palette popup.
+type popupState struct {
+	mode        popupMode
+	input       string
+	cursor      int
+	items       []string // filtered/available items for current mode
+	title       string   // "context" | "skin"
+	hint        string   // hint line shown below input
+	previewSkin string   // skin name before preview started (for revert on Esc)
+}
+
+// skinsLoadedMsg carries the list of available skin names.
+type skinsLoadedMsg struct{ names []string }
+
 // editFocusArea tracks keyboard focus within the edit modal
 type editFocusArea int
 
@@ -261,18 +285,19 @@ type model struct {
 	envConfig *config.EnvConfig
 	appConfig *config.AppConfig
 
-	// colon popup
-	showRootPopup   bool
-	rootPopupCursor int
+	// generic command palette popup (context switch, skin picker, etc.)
+	popup popupState
 	// available root contexts (computed from API spec)
 	rootContexts []string
-	rootSelected int
+
+	// available skins (populated at startup)
+	availableSkins []string
 
 	// current root context
 	currentRoot string
 
-	// root input for context selection
-	rootInput string
+	// skin-driven style set — rebuilt on skin switch
+	styles StyleSet
 
 	// footer error message
 	footerError string
@@ -415,7 +440,7 @@ func newModel(cfg *config.Config) model {
 		genericParams:          make(map[string]string),
 		envStatus:              make(map[string]EnvironmentStatus),
 		sortColumn:             -1,
-		rootPopupCursor:        -1,
+		popup:                  popupState{cursor: -1},
 	}
 
 	// edit input defaults
@@ -523,7 +548,6 @@ func newModelEnvApp(envCfg *config.EnvConfig, appCfg *config.AppConfig, skinName
 			URL:      v.URL,
 			Username: v.Username,
 			Password: v.Password,
-			UIColor:  v.UIColor,
 		}
 	}
 	cfg.Active = envCfg.Active
@@ -540,6 +564,7 @@ func newModelEnvApp(envCfg *config.EnvConfig, appCfg *config.AppConfig, skinName
 		skin, _ = loadSkin("stock.yaml")
 	}
 	m.skin = skin
+	m.styles = buildStyleSet(skin)
 
 	// copy tables into m.config for backward compatibility
 	m.config = cfg
@@ -547,72 +572,65 @@ func newModelEnvApp(envCfg *config.EnvConfig, appCfg *config.AppConfig, skinName
 }
 
 func (m *model) applyStyle() {
-	log.Printf("DEBUG: applyStyle called. m.skin is nil: %t", m.skin == nil)
-	if m.skin != nil {
-		m.style = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(m.skin.O8n.Body.FgColor)).
-			Background(lipgloss.Color(m.skin.O8n.Body.BgColor))
+	if m.skin == nil {
+		return
+	}
+	m.styles = buildStyleSet(m.skin)
 
-		listStyles := list.DefaultStyles()
-		listStyles.Title = listStyles.Title.BorderForeground(lipgloss.Color(m.skin.O8n.Frame.Border.FocusColor))
-		m.list.Styles = listStyles
+	m.style = lipgloss.NewStyle().
+		Foreground(col(m.skin, "fg")).
+		Background(col(m.skin, "bg"))
 
-		tStyles := table.DefaultStyles()
-		tStyles.Header = tStyles.Header.
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color(m.skin.O8n.Frame.Border.FgColor)).
-			BorderBottom(false).
-			Foreground(lipgloss.Color(m.skin.O8n.Body.FgColor)).
-			Bold(true)
-		tStyles.Selected = tStyles.Selected.
-			Foreground(lipgloss.Color(m.skin.O8n.Body.BgColor)).
-			Background(lipgloss.Color(m.skin.O8n.Frame.Border.FocusColor)).
-			Bold(true)
-		m.table.SetStyles(tStyles)
+	listStyles := list.DefaultStyles()
+	listStyles.Title = listStyles.Title.BorderForeground(col(m.skin, "borderFocus"))
+	m.list.Styles = listStyles
 
-		m.splashLogoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(m.skin.O8n.Body.LogoColor)).Bold(true).Align(lipgloss.Center)
-		m.splashInfoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(m.skin.O8n.Body.LogoColor)).Align(lipgloss.Center)
+	tStyles := table.DefaultStyles()
+	tStyles.Header = tStyles.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(col(m.skin, "borderFg")).
+		BorderBottom(false).
+		Foreground(col(m.skin, "fg")).
+		Bold(true)
+	tStyles.Selected = tStyles.Selected.
+		Foreground(col(m.skin, "bg")).
+		Background(col(m.skin, "borderFocus")).
+		Bold(true)
+	m.table.SetStyles(tStyles)
 
-		m.breadcrumbStyles = []lipgloss.Style{
-			lipgloss.NewStyle().Background(lipgloss.Color(m.skin.O8n.Frame.Border.FocusColor)).Foreground(lipgloss.Color(m.skin.O8n.Body.BgColor)).Padding(0, 1),
-			lipgloss.NewStyle().Background(lipgloss.Color("#e6e6fa")).Foreground(lipgloss.Color("black")).Padding(0, 1),
-			lipgloss.NewStyle().Background(lipgloss.Color("#f0fff0")).Foreground(lipgloss.Color("black")).Padding(0, 1),
-			lipgloss.NewStyle().Background(lipgloss.Color("#fffaf0")).Foreground(lipgloss.Color("black")).Padding(0, 1),
-		}
-	} else {
-		// Fallback to old styling if skin is not loaded
-		color := ""
-		if m.config != nil {
-			if env, ok := m.config.Environments[m.currentEnv]; ok {
-				color = env.UIColor
-			}
-		}
-		m.style = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(color)).Bold(true)
+	m.splashLogoStyle = m.styles.Logo
+	m.splashInfoStyle = m.styles.Info
 
-		listStyles := list.DefaultStyles()
-		listStyles.Title = listStyles.Title.BorderForeground(lipgloss.Color(color))
-		m.list.Styles = listStyles
-
-		tStyles := table.DefaultStyles()
-		tStyles.Header = tStyles.Header.BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(color)).BorderBottom(false).Foreground(lipgloss.Color("white")).Bold(true)
-		bgColor := m.deriveFocusBackgroundColor(color)
-		tStyles.Selected = tStyles.Selected.
-			Foreground(lipgloss.Color("white")).
-			Background(lipgloss.Color(bgColor)).
-			Bold(true)
-		m.table.SetStyles(tStyles)
-
-		m.splashLogoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Bold(true).Align(lipgloss.Center)
-		m.splashInfoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Align(lipgloss.Center)
-
-		m.breadcrumbStyles = []lipgloss.Style{
-			lipgloss.NewStyle().Background(lipgloss.Color(color)).Foreground(lipgloss.Color("black")).Padding(0, 1),
-			lipgloss.NewStyle().Background(lipgloss.Color("#e6e6fa")).Foreground(lipgloss.Color("black")).Padding(0, 1),
-			lipgloss.NewStyle().Background(lipgloss.Color("#f0fff0")).Foreground(lipgloss.Color("black")).Padding(0, 1),
-			lipgloss.NewStyle().Background(lipgloss.Color("#fffaf0")).Foreground(lipgloss.Color("black")).Padding(0, 1),
-		}
+	m.breadcrumbStyles = []lipgloss.Style{
+		m.styles.CrumbActive,
+		m.styles.CrumbNormal,
+		m.styles.CrumbNormal,
+		m.styles.CrumbNormal,
 	}
 }
+
+// skinPopupItems returns the filtered skin names for the current popup input.
+func (m *model) skinPopupItems() []string {
+	var items []string
+	for _, name := range m.availableSkins {
+		if m.popup.input == "" || strings.HasPrefix(name, m.popup.input) {
+			items = append(items, name)
+		}
+	}
+	return items
+}
+
+// previewSkinByName loads a skin and applies it for live preview without committing.
+func (m *model) previewSkinByName(name string) {
+	skin, err := loadSkin(name + ".yaml")
+	if err != nil {
+		return
+	}
+	m.skin = skin
+	m.activeSkin = name
+	m.applyStyle()
+}
+
 func (m model) Init() tea.Cmd {
 	firstTick := tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return splashFrameMsg{frame: 2} })
 
@@ -631,7 +649,7 @@ func (m model) Init() tea.Cmd {
 	}
 
 	// Check health of all environments
-	cmds := []tea.Cmd{initialFetch, flashOnCmd(), firstTick}
+	cmds := []tea.Cmd{initialFetch, flashOnCmd(), firstTick, listSkinsCmd()}
 	for _, envName := range m.envNames {
 		cmds = append(cmds, m.checkEnvironmentHealthCmd(envName))
 	}

@@ -94,35 +94,35 @@ func TestUX6_T1_LockedFilterUsesTableRowCount(t *testing.T) {
 
 func TestUX6_T2_RootPopupCursorInitialisedToMinusOne(t *testing.T) {
 	m := newTestModel(t)
-	if m.rootPopupCursor != -1 {
-		t.Errorf("expected rootPopupCursor to initialize to -1, got %d", m.rootPopupCursor)
+	if m.popup.cursor != -1 {
+		t.Errorf("expected rootPopupCursor to initialize to -1, got %d", m.popup.cursor)
 	}
 }
 
 func TestUX6_T2_DownKeyIncrementsCursor(t *testing.T) {
 	m := newTestModel(t)
 	m.rootContexts = []string{"process-definition", "process-instance", "task"}
-	m.showRootPopup = true
-	m.rootPopupCursor = -1
+	m.popup.mode = popupModeContext
+	m.popup.cursor = -1
 
 	res, _ := sendKeyString(m, "j")
 
 	// cursor < 0 → set to 1 per implementation
-	if res.rootPopupCursor != 1 {
-		t.Errorf("expected rootPopupCursor=1 after first j, got %d", res.rootPopupCursor)
+	if res.popup.cursor != 1 {
+		t.Errorf("expected rootPopupCursor=1 after first j, got %d", res.popup.cursor)
 	}
 }
 
 func TestUX6_T2_UpKeyClampsAtZero(t *testing.T) {
 	m := newTestModel(t)
 	m.rootContexts = []string{"process-definition", "process-instance", "task"}
-	m.showRootPopup = true
-	m.rootPopupCursor = 0
+	m.popup.mode = popupModeContext
+	m.popup.cursor = 0
 
 	res, _ := sendKeyString(m, "k")
 
-	if res.rootPopupCursor != 0 {
-		t.Errorf("expected rootPopupCursor clamped at 0, got %d", res.rootPopupCursor)
+	if res.popup.cursor != 0 {
+		t.Errorf("expected rootPopupCursor clamped at 0, got %d", res.popup.cursor)
 	}
 }
 
@@ -132,8 +132,8 @@ func TestUX6_T2_CursorVisibleInPopupView(t *testing.T) {
 	m.lastWidth = 120
 	m.lastHeight = 40
 	m.rootContexts = []string{"process-definition", "process-instance", "task"}
-	m.showRootPopup = true
-	m.rootPopupCursor = 1 // points to "process-instance"
+	m.popup.mode = popupModeContext
+	m.popup.cursor = 1 // points to "process-instance"
 
 	out := m.View()
 
@@ -145,14 +145,14 @@ func TestUX6_T2_CursorVisibleInPopupView(t *testing.T) {
 func TestUX6_T2_CursorResetsOnInputChange(t *testing.T) {
 	m := newTestModel(t)
 	m.rootContexts = []string{"process-definition", "process-instance", "task"}
-	m.showRootPopup = true
-	m.rootPopupCursor = 2
+	m.popup.mode = popupModeContext
+	m.popup.cursor = 2
 
 	// Typing a character while popup is open resets cursor to -1
 	res, _ := sendKeyString(m, "p")
 
-	if res.rootPopupCursor != -1 {
-		t.Errorf("expected rootPopupCursor reset to -1 on input change, got %d", res.rootPopupCursor)
+	if res.popup.cursor != -1 {
+		t.Errorf("expected rootPopupCursor reset to -1 on input change, got %d", res.popup.cursor)
 	}
 }
 

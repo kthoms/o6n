@@ -17,7 +17,6 @@ type Environment struct {
 	URL      string `yaml:"url"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"` // Consider using environment variables for sensitive data
-	UIColor  string `yaml:"ui_color"` // hex string like "#FF5733"
 }
 
 // ColumnDef defines a table column in the UI config.

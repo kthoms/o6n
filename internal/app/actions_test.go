@@ -14,7 +14,7 @@ import (
 func testConfigWithActions() *config.Config {
 	return &config.Config{
 		Environments: map[string]config.Environment{
-			"local": {URL: "http://localhost:8080", UIColor: "#00A8E1"},
+			"local": {URL: "http://localhost:8080"},
 		},
 		Tables: []config.TableDef{
 			{

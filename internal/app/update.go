@@ -458,14 +458,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// handle colon typed as a key string so it works across terminals
 		if s == ":" {
-			if !m.showRootPopup {
-				m.showRootPopup = true
-				m.rootInput = ""
-				m.rootPopupCursor = -1
+			if m.popup.mode == popupModeNone {
+				m.popup.mode = popupModeContext
+				m.popup.input = ""
+				m.popup.cursor = -1
 				m.footerError = ""
 			} else {
-				m.showRootPopup = false
-				m.rootPopupCursor = -1
+				m.popup.mode = popupModeNone
+				m.popup.cursor = -1
 			}
 			m.paneHeight = m.computePaneHeight()
 			m.table.SetHeight(m.paneHeight - 1)
@@ -483,7 +483,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "/":
 			// Enter search/filter mode
-			if !m.showRootPopup && m.activeModal == ModalNone {
+			if m.popup.mode == popupModeNone && m.activeModal == ModalNone {
 				m.searchMode = true
 				m.originalRows = append([]table.Row{}, m.table.Rows()...)
 				m.searchInput.SetValue("")
@@ -505,8 +505,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.searchInput.Focus()
 			}
 			// fall through to root popup input if popup active
-			if m.showRootPopup {
-				m.rootInput += s
+			if m.popup.mode != popupModeNone {
+				m.popup.input += s
 				return m, nil
 			}
 			return m, nil
@@ -532,6 +532,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, nil
+		case "ctrl+t":
+			// Open skin/theme picker
+			if m.activeModal == ModalNone && m.popup.mode == popupModeNone {
+				m.popup.mode = popupModeSkin
+				m.popup.input = ""
+				m.popup.cursor = -1
+				m.popup.title = "theme"
+				m.popup.hint = "↑↓:preview  Enter:apply  Esc:revert"
+				m.popup.previewSkin = m.activeSkin
+				m.popup.items = m.availableSkins
+				m.paneHeight = m.computePaneHeight()
+				m.table.SetHeight(m.paneHeight - 1)
+			}
+			return m, nil
 		case "ctrl+r", "r":
 			// Toggle auto-refresh
 			m.autoRefresh = !m.autoRefresh
@@ -551,8 +565,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.saveStateCmd()
 		case "s":
 			// Open sort popup
-			if m.showRootPopup {
-				m.rootInput += s
+			if m.popup.mode != popupModeNone {
+				m.popup.input += s
 				return m, nil
 			}
 			if m.searchMode {
@@ -573,7 +587,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case " ":
 			// Open context actions menu
-			if m.showRootPopup || m.activeModal != ModalNone {
+			if m.popup.mode != popupModeNone || m.activeModal != ModalNone {
 				return m, nil
 			}
 			row := m.table.SelectedRow()
@@ -588,8 +602,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "y":
 			// Open detail viewer
-			if m.showRootPopup {
-				m.rootInput += s
+			if m.popup.mode != popupModeNone {
+				m.popup.input += s
 				return m, nil
 			}
 			if m.activeModal == ModalNone && !m.showActionsMenu {
@@ -604,8 +618,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "e":
-			if m.showRootPopup {
-				m.rootInput += s
+			if m.popup.mode != popupModeNone {
+				m.popup.input += s
 				return m, nil
 			}
 			tableKey := m.currentTableKey()
@@ -621,10 +635,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.activeModal = ModalNone
 				return m, nil
 			}
-			if m.showRootPopup {
-				m.showRootPopup = false
-				m.rootInput = ""
-				m.rootPopupCursor = -1
+			if m.popup.mode == popupModeSkin {
+				// Revert skin to what it was before preview
+				if m.popup.previewSkin != "" {
+					m.activeSkin = m.popup.previewSkin
+					if skin, err := loadSkin(m.popup.previewSkin + ".yaml"); err == nil {
+						m.skin = skin
+						m.applyStyle()
+					}
+				}
+				m.popup.mode = popupModeNone
+				m.popup.input = ""
+				m.popup.cursor = -1
+				return m, nil
+			}
+			if m.popup.mode != popupModeNone {
+				m.popup.mode = popupModeNone
+				m.popup.input = ""
+				m.popup.cursor = -1
 				return m, nil
 			}
 			// Pop from navigation stack and restore previous view state
@@ -663,21 +691,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "enter":
-			if m.showRootPopup {
+			if m.popup.mode == popupModeSkin {
+				// Commit current skin — already applied via live preview
+				m.popup.mode = popupModeNone
+				m.popup.input = ""
+				m.popup.cursor = -1
+				return m, m.saveStateCmd()
+			}
+			if m.popup.mode != popupModeNone {
 				// If cursor selects from popup list, use that context
 				matchingContexts := []string{}
 				for _, rc := range m.rootContexts {
-					if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+					if m.popup.input == "" || strings.HasPrefix(rc, m.popup.input) {
 						matchingContexts = append(matchingContexts, rc)
 					}
 				}
 				selectedContext := ""
-				if m.rootPopupCursor >= 0 && m.rootPopupCursor < len(matchingContexts) {
-					selectedContext = matchingContexts[m.rootPopupCursor]
+				if m.popup.cursor >= 0 && m.popup.cursor < len(matchingContexts) {
+					selectedContext = matchingContexts[m.popup.cursor]
 				} else {
 					// fall back to exact match on input
 					for _, rc := range m.rootContexts {
-						if rc == m.rootInput {
+						if rc == m.popup.input {
 							selectedContext = rc
 							break
 						}
@@ -686,9 +721,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if selectedContext != "" {
 					rc := selectedContext
 					m.currentRoot = rc
-					m.showRootPopup = false
-					m.rootInput = ""
-					m.rootPopupCursor = -1
+					m.popup.mode = popupModeNone
+					m.popup.input = ""
+					m.popup.cursor = -1
 					// clear any footer error
 					m.footerError = ""
 					// clear drilldown filter params when switching root context
@@ -831,18 +866,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "tab":
-			if m.showRootPopup {
+			if m.popup.mode != popupModeNone {
 				// compute matching contexts
 				matchingContexts := []string{}
 				for _, rc := range m.rootContexts {
-					if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+					if m.popup.input == "" || strings.HasPrefix(rc, m.popup.input) {
 						matchingContexts = append(matchingContexts, rc)
 					}
 				}
-				if m.rootPopupCursor >= 0 && m.rootPopupCursor < len(matchingContexts) {
-					m.rootInput = matchingContexts[m.rootPopupCursor]
-				} else if len(m.rootInput) > 0 && len(matchingContexts) > 0 {
-					m.rootInput = matchingContexts[0]
+				// Only complete if user has typed something or explicitly moved cursor
+				if m.popup.cursor >= 0 && m.popup.cursor < len(matchingContexts) && len(m.popup.input) > 0 {
+					m.popup.input = matchingContexts[m.popup.cursor]
+				} else if len(m.popup.input) > 0 && len(matchingContexts) > 0 {
+					m.popup.input = matchingContexts[0]
 				}
 			}
 			return m, nil
@@ -906,10 +942,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.pendingCursorAfterPage = m.table.Cursor()
 			return m, tea.Batch(m.fetchForRoot(root), flashOnCmd())
 		case "backspace":
-			if m.showRootPopup {
-				if len(m.rootInput) > 0 {
-					m.rootInput = m.rootInput[:len(m.rootInput)-1]
-					m.rootPopupCursor = -1
+			if m.popup.mode != popupModeNone {
+				if len(m.popup.input) > 0 {
+					m.popup.input = m.popup.input[:len(m.popup.input)-1]
+					m.popup.cursor = -1
 				}
 				m.paneHeight = m.computePaneHeight()
 				m.table.SetHeight(m.paneHeight - 1)
@@ -918,14 +954,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "j":
 			// Vim down — only when not in popup/modal/search
-			if !m.showRootPopup && m.activeModal == ModalNone {
+			if m.popup.mode == popupModeNone && m.activeModal == ModalNone {
 				m.table.MoveDown(1)
 				return m, nil
 			}
-			if m.showRootPopup {
+			if m.popup.mode != popupModeNone {
 				matchingContexts := []string{}
 				for _, rc := range m.rootContexts {
-					if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+					if m.popup.input == "" || strings.HasPrefix(rc, m.popup.input) {
 						matchingContexts = append(matchingContexts, rc)
 					}
 				}
@@ -934,10 +970,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					matchingContexts = matchingContexts[:maxShow]
 				}
 				if len(matchingContexts) > 0 {
-					if m.rootPopupCursor < 0 {
-						m.rootPopupCursor = 1
-					} else if m.rootPopupCursor < len(matchingContexts)-1 {
-						m.rootPopupCursor++
+					if m.popup.cursor < 0 {
+						m.popup.cursor = 1
+					} else if m.popup.cursor < len(matchingContexts)-1 {
+						m.popup.cursor++
 					}
 				}
 				return m, nil
@@ -945,36 +981,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "k":
 			// Vim up — only when not in popup/modal/search
-			if !m.showRootPopup && m.activeModal == ModalNone {
+			if m.popup.mode == popupModeNone && m.activeModal == ModalNone {
 				m.table.MoveUp(1)
 				return m, nil
 			}
-			if m.showRootPopup {
-				if m.rootPopupCursor > 0 {
-					m.rootPopupCursor--
-				} else if m.rootPopupCursor < 0 {
-					m.rootPopupCursor = 0
+			if m.popup.mode != popupModeNone {
+				if m.popup.cursor > 0 {
+					m.popup.cursor--
+				} else if m.popup.cursor < 0 {
+					m.popup.cursor = 0
 				}
 				return m, nil
 			}
 			return m, nil
 		case "G":
 			// Vim jump to bottom
-			if !m.showRootPopup && m.activeModal == ModalNone {
+			if m.popup.mode == popupModeNone && m.activeModal == ModalNone {
 				rows := m.table.Rows()
 				if len(rows) > 0 {
 					m.table.SetCursor(len(rows) - 1)
 				}
 				return m, nil
 			}
-			if m.showRootPopup {
-				m.rootInput += s
+			if m.popup.mode != popupModeNone {
+				m.popup.input += s
 			}
 			return m, nil
 		case "g":
 			// Vim gg sequence: first g sets pendingG, second g jumps to top
-			if m.showRootPopup {
-				m.rootInput += s
+			if m.popup.mode != popupModeNone {
+				m.popup.input += s
 				return m, nil
 			}
 			if m.activeModal == ModalNone {
@@ -1010,20 +1046,46 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.table.MoveDown(pageSize / 2)
 			return m, nil
 		case "up":
-			if m.showRootPopup {
-				if m.rootPopupCursor > 0 {
-					m.rootPopupCursor--
-				} else if m.rootPopupCursor < 0 {
-					m.rootPopupCursor = 0
+			if m.popup.mode == popupModeSkin {
+				items := m.skinPopupItems()
+				if m.popup.cursor > 0 {
+					m.popup.cursor--
+				} else if m.popup.cursor < 0 {
+					m.popup.cursor = 0
+				}
+				if m.popup.cursor >= 0 && m.popup.cursor < len(items) {
+					m.previewSkinByName(items[m.popup.cursor])
+				}
+				return m, nil
+			}
+			if m.popup.mode != popupModeNone {
+				if m.popup.cursor > 0 {
+					m.popup.cursor--
+				} else if m.popup.cursor < 0 {
+					m.popup.cursor = 0
 				}
 				return m, nil
 			}
 			// fall through to table navigation via component update
 		case "down":
-			if m.showRootPopup {
+			if m.popup.mode == popupModeSkin {
+				items := m.skinPopupItems()
+				if len(items) > 0 {
+					if m.popup.cursor < 0 {
+						m.popup.cursor = 0
+					} else if m.popup.cursor < len(items)-1 {
+						m.popup.cursor++
+					}
+				}
+				if m.popup.cursor >= 0 && m.popup.cursor < len(items) {
+					m.previewSkinByName(items[m.popup.cursor])
+				}
+				return m, nil
+			}
+			if m.popup.mode != popupModeNone {
 				matchingContexts := []string{}
 				for _, rc := range m.rootContexts {
-					if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+					if m.popup.input == "" || strings.HasPrefix(rc, m.popup.input) {
 						matchingContexts = append(matchingContexts, rc)
 					}
 				}
@@ -1032,10 +1094,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					matchingContexts = matchingContexts[:maxShow]
 				}
 				if len(matchingContexts) > 0 {
-					if m.rootPopupCursor < 0 {
-						m.rootPopupCursor = 1
-					} else if m.rootPopupCursor < len(matchingContexts)-1 {
-						m.rootPopupCursor++
+					if m.popup.cursor < 0 {
+						m.popup.cursor = 1
+					} else if m.popup.cursor < len(matchingContexts)-1 {
+						m.popup.cursor++
 					}
 				}
 				return m, nil
@@ -1051,7 +1113,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "1", "2", "3", "4":
 			// numeric breadcrumb navigation when popup not active
-			if !m.showRootPopup {
+			if m.popup.mode == popupModeNone {
 				n := int(s[0] - '1') // 0-based
 				if n < len(m.breadcrumb) {
 					return m, (&m).navigateToBreadcrumb(n)
@@ -1060,10 +1122,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		default:
 			// typing into the root input when popup active
-			if m.showRootPopup {
+			if m.popup.mode != popupModeNone {
 				if len(s) == 1 {
-					m.rootInput += s
-					m.rootPopupCursor = -1
+					m.popup.input += s
+					m.popup.cursor = -1
 					m.paneHeight = m.computePaneHeight()
 					m.table.SetHeight(m.paneHeight - 1)
 				}
@@ -1363,6 +1425,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case envStatusMsg:
 		// Update environment status
 		m.envStatus[msg.env] = msg.status
+	case skinsLoadedMsg:
+		m.availableSkins = msg.names
+		if m.popup.mode == popupModeSkin {
+			m.popup.items = m.availableSkins
+		}
 	case errMsg:
 		errText := friendlyError(m.currentEnv, msg.err) + " — Ctrl+r to retry"
 		msg2, kind, cmd := setFooterStatus(footerStatusError, errText, 8*time.Second)

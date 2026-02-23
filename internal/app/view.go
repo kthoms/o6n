@@ -97,17 +97,17 @@ func (m *model) renderCompactHeader(width int) string {
 
 	// Determine status symbol and color
 	statusSymbol := "●"
-	statusColor := lipgloss.Color("#FFAA00") // yellow/orange for unknown
+	statusColor := col(m.skin, "warning")
 	switch status {
 	case StatusOperational:
 		statusSymbol = "●"
-		statusColor = lipgloss.Color("#00FF00") // green
+		statusColor = col(m.skin, "success")
 	case StatusUnreachable:
 		statusSymbol = "✗"
-		statusColor = lipgloss.Color("#FF0000") // red
+		statusColor = col(m.skin, "danger")
 	case StatusUnknown:
 		statusSymbol = "○"
-		statusColor = lipgloss.Color("#FFAA00") // yellow
+		statusColor = col(m.skin, "warning")
 	}
 
 	statusStyle := lipgloss.NewStyle().Foreground(statusColor)
@@ -115,13 +115,7 @@ func (m *model) renderCompactHeader(width int) string {
 
 	row1 := fmt.Sprintf("o8n %s │ %s", m.version, envInfo)
 	if m.autoRefresh {
-		accentColor := lipgloss.Color("#00AAFF")
-		if m.config != nil {
-			if env, ok := m.config.Environments[m.currentEnv]; ok && env.UIColor != "" {
-				accentColor = lipgloss.Color(env.UIColor)
-			}
-		}
-		badge := lipgloss.NewStyle().Foreground(accentColor).Render("↺")
+		badge := m.styles.Accent.Render("↺")
 		row1 = row1 + " " + badge
 	}
 	if lipgloss.Width(row1) > width-4 {
@@ -169,16 +163,10 @@ func (m *model) renderConfirmDeleteModal(width, height int) string {
 			"Ctrl+d  Confirm Delete    Esc  Cancel",
 		resourceLabel, m.pendingDeleteID, nameDetail)
 
-	color := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			color = env.UIColor
-		}
-	}
 
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.DoubleBorder()).
-		BorderForeground(lipgloss.Color(color)).
+		BorderForeground(col(m.skin, "borderFocus")).
 		Padding(1, 2).
 		Width(54)
 
@@ -191,16 +179,10 @@ func (m *model) renderConfirmDeleteModal(width, height int) string {
 // renderConfirmQuitModal renders a modal asking the user to confirm quitting.
 // Returns just the styled box; View() wraps it with overlayCenter.
 func (m *model) renderConfirmQuitModal(_, _ int) string {
-	color := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			color = env.UIColor
-		}
-	}
 	modalContent := "Quit o8n?\n\nPress Ctrl+c again to confirm.\n\nCtrl+c  Quit    Esc  Cancel"
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(color)).
+		BorderForeground(col(m.skin, "borderFocus")).
 		Padding(1, 2).
 		Width(40)
 	modal := modalStyle.Render(modalContent)
@@ -306,12 +288,6 @@ j/k or ↑↓: scroll  Any other key: close`
 	helpContent = strings.Join(visibleLines, "\n")
 
 	// Get color for styling
-	color := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			color = env.UIColor
-		}
-	}
 
 	helpWidth := width - 6
 	if helpWidth > 76 {
@@ -323,7 +299,7 @@ j/k or ↑↓: scroll  Any other key: close`
 
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(color)).
+		BorderForeground(col(m.skin, "borderFocus")).
 		Padding(1, 2).
 		Width(helpWidth)
 
@@ -335,11 +311,11 @@ j/k or ↑↓: scroll  Any other key: close`
 
 func (m *model) renderEditModal(width, height int) string {
 	row := m.currentEditRow()
-	col := m.currentEditColumn()
-	if row == nil || col == nil {
+	editCol := m.currentEditColumn()
+	if row == nil || editCol == nil {
 		return ""
 	}
-	inputType, _ := m.resolveEditTypes(col.def, m.editTableKey, row)
+	inputType, _ := m.resolveEditTypes(editCol.def, m.editTableKey, row)
 
 	singleColumnHeader := ""
 	if len(m.editColumns) == 1 {
@@ -368,39 +344,16 @@ func (m *model) renderEditModal(width, height int) string {
 
 	errorLine := ""
 	if m.editError != "" {
-		errorLine = validationErrorStyle.Render("⚠ "+m.editError) + "\n\n"
+		errorLine = m.styles.ValidationError.Render("⚠ "+m.editError) + "\n\n"
 	}
 
 	// Build body (without header)
 	body := columnsLine + m.editInput.View() + "\n\n" + errorLine
 
 	// Determine button styles from config or defaults
-	saveBg := "#00A8E1"
-	saveFg := "#FFFFFF"
-	cancelBg := "#666666"
-	cancelFg := "#FFFFFF"
-	if m.config != nil && m.config.UI != nil && m.config.UI.EditModal != nil && m.config.UI.EditModal.Buttons != nil {
-		if b := m.config.UI.EditModal.Buttons.Save; b != nil {
-			if b.Background != "" {
-				saveBg = b.Background
-			}
-			if b.Foreground != "" {
-				saveFg = b.Foreground
-			}
-		}
-		if b := m.config.UI.EditModal.Buttons.Cancel; b != nil {
-			if b.Background != "" {
-				cancelBg = b.Background
-			}
-			if b.Foreground != "" {
-				cancelFg = b.Foreground
-			}
-		}
-	}
-
-	saveStyle := lipgloss.NewStyle().Background(lipgloss.Color(saveBg)).Foreground(lipgloss.Color(saveFg)).Padding(0, 1).Bold(true)
-	cancelStyle := lipgloss.NewStyle().Background(lipgloss.Color(cancelBg)).Foreground(lipgloss.Color(cancelFg)).Padding(0, 1)
-	disabledSaveStyle := lipgloss.NewStyle().Background(lipgloss.Color("#777777")).Foreground(lipgloss.Color("#DDDDDD")).Padding(0, 1)
+	saveStyle := m.styles.BtnSave
+	cancelStyle := m.styles.BtnCancel
+	disabledSaveStyle := m.styles.BtnDisabled
 
 	saveLabel := " Save "
 	cancelLabel := " Cancel "
@@ -420,7 +373,7 @@ func (m *model) renderEditModal(width, height int) string {
 			saveDisabled = true
 			// if no explicit editError set, show the validation error inline
 			if m.editError == "" {
-				errorLine = validationErrorStyle.Render("⚠ "+err.Error()) + "\n\n"
+				errorLine = m.styles.ValidationError.Render("⚠ "+err.Error()) + "\n\n"
 			}
 		}
 	}
@@ -437,8 +390,8 @@ func (m *model) renderEditModal(width, height int) string {
 	body = singleColumnHeader + columnsLine + m.editInput.View() + "\n\n" + errorLine + suggestionLine
 
 	// Render buttons with focus styles
-	savedFocusedStyle := saveStyle.Copy().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#FFFFFF"))
-	cancelFocusedStyle := cancelStyle.Copy().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#FFFFFF"))
+	savedFocusedStyle := m.styles.BtnSaveFocused
+	cancelFocusedStyle := m.styles.BtnCancelFocused
 
 	var saveBtn, cancelBtn string
 	switch m.editFocus {
@@ -446,7 +399,7 @@ func (m *model) renderEditModal(width, height int) string {
 		if saveDisabled {
 			saveBtn = disabledSaveStyle.Copy().
 				Border(lipgloss.NormalBorder()).
-				BorderForeground(lipgloss.Color("#FF6B6B")).
+				BorderForeground(col(m.skin, "danger")).
 				Render(saveLabel)
 		} else {
 			saveBtn = savedFocusedStyle.Render(saveLabel)
@@ -471,18 +424,12 @@ func (m *model) renderEditModal(width, height int) string {
 
 	modalBody := body + "\n" + buttons
 
-	// Border color: prefer environment color if available
-	borderColor := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			borderColor = env.UIColor
-		}
-		if m.config.UI != nil && m.config.UI.EditModal != nil && m.config.UI.EditModal.BorderColor != "" {
-			borderColor = m.config.UI.EditModal.BorderColor
-		}
+	modalBorderColor := col(m.skin, "borderFocus")
+	if m.config != nil && m.config.UI != nil && m.config.UI.EditModal != nil && m.config.UI.EditModal.BorderColor != "" {
+		modalBorderColor = lipgloss.Color(m.config.UI.EditModal.BorderColor)
 	}
 
-	modalStyle := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(borderColor)).Padding(1, 2)
+	modalStyle := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(modalBorderColor).Padding(1, 2)
 	if m.config != nil && m.config.UI != nil && m.config.UI.EditModal != nil && m.config.UI.EditModal.Width > 0 {
 		modalStyle = modalStyle.Width(m.config.UI.EditModal.Width)
 	} else {
@@ -547,43 +494,44 @@ func (m model) View() string {
 	compactHeader = lipgloss.Place(m.lastWidth, 3, lipgloss.Left, lipgloss.Center, compactHeader)
 
 	// get border color
-	color := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			color = env.UIColor
-		}
-	}
 
-	// render context selection box
+	// render context selection box (generic popup palette)
 	var contextSelectionBox string
-	if m.showRootPopup {
-		completion := ""
-		matchingContexts := []string{}
-		for _, rc := range m.rootContexts {
-			if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
-				matchingContexts = append(matchingContexts, rc)
+	if m.popup.mode != popupModeNone {
+		var items []string
+		var hint string
+		if m.popup.mode == popupModeSkin {
+			items = m.skinPopupItems()
+			hint = m.popup.hint
+		} else {
+			// context mode
+			for _, rc := range m.rootContexts {
+				if m.popup.input == "" || strings.HasPrefix(rc, m.popup.input) {
+					items = append(items, rc)
+				}
 			}
-		}
-		if m.rootInput != "" && len(matchingContexts) > 0 && matchingContexts[0] != m.rootInput {
-			completion = matchingContexts[0][len(m.rootInput):]
+			hint = "↑↓:select  Tab/Enter:switch  Esc:cancel"
 		}
 
-		inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(color))
-		hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
-		displayText := inputStyle.Render(m.rootInput) + completionStyle.Render(completion)
-		hintLine := hintStyle.Render("↑↓:select  Tab/Enter:switch  Esc:cancel")
+		completion := ""
+		if m.popup.input != "" && len(items) > 0 && items[0] != m.popup.input {
+			completion = items[0][len(m.popup.input):]
+		}
+
+		displayText := m.styles.PopupInput.Render(m.popup.input) + m.styles.PopupCompletion.Render(completion)
+		hintLine := m.styles.PopupHint.Render(hint)
 
 		var listLines []string
 		maxShow := 8
-		shown := matchingContexts
+		shown := items
 		extra := 0
 		if len(shown) > maxShow {
 			extra = len(shown) - maxShow
 			shown = shown[:maxShow]
 		}
-		cursorPos := 0
-		if m.rootPopupCursor >= 0 && m.rootPopupCursor < len(shown) {
-			cursorPos = m.rootPopupCursor
+		cursorPos := -1
+		if m.popup.cursor >= 0 && m.popup.cursor < len(shown) {
+			cursorPos = m.popup.cursor
 		}
 		for i, rc := range shown {
 			cursor := "  "
@@ -604,7 +552,7 @@ func (m model) View() string {
 
 		boxStyle := lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color(color)).
+			BorderForeground(col(m.skin, "borderFocus")).
 			Width(m.lastWidth-4).
 			Padding(0, 1)
 		contextSelectionBox = boxStyle.Render(fullContent)
@@ -647,13 +595,13 @@ func (m model) View() string {
 	if m.searchMode {
 		searchStyle := lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color(color)).
+			BorderForeground(col(m.skin, "borderFocus")).
 			Width(pw-4).
 			Padding(0, 1)
 		searchBar = searchStyle.Render(m.searchInput.View())
 	}
 
-	mainBox := renderBoxWithTitle(m.table.View(), pw, m.paneHeight, title, color)
+	mainBox := renderBoxWithTitle(m.table.View(), pw, m.paneHeight, title, m.styles.BorderFocus)
 
 	// Footer (1 row with 3 columns per specification):
 	// Column 1: Context tag with breadcrumb navigation hints
@@ -675,13 +623,13 @@ func (m model) View() string {
 
 	// Render remote flash as a fixed-width symbol on the right, plus latency and pagination if available
 	remoteSymbol := " "
-	rpStyle := flashBaseStyle
+	rpStyle := m.styles.FlashBase
 	if m.flashActive {
 		remoteSymbol = "⚡"
-		rpStyle = rpStyle.Foreground(lipgloss.Color("#00FF00")).Bold(true)
+		rpStyle = rpStyle.Foreground(col(m.skin, "success")).Bold(true)
 	} else {
 		remoteSymbol = " "
-		rpStyle = rpStyle.Foreground(lipgloss.Color("#666666"))
+		rpStyle = rpStyle.Foreground(col(m.skin, "fgMuted"))
 	}
 	latencyStr := ""
 	if m.showLatency && m.lastAPILatency > 0 {
@@ -699,7 +647,7 @@ func (m model) View() string {
 	}
 	pageIndicator := ""
 	if paginationStr != "" {
-		pageIndicator = pageCounterStyle.Render(paginationStr) + " "
+		pageIndicator = m.styles.PageCounter.Render(paginationStr) + " "
 	}
 	rightPart := pageIndicator + rpStyle.Render(remoteSymbol+latencyStr)
 
@@ -729,16 +677,16 @@ func (m model) View() string {
 		switch m.footerStatusKind {
 		case footerStatusError:
 			plainIcon = "✗ "
-			style = errorFooterStyle
+			style = m.styles.ErrorFooter
 		case footerStatusSuccess:
 			plainIcon = "✓ "
-			style = successFooterStyle
+			style = m.styles.SuccessFooter
 		case footerStatusLoading:
 			plainIcon = spinnerFrames[m.spinnerFrame%len(spinnerFrames)] + " "
-			style = loadingFooterStyle
+			style = m.styles.LoadingFooter
 		default: // footerStatusInfo
 			plainIcon = "ℹ "
-			style = infoFooterStyle
+			style = m.styles.InfoFooter
 		}
 		plainText := m.footerError
 		iconWidth := lipgloss.Width(plainIcon)
@@ -812,7 +760,7 @@ func (m model) View() string {
 // totalWidth/totalHeight and embeds title centered into the top border.
 // The content is clipped/padded to fit the inner area. If color is non-empty
 // the entire box text is colorized using that foreground color.
-func renderBoxWithTitle(content string, totalWidth, totalHeight int, title, color string) string {
+func renderBoxWithTitle(content string, totalWidth, totalHeight int, title string, borderStyle lipgloss.Style) string {
 	innerWidth := totalWidth - 2
 	if innerWidth < 1 {
 		innerWidth = 1
@@ -866,13 +814,8 @@ func renderBoxWithTitle(content string, totalWidth, totalHeight int, title, colo
 	bottom := "└" + strings.Repeat("─", innerWidth) + "┘"
 
 	var b strings.Builder
-	// Prepare border style if color provided
-	var borderStyle lipgloss.Style
-	useBorderColor := color != ""
-	if useBorderColor {
-		borderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(color))
-	}
-
+	// Always apply the border style (callers pass empty style for no coloring)
+	useBorderColor := true
 	if useBorderColor {
 		b.WriteString(borderStyle.Render(top))
 	} else {
@@ -904,12 +847,6 @@ func renderBoxWithTitle(content string, totalWidth, totalHeight int, title, colo
 func (m *model) renderSortPopup(width, height int) string {
 	cols := m.table.Columns()
 
-	color := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			color = env.UIColor
-		}
-	}
 
 	var b strings.Builder
 	showClear := m.sortColumn >= 0
@@ -920,7 +857,7 @@ func (m *model) renderSortPopup(width, height int) string {
 		}
 		b.WriteString(fmt.Sprintf("%s— clear sort —\n", cursor))
 	}
-	for i, col := range cols {
+	for i, tableCol := range cols {
 		cursor := "  "
 		if i == m.sortPopupCursor {
 			cursor = "▸ "
@@ -933,12 +870,12 @@ func (m *model) renderSortPopup(width, height int) string {
 				indicator = " ▼"
 			}
 		}
-		b.WriteString(fmt.Sprintf("%s%s%s\n", cursor, col.Title, indicator))
+		b.WriteString(fmt.Sprintf("%s%s%s\n", cursor, tableCol.Title, indicator))
 	}
 
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(color)).
+		BorderForeground(col(m.skin, "borderFocus")).
 		Padding(0, 1).
 		Width(30)
 
@@ -951,12 +888,6 @@ func (m *model) renderSortPopup(width, height int) string {
 
 // renderDetailView renders the YAML/JSON detail viewer overlay.
 func (m *model) renderDetailView(width, height int) string {
-	color := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			color = env.UIColor
-		}
-	}
 
 	// Calculate visible area
 	viewHeight := height - 6
@@ -987,14 +918,14 @@ func (m *model) renderDetailView(width, height int) string {
 	var b strings.Builder
 	for i, line := range visibleLines {
 		lineNum := m.detailScroll + i + 1
-		b.WriteString(fmt.Sprintf("%4d │ %s\n", lineNum, syntaxHighlightJSON(line)))
+		b.WriteString(fmt.Sprintf("%4d │ %s\n", lineNum, m.syntaxHighlightJSON(line)))
 	}
 
 	scrollInfo := fmt.Sprintf("[%d/%d]", m.detailScroll+1, len(lines))
 
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(color)).
+		BorderForeground(col(m.skin, "borderFocus")).
 		Padding(1, 2).
 		Width(width - 4).
 		Height(viewHeight + 2)
@@ -1007,11 +938,11 @@ func (m *model) renderDetailView(width, height int) string {
 }
 
 // syntaxHighlightJSON applies basic syntax highlighting to a JSON line.
-func syntaxHighlightJSON(line string) string {
-	keyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00BCD4"))
-	stringStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#50C878"))
-	numberStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
-	boolStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF69B4"))
+func (m *model) syntaxHighlightJSON(line string) string {
+	keyStyle := m.styles.JSONKey
+	stringStyle := m.styles.JSONValue
+	numberStyle := m.styles.JSONNumber
+	boolStyle := m.styles.JSONBool
 
 	trimmed := strings.TrimSpace(line)
 
@@ -1045,12 +976,6 @@ func syntaxHighlightJSON(line string) string {
 
 // renderEnvPopup renders the environment selection popup.
 func (m *model) renderEnvPopup(width, height int) string {
-	color := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			color = env.UIColor
-		}
-	}
 
 	var b strings.Builder
 	for i, name := range m.envNames {
@@ -1072,15 +997,7 @@ func (m *model) renderEnvPopup(width, height int) string {
 			statusIcon = "✗"
 		}
 
-		// Environment color
-		envColor := ""
-		if env, ok := m.config.Environments[name]; ok {
-			envColor = env.UIColor
-		}
-		envStyle := lipgloss.NewStyle()
-		if envColor != "" {
-			envStyle = envStyle.Foreground(lipgloss.Color(envColor))
-		}
+		envStyle := m.styles.Accent
 
 		url := ""
 		if env, ok := m.config.Environments[name]; ok {
@@ -1089,7 +1006,7 @@ func (m *model) renderEnvPopup(width, height int) string {
 
 		activeMarker := ""
 		if name == m.currentEnv {
-			activeMarker = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render(" ✓")
+			activeMarker = m.styles.FgMuted.Render(" ✓")
 		}
 		line := fmt.Sprintf("%s%s %s%s  %s", cursor, statusIcon, envStyle.Render(name), activeMarker, url)
 		b.WriteString(line + "\n")
@@ -1097,7 +1014,7 @@ func (m *model) renderEnvPopup(width, height int) string {
 
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(color)).
+		BorderForeground(col(m.skin, "borderFocus")).
 		Padding(0, 1).
 		Width(50)
 
@@ -1109,12 +1026,6 @@ func (m *model) renderEnvPopup(width, height int) string {
 
 // renderActionsMenu renders the context actions menu popup.
 func (m *model) renderActionsMenu(width, height int) string {
-	color := ""
-	if m.config != nil {
-		if env, ok := m.config.Environments[m.currentEnv]; ok {
-			color = env.UIColor
-		}
-	}
 
 	var b strings.Builder
 	root := m.currentRoot
@@ -1135,7 +1046,7 @@ func (m *model) renderActionsMenu(width, height int) string {
 
 	modalStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(color)).
+		BorderForeground(col(m.skin, "borderFocus")).
 		Padding(0, 1).
 		Width(35)
 

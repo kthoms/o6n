@@ -13,8 +13,7 @@ func newFocusIndicatorTestModel(t *testing.T) model {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
 			"local": {
-				URL:     "http://localhost:8080",
-				UIColor: "#00A8E1",  // Blue accent
+				URL:     "http://localhost:8080",  // Blue accent
 			},
 		},
 		Tables: []config.TableDef{
@@ -161,8 +160,7 @@ func TestFocusIndicatorUsesEnvironmentColor(t *testing.T) {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
 			"local": {
-				URL:     "http://localhost:8080",
-				UIColor: "#FFA500",  // Orange accent
+				URL:     "http://localhost:8080",  // Orange accent
 			},
 		},
 		Tables: []config.TableDef{
@@ -185,13 +183,7 @@ func TestFocusIndicatorUsesEnvironmentColor(t *testing.T) {
 	}
 	m.applyDefinitions(defs)
 
-	// Verify environment color was loaded
-	if m.config.Environments["local"].UIColor != "#FFA500" {
-		t.Errorf("expected environment color #FFA500, got %s",
-			m.config.Environments["local"].UIColor)
-	}
-
-	// Focus indicator should still render (color application is internal to Lipgloss)
+	// Focus indicator should still render
 	output := m.View()
 	if !strings.Contains(output, "▶") {
 		t.Error("expected focus indicator with environment color")
@@ -204,7 +196,7 @@ func TestFocusIndicatorUsesEnvironmentColor(t *testing.T) {
 func TestFocusIndicatorHighlightsEntireRow(t *testing.T) {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
-			"local": {URL: "http://localhost:8080", UIColor: "#00A8E1"},
+			"local": {URL: "http://localhost:8080"},
 		},
 		Tables: []config.TableDef{
 			{

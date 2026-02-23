@@ -20,9 +20,9 @@ func TestEnvPopupOpens(t *testing.T) {
 func TestEnvPopupShowsAllEnvs(t *testing.T) {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
-			"dev":     {URL: "http://dev", UIColor: "#FFA500"},
-			"local":   {URL: "http://local", UIColor: "#00A8E1"},
-			"staging": {URL: "http://staging", UIColor: "#50C878"},
+			"dev":     {URL: "http://dev"},
+			"local":   {URL: "http://local"},
+			"staging": {URL: "http://staging"},
 		},
 		Active: "local",
 	}
@@ -48,8 +48,8 @@ func TestEnvPopupEscCloses(t *testing.T) {
 func TestEnvPopupEnterSwitches(t *testing.T) {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
-			"dev":   {URL: "http://dev", UIColor: "#FFA500"},
-			"local": {URL: "http://local", UIColor: "#00A8E1"},
+			"dev":   {URL: "http://dev"},
+			"local": {URL: "http://local"},
 		},
 		Active: "local",
 	}
@@ -86,8 +86,8 @@ func TestEnvPopupEnterSwitches(t *testing.T) {
 func TestEnvPopupNavigation(t *testing.T) {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
-			"dev":   {URL: "http://dev", UIColor: "#FFA500"},
-			"local": {URL: "http://local", UIColor: "#00A8E1"},
+			"dev":   {URL: "http://dev"},
+			"local": {URL: "http://local"},
 		},
 		Active: "local",
 	}
@@ -112,7 +112,7 @@ func TestEnvPopupNavigation(t *testing.T) {
 func TestEnvPopupEnterSameEnvNoSwitch(t *testing.T) {
 	cfg := &config.Config{
 		Environments: map[string]config.Environment{
-			"local": {URL: "http://local", UIColor: "#00A8E1"},
+			"local": {URL: "http://local"},
 		},
 		Active: "local",
 	}

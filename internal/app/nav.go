@@ -246,12 +246,12 @@ func (m *model) currentTableKey() string {
 // contextPopupHeight returns the rendered line-height of the context switcher popup,
 // or 0 when the popup is hidden. Used to shrink the content pane accordingly.
 func (m *model) contextPopupHeight() int {
-	if !m.showRootPopup {
+	if m.popup.mode == popupModeNone {
 		return 0
 	}
 	matchCount := 0
 	for _, rc := range m.rootContexts {
-		if m.rootInput == "" || strings.HasPrefix(rc, m.rootInput) {
+		if m.popup.input == "" || strings.HasPrefix(rc, m.popup.input) {
 			matchCount++
 		}
 	}

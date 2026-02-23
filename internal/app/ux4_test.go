@@ -110,8 +110,8 @@ func TestContextBoxShowsMatchingContexts(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
 	m.rootContexts = []string{"process-definition", "process-instance", "task", "user-task"}
-	m.showRootPopup = true
-	m.rootInput = "task"
+	m.popup.mode = popupModeContext
+	m.popup.input = "task"
 	m.lastWidth = 120
 	m.lastHeight = 30
 
@@ -126,8 +126,8 @@ func TestContextBoxShowsHintLine(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
 	m.rootContexts = []string{"process-definition", "task"}
-	m.showRootPopup = true
-	m.rootInput = ""
+	m.popup.mode = popupModeContext
+	m.popup.input = ""
 	m.lastWidth = 120
 	m.lastHeight = 30
 
@@ -143,7 +143,7 @@ func TestContextBoxShowsHintLine(t *testing.T) {
 func TestComputePaneHeightBase(t *testing.T) {
 	m := newTestModel(t)
 	m.lastHeight = 30
-	m.showRootPopup = false
+	m.popup.mode = popupModeNone
 	m.searchMode = false
 
 	h := m.computePaneHeight()
@@ -157,7 +157,7 @@ func TestComputePaneHeightBase(t *testing.T) {
 func TestComputePaneHeightWithPopup(t *testing.T) {
 	m := newTestModel(t)
 	m.lastHeight = 30
-	m.showRootPopup = true
+	m.popup.mode = popupModeContext
 	m.rootContexts = nil // no contexts → popup height = 4 (2 borders + input + hint)
 	m.searchMode = false
 
@@ -171,7 +171,7 @@ func TestComputePaneHeightWithPopup(t *testing.T) {
 func TestComputePaneHeightWithSearch(t *testing.T) {
 	m := newTestModel(t)
 	m.lastHeight = 30
-	m.showRootPopup = false
+	m.popup.mode = popupModeNone
 	m.searchMode = true
 
 	h := m.computePaneHeight()
@@ -184,7 +184,7 @@ func TestComputePaneHeightWithSearch(t *testing.T) {
 func TestComputePaneHeightBothActive(t *testing.T) {
 	m := newTestModel(t)
 	m.lastHeight = 30
-	m.showRootPopup = true
+	m.popup.mode = popupModeContext
 	m.rootContexts = nil // no contexts → popup height = 4
 	m.searchMode = true
 

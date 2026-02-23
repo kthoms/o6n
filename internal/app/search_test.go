@@ -151,15 +151,15 @@ func TestSearchEmptyTerm(t *testing.T) {
 func TestSearchNotActiveInRootPopup(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
-	m.showRootPopup = true
-	m.rootInput = ""
+	m.popup.mode = popupModeContext
+	m.popup.input = ""
 
 	m2, _ := sendKeyString(m, "/")
 
 	if m2.searchMode {
 		t.Error("expected searchMode to remain false when root popup is active")
 	}
-	if m2.rootInput != "/" {
-		t.Errorf("expected rootInput '/', got %q", m2.rootInput)
+	if m2.popup.input != "/" {
+		t.Errorf("expected rootInput '/', got %q", m2.popup.input)
 	}
 }

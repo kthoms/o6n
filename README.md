@@ -35,13 +35,11 @@ environments:
     url: http://localhost:8080/engine-rest
     username: demo
     password: demo
-    ui_color: "#00A8E1"
     default_timeout: 10s
   production:
     url: https://operaton.example.com/engine-rest
     username: admin
     password: secret
-    ui_color: "#FF5733"
 ```
 
 > Note: `active` environment and `skin` are no longer stored in `o8n-env.yaml`. They are persisted in `o8n-stat.yml`.
@@ -66,6 +64,7 @@ go build -o o8n .
 - `?` — Show help screen with all shortcuts
 - `:` — Open context switcher (process-definition, process-instance, task, job, etc.)
 - `<ctrl>+e` — Switch environment
+- `<ctrl>+t` — Open theme/skin picker (↑↓ to preview, Enter to apply, Esc to revert)
 - `<ctrl>+c` — Quit application
 
 **Navigation:**
@@ -82,7 +81,6 @@ go build -o o8n .
 
 **Instance Actions:**
 - `<ctrl>+d` — Delete selected instance (press twice to confirm)
-- `<ctrl>+t` — Terminate instance
 
 **Variable Actions:**
 - `e` — Edit selected value (when column is editable)
@@ -90,9 +88,10 @@ go build -o o8n .
 ### Features
 
 **🎨 Theming & Skins**
-- 20+ built-in color schemes (dracula, nord, gruvbox, solarized, etc.)
-- Runtime skin switching
-- Custom skin support in `/skins` folder
+- 34+ built-in color schemes (dracula, nord, gruvbox, solarized, o8n-cyber, etc.)
+- Runtime skin switching with `<ctrl>+t` — live preview on ↑↓, Enter to apply, Esc to revert
+- No hardcoded colors — all colors driven by 25 semantic skin roles
+- Custom skin support: add a `colors:` section YAML file to `/skins` folder
 
 **📊 Dynamic Tables**
 - Responsive column sizing based on terminal width
