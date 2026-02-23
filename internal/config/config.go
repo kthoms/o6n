@@ -207,7 +207,54 @@ type ButtonStyle struct {
 	Style      string `yaml:"style,omitempty"`
 }
 
-// LoadEnvConfig loads the environment YAML file (o8n-env.yaml)
+// NavState captures the user's last navigation position for state restore.
+type NavState struct {
+	Root                 string            `yaml:"root,omitempty"`
+	Breadcrumb           []string          `yaml:"breadcrumb,omitempty"`
+	SelectedDefinitionKey string           `yaml:"selected_definition_key,omitempty"`
+	SelectedInstanceID   string            `yaml:"selected_instance_id,omitempty"`
+	GenericParams        map[string]string `yaml:"generic_params,omitempty"`
+}
+
+// AppState holds mutable runtime state persisted to o8n-stat.yml.
+// This keeps o8n-env.yaml stable (credentials only) and separates user preferences.
+type AppState struct {
+	ActiveEnv   string   `yaml:"active_env,omitempty"`
+	Skin        string   `yaml:"skin,omitempty"`
+	ShowLatency bool     `yaml:"show_latency,omitempty"`
+	Navigation  NavState `yaml:"navigation,omitempty"`
+}
+
+// LoadAppState loads runtime state from the given path (o8n-stat.yml).
+// Returns an empty state (not an error) if the file does not exist yet.
+func LoadAppState(path string) (*AppState, error) {
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return &AppState{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to read state file %s: %w", path, err)
+	}
+	var s AppState
+	if err := yaml.Unmarshal(data, &s); err != nil {
+		return nil, fmt.Errorf("failed to parse state file %s: %w", path, err)
+	}
+	return &s, nil
+}
+
+// SaveAppState writes runtime state to the given path with 0600 permissions.
+func SaveAppState(path string, s *AppState) error {
+	data, err := yaml.Marshal(s)
+	if err != nil {
+		return fmt.Errorf("failed to marshal app state: %w", err)
+	}
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		return fmt.Errorf("failed to write state file %s: %w", path, err)
+	}
+	return nil
+}
+
+
 func LoadEnvConfig(path string) (*EnvConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

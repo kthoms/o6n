@@ -32,6 +32,8 @@ o8n
 
 # User config file (use o8n-env.yaml.example as template)
 o8n-env.yaml
+# Runtime state file (auto-generated, not for version control)
+o8n-stat.yml
 debug/
 
 # Editor/IDE

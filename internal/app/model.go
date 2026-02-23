@@ -353,8 +353,10 @@ type model struct {
 	showEnvPopup   bool
 	envPopupCursor int
 
-	activeSkin string
-	skin       *Skin
+	activeSkin  string
+	skin        *Skin
+	showLatency bool   // toggleable latency display (default off)
+	statePath   string // path to o8n-stat.yml
 }
 
 func newModel(cfg *config.Config) model {
@@ -616,8 +618,37 @@ func (m model) Init() tea.Cmd {
 	// we start with frame 1 already set; schedule frame 2 after 150ms
 	firstTick := tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return splashFrameMsg{frame: 2} })
 
+	// Determine the initial fetch based on restored navigation state.
+	var initialFetch tea.Cmd
+	if m.currentRoot != "" && len(m.breadcrumb) > 0 {
+		// Restore last viewed resource — re-fetch fresh data for it.
+		last := m.breadcrumb[len(m.breadcrumb)-1]
+		switch last {
+		case "process-instances":
+			if m.selectedDefinitionKey != "" {
+				initialFetch = m.fetchInstancesCmd("processDefinitionKey", m.selectedDefinitionKey)
+			} else {
+				initialFetch = m.fetchGenericCmd("process-instance")
+			}
+		case "variables":
+			if m.selectedInstanceID != "" {
+				initialFetch = m.fetchVariablesCmd(m.selectedInstanceID)
+			} else {
+				initialFetch = m.fetchDefinitionsCmd()
+			}
+		default:
+			fetchCmd := m.fetchForRoot(last)
+			if fetchCmd == nil {
+				fetchCmd = m.fetchDefinitionsCmd()
+			}
+			initialFetch = fetchCmd
+		}
+	} else {
+		initialFetch = m.fetchDefinitionsCmd()
+	}
+
 	// Check health of all environments
-	cmds := []tea.Cmd{m.fetchDefinitionsCmd(), flashOnCmd(), firstTick}
+	cmds := []tea.Cmd{initialFetch, flashOnCmd(), firstTick}
 	for _, envName := range m.envNames {
 		cmds = append(cmds, m.checkEnvironmentHealthCmd(envName))
 	}

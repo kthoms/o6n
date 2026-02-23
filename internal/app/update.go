@@ -259,7 +259,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.resetViews()
 						m.isLoading = true
 						m.apiCallStarted = time.Now()
-						return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), m.checkEnvironmentHealthCmd(targetEnv), spinnerTickCmd())
+						return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), m.checkEnvironmentHealthCmd(targetEnv), spinnerTickCmd(), m.saveStateCmd())
 					}
 				}
 				return m, nil
@@ -516,6 +516,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(initialCmd, flashOnCmd(), tea.Tick(refreshInterval, func(time.Time) tea.Msg { return refreshMsg{} }), spinnerTickCmd())
 			}
 			return m, nil
+		case "L":
+			// Toggle latency display in footer
+			m.showLatency = !m.showLatency
+			return m, m.saveStateCmd()
 		case "s":
 			// Open sort popup
 			if m.showRootPopup {
@@ -626,7 +630,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.table.SetCursor(prevState.tableCursor)
 
-				return m, flashOnCmd()
+				return m, tea.Batch(flashOnCmd(), m.saveStateCmd())
 			}
 			return m, nil
 		case "enter":
@@ -683,12 +687,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						m.isLoading = true
 						m.apiCallStarted = time.Now()
-						return m, tea.Batch(m.fetchForRoot(rc), flashOnCmd(), spinnerTickCmd())
+						return m, tea.Batch(m.fetchForRoot(rc), flashOnCmd(), spinnerTickCmd(), m.saveStateCmd())
 					}
 					// fallback to definitions fetch
 					m.isLoading = true
 					m.apiCallStarted = time.Now()
-					return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), spinnerTickCmd())
+					return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), spinnerTickCmd(), m.saveStateCmd())
 				}
 				// no match: ignore
 				return m, nil
@@ -779,7 +783,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.contentHeader = fmt.Sprintf("%s(%s)", m.currentRoot, val)
 					// reset cursor to row 0
 					m.table.SetCursor(0)
-					return m, tea.Batch(m.fetchInstancesCmd(chosen.Param, val), flashOnCmd())
+					return m, tea.Batch(m.fetchInstancesCmd(chosen.Param, val), flashOnCmd(), m.saveStateCmd())
 				case "process-variables", "variables", "variable-instance", "variable-instances":
 					// instances -> variables (expects an instance id)
 					// Save current state before performing the drilldown to variables
@@ -818,7 +822,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					} else {
 						m.table.SetRows([]table.Row{})
 					}
-					return m, tea.Batch(m.fetchVariablesCmd(val), flashOnCmd())
+					return m, tea.Batch(m.fetchVariablesCmd(val), flashOnCmd(), m.saveStateCmd())
 
 				default:
 					// Generic drilldown for any configured target
@@ -859,7 +863,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					} else {
 						m.table.SetRows([]table.Row{})
 					}
-					return m, tea.Batch(m.fetchGenericCmd(chosen.Target), flashOnCmd())
+					return m, tea.Batch(m.fetchGenericCmd(chosen.Target), flashOnCmd(), m.saveStateCmd())
 				}
 			}
 
@@ -893,7 +897,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.contentHeader = fmt.Sprintf("%s(%s)", m.currentRoot, key)
 				// reset cursor to row 0
 				m.table.SetCursor(0)
-				return m, tea.Batch(m.fetchInstancesCmd("processDefinitionKey", key), flashOnCmd())
+				return m, tea.Batch(m.fetchInstancesCmd("processDefinitionKey", key), flashOnCmd(), m.saveStateCmd())
 			} else if m.viewMode == "instances" {
 				// Fallback instances -> variables: save state then drill
 				cols4 := m.table.Columns()
@@ -932,7 +936,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.table.SetRows([]table.Row{})
 				}
-				return m, tea.Batch(m.fetchVariablesCmd(id), flashOnCmd())
+				return m, tea.Batch(m.fetchVariablesCmd(id), flashOnCmd(), m.saveStateCmd())
 			}
 
 			return m, nil

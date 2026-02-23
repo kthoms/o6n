@@ -11,6 +11,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+const statePath = "o8n-stat.yml"
+
 // Run is the application entry point called from main.
 func Run() {
 	var debug = flag.Bool("debug", false, "enable debug logging")
@@ -61,14 +63,39 @@ func Run() {
 		return
 	}
 
+	// Load persisted runtime state (o8n-stat.yml). Missing file is not an error.
+	appState, err := config.LoadAppState(statePath)
+	if err != nil {
+		log.Printf("Warning: could not load state file: %v", err)
+		appState = &config.AppState{}
+	}
+
+	// Resolve skin: CLI flag > state file > env config (legacy) > ""
 	skinName := *skin
-	if skinName == "" && envCfg.Skin != "" {
+	if skinName == "" {
+		skinName = appState.Skin
+	}
+	if skinName == "" {
 		skinName = envCfg.Skin
 	}
 	log.Printf("DEBUG: skinName resolved to: %s", skinName)
 
 	m := newModelEnvApp(envCfg, appCfg, skinName)
 	m.debugEnabled = *debug
+	m.statePath = statePath
+	m.showLatency = appState.ShowLatency
+
+	// Restore active environment from state (falls back to env config / default).
+	if appState.ActiveEnv != "" {
+		if _, ok := m.config.Environments[appState.ActiveEnv]; ok {
+			m.currentEnv = appState.ActiveEnv
+			m.applyStyle()
+		}
+	}
+
+	// Restore last navigation position (root resource + drilldown path).
+	m.restoreNavState(appState.Navigation)
+
 	if *noSplash {
 		m.splashActive = false
 	}
@@ -76,4 +103,8 @@ func Run() {
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		log.Fatalf("failed to run program: %v", err)
 	}
+
+	// Persist state on clean exit.
+	_ = config.SaveAppState(statePath, m.currentAppState())
 }
+

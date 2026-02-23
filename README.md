@@ -15,10 +15,11 @@ A terminal UI for Operaton
 
 ### 1. Configuration
 
-There are two config files:
+There are three config files:
 
-- `o8n-env.yaml` — Environment credentials and UI colors (keep secret)
-- `o8n-cfg.yaml` — UI table definitions and app settings
+- `o8n-env.yaml` — Environment credentials and UI colors (keep secret, git-ignored)
+- `o8n-cfg.yaml` — UI table definitions and app settings (version-controlled)
+- `o8n-stat.yml` — Runtime state: active environment, skin, latency toggle, last view (auto-generated, git-ignored)
 
 Create your environment configuration:
 
@@ -41,8 +42,9 @@ environments:
     username: admin
     password: secret
     ui_color: "#FF5733"
-active: local
 ```
+
+> Note: `active` environment and `skin` are no longer stored in `o8n-env.yaml`. They are persisted in `o8n-stat.yml`.
 
 ### 2. Building
 
@@ -75,6 +77,7 @@ go build -o o8n .
 **View Actions:**
 - `r` — Toggle auto-refresh (5s interval)
 - `<ctrl>-r` — Manual refresh
+- `L` — Toggle request latency display in footer (default: off)
 - `/` — Filter/search (if implemented)
 
 **Instance Actions:**
@@ -116,6 +119,12 @@ go build -o o8n .
 - Process Definition → Process Instances → Variables
 - Breadcrumb navigation in footer
 - Intuitive back navigation with `Esc`
+- **View state restored on restart** — the app reopens at the last resource/drilldown level
+
+**⚙️ Persistent State**
+- Active environment, skin, and latency toggle are saved in `o8n-stat.yml`
+- Last navigation position (resource type and drilldown path) is restored on startup
+- Credentials stay stable in `o8n-env.yaml` (no runtime modifications)
 
 ### Debug Mode
 
@@ -156,7 +165,19 @@ environments:
     password: <password>
     ui_color: <hex-color>  # e.g., "#00A8E1"
     default_timeout: <duration> # e.g., "10s", "1m"
-active: <default-env-name>
+```
+
+**o8n-stat.yml** (Runtime State — auto-generated, git-ignored):
+```yaml
+active_env: local
+skin: dracula
+show_latency: false
+navigation:
+  root: process-instance
+  breadcrumb:
+    - process-definitions
+    - process-instances
+  selected_definition_key: my-process
 ```
 
 **o8n-cfg.yaml** (UI Configuration):
@@ -227,12 +248,15 @@ go test ./... -v
 
 ```
 o8n/
-├── main.go              # Bubble Tea model, UI logic
-├── api.go               # Operaton REST API client wrapper
-├── config.go            # Configuration loading/saving
-├── o8n-env.yaml         # Environment config (git-ignored)
+├── main.go              # Entry point (calls internal/app)
+├── internal/
+│   ├── app/             # TUI application logic (model, update, view)
+│   ├── client/          # Operaton REST API client
+│   ├── config/          # Config structs and loaders
+│   └── ...
+├── o8n-env.yaml         # Environment credentials (git-ignored)
 ├── o8n-cfg.yaml         # UI table definitions
-├── internal/operaton/   # Generated OpenAPI client
+├── o8n-stat.yml         # Runtime state (git-ignored, auto-generated)
 ├── resources/           # OpenAPI spec
 ├── skins/               # Color schemes
 └── _bmad/core/prds/     # Design specifications

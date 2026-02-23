@@ -316,3 +316,62 @@ func (m *model) navigateToBreadcrumb(idx int) tea.Cmd {
 		return tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd())
 	}
 }
+
+// currentNavState returns the current navigation position as a serialisable NavState.
+func (m *model) currentNavState() config.NavState {
+	return config.NavState{
+		Root:                  m.currentRoot,
+		Breadcrumb:            append([]string{}, m.breadcrumb...),
+		SelectedDefinitionKey: m.selectedDefinitionKey,
+		SelectedInstanceID:    m.selectedInstanceID,
+		GenericParams:         m.genericParams,
+	}
+}
+
+// currentAppState builds an AppState snapshot from the running model.
+func (m *model) currentAppState() *config.AppState {
+	return &config.AppState{
+		ActiveEnv:   m.currentEnv,
+		Skin:        m.activeSkin,
+		ShowLatency: m.showLatency,
+		Navigation:  m.currentNavState(),
+	}
+}
+
+// saveStateCmd returns a tea.Cmd that persists the current AppState to disk (best-effort).
+func (m *model) saveStateCmd() tea.Cmd {
+	state := m.currentAppState()
+	path := m.statePath
+	return func() tea.Msg {
+		_ = config.SaveAppState(path, state)
+		return nil
+	}
+}
+
+// restoreNavState applies a persisted NavState so the app opens at the last view.
+// It sets fields that the initial fetch command will honour. If root is empty the
+// default startup behaviour (process-definitions) applies.
+func (m *model) restoreNavState(nav config.NavState) {
+	if nav.Root == "" {
+		return
+	}
+	m.currentRoot = nav.Root
+	m.breadcrumb = append([]string{}, nav.Breadcrumb...)
+	m.selectedDefinitionKey = nav.SelectedDefinitionKey
+	m.selectedInstanceID = nav.SelectedInstanceID
+	if nav.GenericParams != nil {
+		m.genericParams = nav.GenericParams
+	}
+	// Infer viewMode from the deepest breadcrumb entry.
+	if len(m.breadcrumb) > 0 {
+		last := m.breadcrumb[len(m.breadcrumb)-1]
+		switch last {
+		case "process-instances":
+			m.viewMode = "instances"
+		case "variables":
+			m.viewMode = "variables"
+		default:
+			m.viewMode = "definitions"
+		}
+	}
+}

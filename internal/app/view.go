@@ -65,6 +65,13 @@ func (m *model) getKeyHints(width int) []KeyHint {
 	if width >= 90 {
 		hints = append(hints, KeyHint{"Ctrl+r", "refresh", 6})
 	}
+	if width >= 115 {
+		latencyLabel := "latency:off"
+		if m.showLatency {
+			latencyLabel = "latency:on"
+		}
+		hints = append(hints, KeyHint{"L", latencyLabel, 7})
+	}
 	hints = append(hints, KeyHint{"PgDn/PgUp", "page", 3})
 	if width >= 110 {
 		hints = append(hints, KeyHint{"Ctrl+c", "quit", 8})
@@ -677,7 +684,7 @@ func (m model) View() string {
 		rpStyle = rpStyle.Foreground(lipgloss.Color("#666666"))
 	}
 	latencyStr := ""
-	if m.lastAPILatency > 0 {
+	if m.showLatency && m.lastAPILatency > 0 {
 		latencyStr = fmt.Sprintf(" %dms", m.lastAPILatency.Milliseconds())
 	}
 	// Add pagination status if available
