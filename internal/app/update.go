@@ -476,6 +476,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.activeModal == ModalConfirmQuit {
 			switch {
 			case s == "ctrl+c": // confirm key always quits
+				m.quitting = true
 				return m, tea.Quit
 			case s == "tab":
 				if m.confirmFocusedBtn == 0 {
@@ -485,6 +486,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case s == "enter":
 				if m.confirmFocusedBtn == 0 {
+					m.quitting = true
 					return m, tea.Quit
 				}
 				m.activeModal = ModalNone
@@ -582,6 +584,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.popup.mode = popupModeSkin
 				m.popup.input = ""
 				m.popup.cursor = -1
+				m.popup.offset = 0
 				m.popup.title = "theme"
 				m.popup.hint = "↑↓:preview  Enter:apply  Esc:revert"
 				m.popup.previewSkin = m.activeSkin
@@ -699,6 +702,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.table.SetRows(m.originalRows)
 				m.footerError = ""
 				m.footerStatusKind = footerStatusNone
+				m.paneHeight = m.computePaneHeight()
+				m.table.SetHeight(m.paneHeight - 1)
 				return m, nil
 			}
 			if m.popup.mode != popupModeNone {
@@ -767,6 +772,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.popup.cursor = -1
 				m.popup.offset = 0
 				// searchTerm is already set; filtered rows are in the table
+				m.paneHeight = m.computePaneHeight()
+				m.table.SetHeight(m.paneHeight - 1)
 				return m, nil
 			}
 			if m.popup.mode != popupModeNone {
@@ -1083,6 +1090,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else if m.popup.cursor < 0 {
 					m.popup.cursor = 0
 				}
+				// scroll up if cursor moved above visible window
+				if m.popup.cursor < m.popup.offset {
+					m.popup.offset = m.popup.cursor
+				}
 				if m.popup.cursor >= 0 && m.popup.cursor < len(items) {
 					m.previewSkinByName(items[m.popup.cursor])
 				}
@@ -1113,6 +1124,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					} else if m.popup.cursor < len(items)-1 {
 						m.popup.cursor++
 					}
+				}
+				// scroll down if cursor moved past visible window
+				const maxShow = 8
+				if m.popup.cursor >= m.popup.offset+maxShow {
+					m.popup.offset = m.popup.cursor - maxShow + 1
 				}
 				if m.popup.cursor >= 0 && m.popup.cursor < len(items) {
 					m.previewSkinByName(items[m.popup.cursor])
@@ -1208,6 +1224,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.table.SetWidth(tableInner)
 		m.table.SetHeight(contentHeight - 1)
+		m.applyStyle()
 		return m, nil
 	case refreshMsg:
 		if m.autoRefresh {

@@ -249,17 +249,18 @@ func (m *model) contextPopupHeight() int {
 	if m.popup.mode == popupModeNone {
 		return 0
 	}
-	matchCount := 0
-	for _, rc := range m.rootContexts {
-		if m.popup.input == "" || strings.HasPrefix(rc, m.popup.input) {
-			matchCount++
+	var matchCount int
+	if m.popup.mode == popupModeSearch {
+		matchCount = len(m.table.Rows())
+	} else {
+		for _, rc := range m.rootContexts {
+			if m.popup.input == "" || strings.HasPrefix(rc, m.popup.input) {
+				matchCount++
+			}
 		}
 	}
 	const maxShow = 8
-	shown := matchCount
-	if shown > maxShow {
-		shown = maxShow + 1 // one extra for "… N more" line
-	}
+	shown := min(matchCount, maxShow)
 	// 2 border lines + 1 input line + 1 hint line + shown match lines
 	return 2 + 2 + shown
 }

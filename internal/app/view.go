@@ -460,6 +460,9 @@ func (m model) asciiArt() string {
 }
 
 func (m model) View() string {
+	if m.quitting {
+		return ""
+	}
 	// If splash active, render animated splash centered
 	if m.splashActive {
 		logo := m.asciiArt()

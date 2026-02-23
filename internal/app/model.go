@@ -354,6 +354,7 @@ type model struct {
 	version      string
 	debugEnabled bool
 	debugCh      chan string
+	quitting     bool // set true before tea.Quit so View() returns "" to clear screen
 
 	// Environment connection status tracking
 	envStatus map[string]EnvironmentStatus
@@ -599,7 +600,8 @@ func (m *model) applyStyle() {
 	tStyles.Selected = tStyles.Selected.
 		Foreground(col(m.skin, "bg")).
 		Background(col(m.skin, "borderFocus")).
-		Bold(true)
+		Bold(true).
+		Width(m.paneWidth)
 	m.table.SetStyles(tStyles)
 
 	m.splashLogoStyle = m.styles.Logo
