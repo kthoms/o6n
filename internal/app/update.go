@@ -228,28 +228,59 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				}
 				return m, nil
 			case "ctrl+d":
-				m.detailScroll += 10
-				if m.detailScroll > maxDetailScroll {
-					m.detailScroll = maxDetailScroll
+				// Vim half-page scroll in detail view (vim mode only)
+				if m.vimMode {
+					m.detailScroll += 10
+					if m.detailScroll > maxDetailScroll {
+						m.detailScroll = maxDetailScroll
+					}
 				}
 				return m, nil
 			case "ctrl+u":
-				m.detailScroll -= 10
-				if m.detailScroll < 0 {
-					m.detailScroll = 0
+				// Vim half-page scroll in detail view (vim mode only)
+				if m.vimMode {
+					m.detailScroll -= 10
+					if m.detailScroll < 0 {
+						m.detailScroll = 0
+					}
 				}
 				return m, nil
 			case "G":
-				m.detailScroll = maxDetailScroll
+				// Vim jump to bottom in detail view (vim mode only)
+				if m.vimMode {
+					m.detailScroll = maxDetailScroll
+				}
 				return m, nil
 			case "g":
-				if m.pendingG {
-					m.pendingG = false
-					m.detailScroll = 0
-					return m, nil
+				// Vim gg in detail view (vim mode only)
+				if m.vimMode {
+					if m.pendingG {
+						m.pendingG = false
+						m.detailScroll = 0
+						return m, nil
+					}
+					m.pendingG = true
+					return m, tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg { return clearPendingGMsg{} })
 				}
-				m.pendingG = true
-				return m, tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg { return clearPendingGMsg{} })
+				return m, nil
+			case "j":
+				// Vim scroll down in detail view (vim mode only)
+				if m.vimMode {
+					m.detailScroll++
+					if m.detailScroll > maxDetailScroll {
+						m.detailScroll = maxDetailScroll
+					}
+				}
+				return m, nil
+			case "k":
+				// Vim scroll up in detail view (vim mode only)
+				if m.vimMode {
+					m.detailScroll--
+					if m.detailScroll < 0 {
+						m.detailScroll = 0
+					}
+				}
+				return m, nil
 			}
 			return m, nil
 		}
@@ -1054,8 +1085,8 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			}
 			return m, nil
 		case "G":
-			// Vim jump to bottom
-			if m.popup.mode == popupModeNone && m.activeModal == ModalNone {
+			// Vim jump to bottom (only in vim mode)
+			if m.vimMode && m.popup.mode == popupModeNone && m.activeModal == ModalNone {
 				rows := m.table.Rows()
 				if len(rows) > 0 {
 					m.table.SetCursor(len(rows) - 1)
@@ -1067,12 +1098,12 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			}
 			return m, nil
 		case "g":
-			// Vim gg sequence: first g sets pendingG, second g jumps to top
+			// Vim gg sequence: only active in vim mode
 			if m.popup.mode != popupModeNone {
 				m.popup.input += s
 				return m, nil
 			}
-			if m.activeModal == ModalNone {
+			if m.vimMode && m.activeModal == ModalNone {
 				if m.pendingG {
 					m.pendingG = false
 					m.table.SetCursor(0)
@@ -1083,7 +1114,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			}
 			return m, nil
 		case "ctrl+d":
-			// Half-page down OR delete (existing behavior)
+			// Half-page down (vim mode only) OR delete (always available for instance views)
 			if m.viewMode == "process-instance" {
 				row := m.table.SelectedRow()
 				if len(row) > 0 {
@@ -1097,12 +1128,14 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				}
 				return m, nil
 			}
-			// Half-page down for non-instances views
-			pageSize := m.getPageSize()
-			if pageSize <= 0 {
-				pageSize = 10
+			// Half-page down only in vim mode
+			if m.vimMode {
+				pageSize := m.getPageSize()
+				if pageSize <= 0 {
+					pageSize = 10
+				}
+				m.table.MoveDown(pageSize / 2)
 			}
-			m.table.MoveDown(pageSize / 2)
 			return m, nil
 		case "up":
 			if m.popup.mode == popupModeSkin {
@@ -1178,12 +1211,14 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			}
 			// fall through to table navigation via component update
 		case "ctrl+u":
-			// Vim half-page up
-			pageSize := m.getPageSize()
-			if pageSize <= 0 {
-				pageSize = 10
+			// Vim half-page up (vim mode only)
+			if m.vimMode {
+				pageSize := m.getPageSize()
+				if pageSize <= 0 {
+					pageSize = 10
+				}
+				m.table.MoveUp(pageSize / 2)
 			}
-			m.table.MoveUp(pageSize / 2)
 			return m, nil
 		case "1", "2", "3", "4":
 			// numeric breadcrumb navigation when popup not active
@@ -1192,6 +1227,52 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				if n < len(m.breadcrumb) {
 					return m, (&m).navigateToBreadcrumb(n)
 				}
+			}
+			return m, nil
+		case "j":
+			// Vim down: navigate table rows (vim mode only, not in popup/modal/search)
+			if m.vimMode && m.popup.mode == popupModeNone && m.activeModal == ModalNone && !m.searchMode {
+				m.table.MoveDown(1)
+				return m, nil
+			}
+			// In search mode: type into search input (handled by default case)
+			if m.searchMode || m.popup.mode != popupModeNone {
+				m.popup.input += s
+				if m.popup.mode == popupModeSearch {
+					m.applySearchFromPopup()
+				}
+				return m, nil
+			}
+			return m, nil
+		case "k":
+			// Vim up: navigate table rows (vim mode only, not in popup/modal/search)
+			if m.vimMode && m.popup.mode == popupModeNone && m.activeModal == ModalNone && !m.searchMode {
+				m.table.MoveUp(1)
+				return m, nil
+			}
+			if m.searchMode || m.popup.mode != popupModeNone {
+				m.popup.input += s
+				if m.popup.mode == popupModeSearch {
+					m.applySearchFromPopup()
+				}
+				return m, nil
+			}
+			return m, nil
+		case "home":
+			// Jump to first row (always available, not in popup/modal)
+			if m.popup.mode == popupModeNone && m.activeModal == ModalNone {
+				m.table.SetCursor(0)
+				return m, nil
+			}
+			return m, nil
+		case "end":
+			// Jump to last row (always available, not in popup/modal)
+			if m.popup.mode == popupModeNone && m.activeModal == ModalNone {
+				rows := m.table.Rows()
+				if len(rows) > 0 {
+					m.table.SetCursor(len(rows) - 1)
+				}
+				return m, nil
 			}
 			return m, nil
 		default:

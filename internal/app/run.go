@@ -18,6 +18,7 @@ func Run() {
 	var debug = flag.Bool("debug", false, "enable debug logging")
 	var skin = flag.String("skin", "", "skin to use")
 	var noSplash = flag.Bool("no-splash", false, "disable splash screen")
+	var vimFlag = flag.Bool("vim", false, "enable vim keybindings (j/k/gg/G/Ctrl+U/Ctrl+D)")
 	flag.Parse()
 
 	// Always open debug/o8n.log for error logging.
@@ -82,6 +83,7 @@ func Run() {
 
 	m := newModelEnvApp(envCfg, appCfg, skinName)
 	m.debugEnabled = *debug
+	m.vimMode = *vimFlag || appCfg.VimMode
 	m.statePath = statePath
 	m.showLatency = appState.ShowLatency
 

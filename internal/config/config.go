@@ -182,8 +182,9 @@ type EnvConfig struct {
 
 // AppConfig holds application-level configuration (moved to o8n-cfg.yaml)
 type AppConfig struct {
-	Tables []TableDef `yaml:"tables,omitempty"`
-	UI     *UIConfig  `yaml:"ui,omitempty"`
+	Tables  []TableDef `yaml:"tables,omitempty"`
+	UI      *UIConfig  `yaml:"ui,omitempty"`
+	VimMode bool       `yaml:"vim_mode,omitempty"`
 }
 
 // Config is a compatibility type combining environment and app config

@@ -9,6 +9,7 @@ import (
 func TestVimJKNavigation(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
+	m.vimMode = true // j/k only work in vim mode
 	cols := []table.Column{{Title: "ID", Width: 10}, {Title: "NAME", Width: 20}}
 	m.table.SetColumns(cols)
 	m.table.SetRows([]table.Row{{"1", "a"}, {"2", "b"}, {"3", "c"}})
@@ -30,6 +31,7 @@ func TestVimJKNavigation(t *testing.T) {
 func TestVimGGJumpsToTop(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
+	m.vimMode = true // gg only works in vim mode
 	cols := []table.Column{{Title: "ID", Width: 10}}
 	m.table.SetColumns(cols)
 	m.table.SetRows([]table.Row{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}})
@@ -54,6 +56,7 @@ func TestVimGGJumpsToTop(t *testing.T) {
 func TestVimGJumpsToBottom(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
+	m.vimMode = true // G only works in vim mode
 	cols := []table.Column{{Title: "ID", Width: 10}}
 	m.table.SetColumns(cols)
 	m.table.SetRows([]table.Row{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}})
@@ -68,6 +71,7 @@ func TestVimGJumpsToBottom(t *testing.T) {
 func TestVimHalfPageScroll(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
+	m.vimMode = true // ctrl+u half-page only works in vim mode
 	cols := []table.Column{{Title: "ID", Width: 10}}
 	m.table.SetColumns(cols)
 	rows := make([]table.Row, 20)
@@ -139,5 +143,118 @@ func TestVimPendingGTimeout(t *testing.T) {
 	m2 := res.(model)
 	if m2.pendingG {
 		t.Error("expected pendingG to be false after clearPendingGMsg")
+	}
+}
+
+// ── Default mode: vim keys are no-ops ─────────────────────────────────────────
+
+func TestDefaultModeJKeyNoOp(t *testing.T) {
+	m := newTestModel(t)
+	m.splashActive = false
+	m.vimMode = false
+	m.table.SetColumns([]table.Column{{Title: "ID", Width: 10}})
+	m.table.SetRows([]table.Row{{"a"}, {"b"}, {"c"}})
+	m.table.SetCursor(0)
+
+	m2, _ := sendKeyString(m, "j")
+	if m2.table.Cursor() != 0 {
+		t.Errorf("expected j to be no-op in default mode, cursor moved to %d", m2.table.Cursor())
+	}
+}
+
+func TestDefaultModeKKeyNoOp(t *testing.T) {
+	m := newTestModel(t)
+	m.splashActive = false
+	m.vimMode = false
+	m.table.SetColumns([]table.Column{{Title: "ID", Width: 10}})
+	m.table.SetRows([]table.Row{{"a"}, {"b"}, {"c"}})
+	m.table.SetCursor(1)
+
+	m2, _ := sendKeyString(m, "k")
+	if m2.table.Cursor() != 1 {
+		t.Errorf("expected k to be no-op in default mode, cursor=%d", m2.table.Cursor())
+	}
+}
+
+func TestDefaultModeGGNoOp(t *testing.T) {
+	m := newTestModel(t)
+	m.splashActive = false
+	m.vimMode = false
+	m.table.SetColumns([]table.Column{{Title: "ID", Width: 10}})
+	m.table.SetRows([]table.Row{{"a"}, {"b"}, {"c"}, {"d"}, {"e"}})
+	m.table.SetCursor(4)
+
+	m2, _ := sendKeyString(m, "g")
+	m3, _ := sendKeyString(m2, "g")
+	if m3.table.Cursor() != 4 {
+		t.Errorf("expected gg no-op in default mode, cursor=%d", m3.table.Cursor())
+	}
+	if m3.pendingG {
+		t.Error("expected pendingG=false in default mode")
+	}
+}
+
+func TestDefaultModeCapGNoOp(t *testing.T) {
+	m := newTestModel(t)
+	m.splashActive = false
+	m.vimMode = false
+	m.table.SetColumns([]table.Column{{Title: "ID", Width: 10}})
+	m.table.SetRows([]table.Row{{"a"}, {"b"}, {"c"}, {"d"}, {"e"}})
+	m.table.SetCursor(0)
+
+	m2, _ := sendKeyString(m, "G")
+	if m2.table.Cursor() != 0 {
+		t.Errorf("expected G no-op in default mode, cursor=%d", m2.table.Cursor())
+	}
+}
+
+// ── Home/End navigation (always active) ──────────────────────────────────────
+
+func TestHomeKeyJumpsToFirstRow(t *testing.T) {
+	m := newTestModel(t)
+	m.splashActive = false
+	m.table.SetColumns([]table.Column{{Title: "ID", Width: 10}})
+	m.table.SetRows([]table.Row{{"a"}, {"b"}, {"c"}, {"d"}, {"e"}})
+	m.table.SetCursor(4)
+
+	m2, _ := sendKeyString(m, "home")
+	if m2.table.Cursor() != 0 {
+		t.Errorf("expected home to jump to first row, got cursor=%d", m2.table.Cursor())
+	}
+}
+
+func TestEndKeyJumpsToLastRow(t *testing.T) {
+	m := newTestModel(t)
+	m.splashActive = false
+	m.table.SetColumns([]table.Column{{Title: "ID", Width: 10}})
+	rows := []table.Row{{"a"}, {"b"}, {"c"}, {"d"}, {"e"}}
+	m.table.SetRows(rows)
+	m.table.SetCursor(0)
+
+	m2, _ := sendKeyString(m, "end")
+	lastIdx := len(rows) - 1
+	if m2.table.Cursor() != lastIdx {
+		t.Errorf("expected end to jump to last row (%d), got cursor=%d", lastIdx, m2.table.Cursor())
+	}
+}
+
+func TestHomeEndWorkInVimMode(t *testing.T) {
+	m := newTestModel(t)
+	m.splashActive = false
+	m.vimMode = true
+	m.table.SetColumns([]table.Column{{Title: "ID", Width: 10}})
+	m.table.SetRows([]table.Row{{"a"}, {"b"}, {"c"}, {"d"}, {"e"}})
+	m.table.SetCursor(4)
+
+	m2, _ := sendKeyString(m, "home")
+	if m2.table.Cursor() != 0 {
+		t.Errorf("expected home to work in vim mode, got cursor=%d", m2.table.Cursor())
+	}
+}
+
+func TestVimModeDefaultFalse(t *testing.T) {
+	m := newTestModel(t)
+	if m.vimMode {
+		t.Error("expected vimMode=false by default")
 	}
 }

@@ -17,42 +17,42 @@ Currently, vim keybindings (`gg`, `G`, `Ctrl+U`, `Ctrl+D` for scrolling) are alw
 
 ### Default Mode (no flag)
 
-- [ ] **AC-1:** `gg` chord detection is disabled — pressing `g` twice does nothing
-- [ ] **AC-2:** `G` does nothing (no jump to bottom)
-- [ ] **AC-3:** `Ctrl+U` does nothing in table view
-- [ ] **AC-4:** `Ctrl+D` is **only** delete/terminate (when action is configured for current resource), otherwise no-op. No half-page scroll behavior
-- [ ] **AC-5:** `j`/`k` do not navigate table rows
-- [ ] **AC-6:** `Home` jumps to first row in table
-- [ ] **AC-7:** `End` jumps to last row in table
-- [ ] **AC-8:** Detail view and help modal scroll with `Up`/`Down`/`PgUp`/`PgDn` only
-- [ ] **AC-9:** `Home`/`End` work in detail view and help modal (jump to top/bottom)
+- [x] **AC-1:** `gg` chord detection is disabled — pressing `g` twice does nothing
+- [x] **AC-2:** `G` does nothing (no jump to bottom)
+- [x] **AC-3:** `Ctrl+U` does nothing in table view
+- [x] **AC-4:** `Ctrl+D` is **only** delete/terminate (when action is configured for current resource), otherwise no-op. No half-page scroll behavior
+- [x] **AC-5:** `j`/`k` do not navigate table rows
+- [x] **AC-6:** `Home` jumps to first row in table
+- [x] **AC-7:** `End` jumps to last row in table
+- [x] **AC-8:** Detail view and help modal scroll with `Up`/`Down`/`PgUp`/`PgDn` only
+- [x] **AC-9:** `Home`/`End` work in detail view and help modal (jump to top/bottom)
 
 ### Vim Mode (`--vim` or config)
 
-- [ ] **AC-10:** `j`/`k` navigate table rows (aliases for `Down`/`Up`)
-- [ ] **AC-11:** `gg` jumps to first row (chord with 500ms timeout, existing implementation)
-- [ ] **AC-12:** `G` jumps to last row
-- [ ] **AC-13:** `Ctrl+U` scrolls half-page up in table view
-- [ ] **AC-14:** `Ctrl+D` scrolls half-page down in table view (when no delete action exists for current resource); delete/terminate takes priority when configured
-- [ ] **AC-15:** `j`/`k`/`Ctrl+U`/`Ctrl+D` work in detail view and help modal for scrolling
-- [ ] **AC-16:** `Home`/`End` also work in vim mode (additive, not replaced)
+- [x] **AC-10:** `j`/`k` navigate table rows (aliases for `Down`/`Up`)
+- [x] **AC-11:** `gg` jumps to first row (chord with 500ms timeout, existing implementation)
+- [x] **AC-12:** `G` jumps to last row
+- [x] **AC-13:** `Ctrl+U` scrolls half-page up in table view
+- [x] **AC-14:** `Ctrl+D` scrolls half-page down in table view (when no delete action exists for current resource); delete/terminate takes priority when configured
+- [x] **AC-15:** `j`/`k`/`Ctrl+U`/`Ctrl+D` work in detail view and help modal for scrolling
+- [x] **AC-16:** `Home`/`End` also work in vim mode (additive, not replaced)
 
 ### Activation
 
-- [ ] **AC-17:** `--vim` CLI flag enables vim mode for the session
-- [ ] **AC-18:** `vim_mode: true` in `o8n-cfg.yaml` enables vim mode persistently
-- [ ] **AC-19:** CLI flag overrides config file setting
-- [ ] **AC-20:** Vim mode state is accessible in the model as `m.vimMode bool`
+- [x] **AC-17:** `--vim` CLI flag enables vim mode for the session
+- [x] **AC-18:** `vim_mode: true` in `o8n-cfg.yaml` enables vim mode persistently
+- [x] **AC-19:** CLI flag overrides config file setting
+- [x] **AC-20:** Vim mode state is accessible in the model as `m.vimMode bool`
 
 ### Help Screen
 
-- [ ] **AC-21:** Help screen (`?`) reflects the active mode — shows only the keybindings that are actually active
-- [ ] **AC-22:** In default mode, help screen shows `Home`/`End` for first/last row
-- [ ] **AC-23:** In vim mode, help screen shows `gg`/`G`, `j`/`k`, `Ctrl+U`/`Ctrl+D` in addition to standard keys
+- [x] **AC-21:** Help screen (`?`) reflects the active mode — shows only the keybindings that are actually active
+- [x] **AC-22:** In default mode, help screen shows `Home`/`End` for first/last row
+- [x] **AC-23:** In vim mode, help screen shows `gg`/`G`, `j`/`k`, `Ctrl+U`/`Ctrl+D` in addition to standard keys
 
 ### Header Hints
 
-- [ ] **AC-24:** Header key hints adapt to vim mode (e.g., show `j/k nav` instead of `↑↓ nav` when vim mode is active)
+- [x] **AC-24:** Header key hints adapt to vim mode (e.g., show `j/k nav` instead of `↑↓ nav` when vim mode is active)
 
 ## Tasks
 

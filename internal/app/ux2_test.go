@@ -252,6 +252,7 @@ func TestDetailScrollUpKey(t *testing.T) {
 func TestDetailScrollGKey(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
+	m.vimMode = true // G only works in vim mode
 	lines := make([]string, 30)
 	for i := range lines {
 		lines[i] = "line"

@@ -353,6 +353,7 @@ type model struct {
 	// Version number
 	version      string
 	debugEnabled bool
+	vimMode      bool // true when vim keybindings are active (--vim flag or vim_mode config)
 	quitting     bool // set true before tea.Quit so View() returns "" to clear screen
 
 	// Environment connection status tracking
