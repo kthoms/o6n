@@ -1220,6 +1220,26 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				m.table.MoveUp(pageSize / 2)
 			}
 			return m, nil
+		case "ctrl+a":
+			// Server-side search all pages (only active when search term is set)
+			if m.searchTerm != "" {
+				def := m.findTableDef(m.currentRoot)
+				if def != nil && def.SearchParam != "" {
+					// Fetch with server-side search param
+					m.isLoading = true
+					m.apiCallStarted = time.Now()
+					return m, tea.Batch(
+						m.fetchGenericWithParamCmd(m.currentRoot, def.SearchParam, m.searchTerm),
+						spinnerTickCmd(),
+					)
+				}
+				// No search_param configured — show feedback
+				msg2, kind, cmd := setFooterStatus(footerStatusInfo, "Server-side search not available for this resource", 4*time.Second)
+				m.footerError = msg2
+				m.footerStatusKind = kind
+				return m, cmd
+			}
+			return m, nil
 		case "1", "2", "3", "4":
 			// numeric breadcrumb navigation when popup not active
 			if m.popup.mode == popupModeNone {

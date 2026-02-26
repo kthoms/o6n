@@ -571,6 +571,20 @@ func (m *model) checkEnvironmentHealthCmd(envName string) tea.Cmd {
 	}
 }
 
+// fetchGenericWithParamCmd fetches data for root with an additional search query parameter.
+// Used for server-side search when search_param is configured in TableDef.
+func (m model) fetchGenericWithParamCmd(root, paramName, paramValue string) tea.Cmd {
+	// Temporarily add search param to genericParams clone, then call fetchGenericCmd logic.
+	saved := m.genericParams
+	merged := make(map[string]string, len(saved)+1)
+	for k, v := range saved {
+		merged[k] = v
+	}
+	merged[paramName] = paramValue
+	m.genericParams = merged
+	return m.fetchGenericCmd(root)
+}
+
 // listSkinsCmd scans the skins/ directory and returns available skin file names.
 func listSkinsCmd() tea.Cmd {
 return func() tea.Msg {

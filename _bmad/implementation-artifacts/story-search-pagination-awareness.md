@@ -10,11 +10,11 @@ Currently, `/` search filters rows client-side within the current page only. On 
 
 ## Acceptance Criteria
 
-- [ ] **AC-1:** When search is active on a paginated view, the search popup or content title clearly indicates scope: e.g., `[/term/ — 3 of 25 on page, 500 total]`
-- [ ] **AC-2:** When total items exceed page size and search is active, a hint appears suggesting the user can press `Enter` then `Ctrl+A` to search all pages (server-side)
-- [ ] **AC-3:** `Ctrl+A` (search-All) when a search filter is locked triggers a server-side filtered fetch (using the locked search term as a query filter parameter where the API supports it)
-- [ ] **AC-4:** If the API does not support server-side filtering for the current resource, `Ctrl+A` shows a footer message: "Server-side search not available for this resource"
-- [ ] **AC-5:** The search scope indicator disappears when search is cleared
+- [x] **AC-1:** When search is active on a paginated view, the search popup or content title clearly indicates scope: e.g., `[/term/ — 3 of 25 on page, 500 total]`
+- [x] **AC-2:** When total items exceed page size and search is active, a hint appears suggesting the user can press `Enter` then `Ctrl+A` to search all pages (server-side)
+- [x] **AC-3:** `Ctrl+A` (search-All) when a search filter is locked triggers a server-side filtered fetch (using the locked search term as a query filter parameter where the API supports it)
+- [x] **AC-4:** If the API does not support server-side filtering for the current resource, `Ctrl+A` shows a footer message: "Server-side search not available for this resource"
+- [x] **AC-5:** The search scope indicator disappears when search is cleared
 
 ## Tasks
 

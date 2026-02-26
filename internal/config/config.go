@@ -164,13 +164,14 @@ type ActionDef struct {
 
 // TableDef defines a named table and its columns
 type TableDef struct {
-	Name       string         `yaml:"name"`
-	ApiPath    string         `yaml:"api_path,omitempty"`    // REST collection path (defaults to /{name})
-	CountPath  string         `yaml:"count_path,omitempty"`  // count endpoint (defaults to {api_path}/count)
-	Columns    []ColumnDef    `yaml:"columns"`
-	Drilldown  []DrillDownDef `yaml:"drilldown,omitempty"`
-	Actions    []ActionDef    `yaml:"actions,omitempty"`
-	EditAction *EditActionDef `yaml:"edit_action,omitempty"` // generic save config for editable columns
+	Name        string         `yaml:"name"`
+	ApiPath     string         `yaml:"api_path,omitempty"`    // REST collection path (defaults to /{name})
+	CountPath   string         `yaml:"count_path,omitempty"`  // count endpoint (defaults to {api_path}/count)
+	SearchParam string         `yaml:"search_param,omitempty"` // query param name for server-side text search
+	Columns     []ColumnDef    `yaml:"columns"`
+	Drilldown   []DrillDownDef `yaml:"drilldown,omitempty"`
+	Actions     []ActionDef    `yaml:"actions,omitempty"`
+	EditAction  *EditActionDef `yaml:"edit_action,omitempty"` // generic save config for editable columns
 }
 
 // EnvConfig holds environment-specific configuration (moved to o8n-env.yaml)

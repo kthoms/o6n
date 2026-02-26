@@ -533,6 +533,16 @@ func (m model) View() string {
 				}
 			}
 			hint = "↑↓:select  Enter:jump  Esc:cancel"
+			// Show Ctrl+A hint when there are more results beyond the current page
+			if total, ok := m.pageTotals[m.currentRoot]; ok {
+				pageSize := m.getPageSize()
+				if pageSize <= 0 {
+					pageSize = 1
+				}
+				if total > pageSize {
+					hint = hint + "  Ctrl+A:search all pages"
+				}
+			}
 		} else {
 			// context mode
 			for _, rc := range m.rootContexts {
