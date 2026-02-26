@@ -215,28 +215,24 @@ func renderHelpContentForLineCount(viewMode, currentEnv string) string {
 
 NAVIGATION               │  ACTIONS                │  GLOBAL
 ──────────────────────   │  ────────────────────   │  ──────────────────
-↑/↓      Navigate list    │  Ctrl+e  Switch env     │  ?     This help
+↑/↓      Navigate list   │  Ctrl+e  Switch env     │  ?     This help
 PgUp/Dn  Page up/down    │  Ctrl+r  Auto-refresh   │  :     Switch view
-gg/G     Top/bottom      │  Space   Actions menu   │  Ctrl+c Quit
-Ctrl+u    Half-page up    │
-Ctrl+d    Half-page dn   │
-          (Terminate in  │
-           Instances)    │                         │
-Enter    Drill down      │  VIEW SPECIFIC          │  CONTEXT
-Esc      Go back         │  (varies by view)       │  ──────────────────
-                         │                         │  Tab    Complete
-SEARCH                   │  In Instances:          │  Enter  Confirm
-──────────────────────   │  v/Enter  Drill vars    │  Esc    Cancel
-/        Search/filter   │  Ctrl+d   Terminate     │  s      Sort
-Esc      Clear filter    │  Space    Actions menu  │  y      Detail view
-Enter    Lock filter     │                         │
-                         │  In Variables:          │
-                         │  e        Edit value    │
+Home/End First/last row  │  Space   Actions menu   │  Ctrl+c Quit
+Enter    Drill down      │
+→        Drill down      │
+Esc      Go back         │
 
-STATUS COLORS
+SEARCH                   │  CONTEXT
+──────────────────────   │  ──────────────────────
+/        Search/filter   │  Tab    Complete
+Esc      Clear filter    │  Enter  Confirm
+Enter    Lock filter     │  Esc    Cancel
+Ctrl+a   Search all pgs  │  s      Sort
+                         │  y      Detail view
+
+STATUS INDICATORS
 ────────────────────────────────────────────
 ● Running    ● Suspended    ✗ Failed/Incident    ○ Ended
-(green)      (yellow)       (red)                (dim)
 
 Current View: ` + viewMode + `
 Environment: ` + currentEnv + `
@@ -246,34 +242,56 @@ Environment: ` + currentEnv + `
 
 // renderHelpScreen renders the help screen modal
 func (m model) renderHelpScreen(width, height int) string {
+	// Build dynamic help content with resource-specific actions
+	vimSection := ""
+	if m.vimMode {
+		vimSection = `
+VIM NAVIGATION (vim mode active)
+──────────────────────────────────
+j/k      Navigate rows
+gg/G     Top/bottom
+Ctrl+u   Half-page up
+Ctrl+d   Half-page dn`
+	}
+
+	// Resource-specific actions section
+	resourceActionsSection := ""
+	if def := m.findTableDef(m.currentRoot); def != nil && len(def.Actions) > 0 {
+		var actionLines []string
+		for _, act := range def.Actions {
+			key := act.Key
+			label := act.Label
+			actionLines = append(actionLines, fmt.Sprintf("%-10s %s", key, label))
+		}
+		resourceActionsSection = "\nRESOURCE ACTIONS (" + m.currentRoot + ")\n" +
+			"──────────────────────────────────\n" +
+			strings.Join(actionLines, "\n")
+	}
+
 	helpContent := `o8n Help
 
 NAVIGATION               │  ACTIONS                │  GLOBAL
 ──────────────────────   │  ────────────────────   │  ──────────────────
-↑/↓      Navigate list    │  Ctrl+e  Switch env     │  ?     This help
+↑/↓      Navigate list   │  Ctrl+e  Switch env     │  ?     This help
 PgUp/Dn  Page up/down    │  Ctrl+r  Auto-refresh   │  :     Switch view
-gg/G     Top/bottom      │  Space   Actions menu   │  Ctrl+c Quit
-Ctrl+u    Half-page up    │
-Ctrl+d    Half-page dn   │
-          (Terminate in  │
-           Instances)    │                         │
-Enter    Drill down      │  VIEW SPECIFIC          │  CONTEXT
-Esc      Go back         │  (varies by view)       │  ──────────────────
-                         │                         │  Tab    Complete
-SEARCH                   │  In Instances:          │  Enter  Confirm
-──────────────────────   │  v/Enter  Drill vars    │  Esc    Cancel
-/        Search/filter   │  Ctrl+d   Terminate     │  s      Sort
-Esc      Clear filter    │  Space    Actions menu  │  y      Detail view
-Enter    Lock filter     │                         │
-                         │  In Variables:          │
-                         │  e        Edit value    │
+Home/End First/last row  │  Space   Actions menu   │  Ctrl+c Quit
+Enter    Drill down      │  Ctrl+a  Search all pg  │
+→        Drill down      │                         │
+Esc      Go back         │  SEARCH                 │  CONTEXT
+                         │  ────────────────────   │  ──────────────────
+                         │  /       Search/filter  │  Tab    Complete
+                         │  Esc     Clear filter   │  Enter  Confirm
+                         │  Enter   Lock filter    │  Esc    Cancel
+                         │                         │  s      Sort
+                         │                         │  y      Detail view` +
+		vimSection + resourceActionsSection + `
 
-STATUS COLORS
+STATUS INDICATORS
 ────────────────────────────────────────────
 ● Running    ● Suspended    ✗ Failed/Incident    ○ Ended
-(green)      (yellow)       (red)                (dim)
+(symbol + position differentiate, not color alone)
 
-Current View: ` + m.viewMode + `
+Current View: ` + m.currentRoot + `
 Environment: ` + m.currentEnv + `
 
 ↑/↓: scroll  Any other key: close`

@@ -10,11 +10,11 @@ Great TUIs like k9s and lazygit succeed because their keyboard conventions are p
 
 ## Acceptance Criteria
 
-- [ ] **AC-1:** The help screen (`?`) groups key bindings by category: Global, Navigation, View Actions, Resource Actions (context-specific)
-- [ ] **AC-2:** Each category in the help screen has a visible header/separator
-- [ ] **AC-3:** Resource-specific actions (from `o8n-cfg.yaml`) are shown dynamically based on the current resource type
-- [ ] **AC-4:** The help screen shows action key bindings for the current context only (not all 35 resource types at once)
-- [ ] **AC-5:** Key binding conflicts are detectable: `Ctrl+D` is documented as context-dependent (half-page scroll in navigation, terminate/delete on resource views where the action is configured)
+- [x] **AC-1:** The help screen (`?`) groups key bindings by category: Global, Navigation, View Actions, Resource Actions (context-specific)
+- [x] **AC-2:** Each category in the help screen has a visible header/separator
+- [x] **AC-3:** Resource-specific actions (from `o8n-cfg.yaml`) are shown dynamically based on the current resource type
+- [x] **AC-4:** The help screen shows action key bindings for the current context only (not all 35 resource types at once)
+- [x] **AC-5:** Key binding conflicts are detectable: `Ctrl+D` is documented as context-dependent (half-page scroll in navigation, terminate/delete on resource views where the action is configured)
 
 ## Tasks
 
