@@ -649,7 +649,23 @@ func (m model) View() string {
 		searchBar = searchStyle.Render(m.searchInput.View())
 	}
 
-	mainBox := renderBoxWithTitle(m.table.View(), pw, m.paneHeight, title, m.styles.BorderFocus)
+	// Build table content — show empty state message when no rows
+	tableContent := m.table.View()
+	if len(m.table.Rows()) == 0 && !m.isLoading {
+		displayName := strings.ReplaceAll(m.currentRoot, "-", " ")
+		emptyMsg := "No " + displayName + " found"
+		if m.footerStatusKind == footerStatusError {
+			emptyMsg = "Error loading data — press r to retry"
+		} else if len(m.navigationStack) > 0 && m.selectedDefinitionKey != "" {
+			emptyMsg = "No " + displayName + " for " + m.selectedDefinitionKey
+		}
+		emptyStyle := lipgloss.NewStyle().
+			Foreground(col(m.skin, "fgMuted")).
+			Width(m.paneWidth - 6).
+			Align(lipgloss.Center)
+		tableContent = emptyStyle.Render(emptyMsg)
+	}
+	mainBox := renderBoxWithTitle(tableContent, pw, m.paneHeight, title, m.styles.BorderFocus)
 
 	// Footer (1 row with 3 columns per specification):
 	// Column 1: Context tag with breadcrumb navigation hints

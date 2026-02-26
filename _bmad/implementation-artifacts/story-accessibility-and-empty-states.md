@@ -13,16 +13,16 @@ Improve accessibility by documenting and verifying color-blind safe behavior, an
 ## Acceptance Criteria
 
 ### Accessibility
-- [ ] **AC-1:** All information conveyed by color is also conveyed by shape or text (verify: status indicators use distinct symbols `green circle`/`X`/`dim circle`, sort direction uses `^`/`v`, errors use `X` prefix)
-- [ ] **AC-1b:** The help screen is fully navigable without color perception — section headers use text/structural separators (e.g., `--- Global ---`, `--- Navigation ---`), not just colored text
-- [ ] **AC-2:** At least 2 skins are tagged as high-contrast friendly in the skin system (e.g., `stock`, `black-and-wtf`)
-- [ ] **AC-3:** The specification documents the accessibility approach
+- [x] **AC-1:** All information conveyed by color is also conveyed by shape or text (verify: status indicators use distinct symbols `green circle`/`X`/`dim circle`, sort direction uses `^`/`v`, errors use `X` prefix)
+- [x] **AC-1b:** The help screen is fully navigable without color perception — section headers use text/structural separators (e.g., `--- Global ---`, `--- Navigation ---`), not just colored text
+- [x] **AC-2:** At least 2 skins are tagged as high-contrast friendly in the skin system (e.g., `stock`, `black-and-wtf`)
+- [x] **AC-3:** The specification documents the accessibility approach
 
 ### Empty States
-- [ ] **AC-4:** When a table fetch returns zero rows, the content box displays a centered hint: `No <resource-name> found`
-- [ ] **AC-5:** When a drilldown fetch returns zero rows, the hint includes context: `No instances for <definition-key>`
-- [ ] **AC-6:** When an API error occurs and rows are cleared, the hint displays: `Error loading data — press r to retry`
-- [ ] **AC-7:** Empty state messages use muted color (not error red, not accent — neutral grey)
+- [x] **AC-4:** When a table fetch returns zero rows, the content box displays a centered hint: `No <resource-name> found`
+- [x] **AC-5:** When a drilldown fetch returns zero rows, the hint includes context: `No instances for <definition-key>`
+- [x] **AC-6:** When an API error occurs and rows are cleared, the hint displays: `Error loading data — press r to retry`
+- [x] **AC-7:** Empty state messages use muted color (not error red, not accent — neutral grey)
 
 ## Tasks
 
