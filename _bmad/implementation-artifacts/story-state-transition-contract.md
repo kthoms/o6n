@@ -20,35 +20,35 @@ A centralized `prepareStateTransition(scope)` function solves all of these with 
 
 ### Bug Fix: Environment Switch State Leakage
 
-- [ ] **AC-1:** `navigationStack` is cleared (`nil`) when switching environments via `Ctrl+E`
-- [ ] **AC-2:** `genericParams` is cleared (empty map) when switching environments
-- [ ] **AC-3:** `breadcrumb` is reset to `[currentRoot]` when switching environments
-- [ ] **AC-4:** `selectedDefinitionKey` and `selectedInstanceID` are cleared on environment switch
-- [ ] **AC-5:** After switching environments, `Esc` does not restore state from the previous environment
+- [x] **AC-1:** `navigationStack` is cleared (`nil`) when switching environments via `Ctrl+E`
+- [x] **AC-2:** `genericParams` is cleared (empty map) when switching environments
+- [x] **AC-3:** `breadcrumb` is reset to `[currentRoot]` when switching environments
+- [x] **AC-4:** `selectedDefinitionKey` and `selectedInstanceID` are cleared on environment switch
+- [x] **AC-5:** After switching environments, `Esc` does not restore state from the previous environment
 
 ### Bug Fix: Sort State Leakage
 
-- [ ] **AC-6:** `sortColumn` is reset to `-1` when switching context via `:`
-- [ ] **AC-7:** `sortAscending` is reset to `true` when switching context
-- [ ] **AC-8:** Sort indicator is not shown in the new context's table header after switch
+- [x] **AC-6:** `sortColumn` is reset to `-1` when switching context via `:`
+- [x] **AC-7:** `sortAscending` is reset to `true` when switching context
+- [x] **AC-8:** Sort indicator is not shown in the new context's table header after switch
 
 ### Bug Fix: Breadcrumb Navigation Stack Mismatch
 
-- [ ] **AC-9:** When pressing `1`-`4` for breadcrumb navigation, the navigation stack is truncated to the target depth (not left intact)
-- [ ] **AC-10:** Pressing `1` (root) clears the navigation stack entirely
-- [ ] **AC-11:** Pressing `2` with a 3-level breadcrumb pops the stack once (removes the deepest level)
-- [ ] **AC-12:** After breadcrumb navigation, pressing `Esc` pops to the correct parent level (not a stale deeper level)
+- [x] **AC-9:** When pressing `1`-`4` for breadcrumb navigation, the navigation stack is truncated to the target depth (not left intact)
+- [x] **AC-10:** Pressing `1` (root) clears the navigation stack entirely
+- [x] **AC-11:** Pressing `2` with a 3-level breadcrumb pops the stack once (removes the deepest level)
+- [x] **AC-12:** After breadcrumb navigation, pressing `Esc` pops to the correct parent level (not a stale deeper level)
 
 ### Bug Fix: Cursor Bounds After Row Deletion
 
-- [ ] **AC-13:** After deleting a row (terminatedMsg, actionExecutedMsg), if the cursor exceeds the remaining row count, it is adjusted to the last row
-- [ ] **AC-14:** After deleting the only remaining row, the cursor is set to 0 (empty state)
+- [x] **AC-13:** After deleting a row (terminatedMsg, actionExecutedMsg), if the cursor exceeds the remaining row count, it is adjusted to the last row
+- [x] **AC-14:** After deleting the only remaining row, the cursor is set to 0 (empty state)
 
 ### State Transition Contract
 
-- [ ] **AC-15:** A `prepareStateTransition(scope)` function (or equivalent clear method) exists that encapsulates state cleanup for each transition type
-- [ ] **AC-16:** All transition call sites use this function instead of ad-hoc state clearing
-- [ ] **AC-17:** The transition scopes are:
+- [x] **AC-15:** A `prepareStateTransition(scope)` function (or equivalent clear method) exists that encapsulates state cleanup for each transition type
+- [x] **AC-16:** All transition call sites use this function instead of ad-hoc state clearing
+- [x] **AC-17:** The transition scopes are:
 
 | Scope | Clears |
 |---|---|

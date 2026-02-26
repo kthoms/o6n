@@ -299,13 +299,15 @@ func (m *model) navigateToBreadcrumb(idx int) tea.Cmd {
 		m.footerError = "Invalid breadcrumb index"
 		return nil
 	}
-	// truncate breadcrumb
+	// centralized state cleanup for breadcrumb navigation (truncates navStack to idx)
+	m.prepareStateTransition(transitionBreadcrumb, idx)
+	// truncate breadcrumb to target depth
 	m.breadcrumb = append([]string{}, m.breadcrumb[:idx+1]...)
 	last := m.breadcrumb[len(m.breadcrumb)-1]
 	m.currentRoot = last
 	m.viewMode = last
 	m.contentHeader = last
-	// Clear drilldown-specific state when navigating up
+	// Clear drilldown-specific state when navigating to root
 	if idx == 0 {
 		m.selectedDefinitionKey = ""
 		m.selectedInstanceID = ""

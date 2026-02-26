@@ -276,7 +276,8 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 					m.activeModal = ModalNone
 					if targetEnv != m.currentEnv {
 						m.switchToEnvironment(targetEnv)
-						m.resetViews()
+						m.prepareStateTransition(transitionEnvSwitch)
+						m.breadcrumb = []string{m.currentRoot}
 						m.isLoading = true
 						m.apiCallStarted = time.Now()
 						return m, tea.Batch(m.fetchDefinitionsCmd(), flashOnCmd(), m.checkEnvironmentHealthCmd(targetEnv), spinnerTickCmd(), m.saveStateCmd())
@@ -735,6 +736,8 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			}
 			// Pop from navigation stack and restore previous view state
 			if len(m.navigationStack) > 0 {
+				// clear sort/search state before restoring parent state
+				m.prepareStateTransition(transitionBack)
 				// pop last state
 				prevState := m.navigationStack[len(m.navigationStack)-1]
 				m.navigationStack = m.navigationStack[:len(m.navigationStack)-1]
@@ -819,10 +822,8 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 					m.popup.cursor = -1
 					// clear any footer error
 					m.footerError = ""
-					// clear drilldown filter params when switching root context
-					m.genericParams = make(map[string]string)
-					// reset navigationStack so Esc doesn't take us back to stale state
-					m.navigationStack = nil
+					// centralized state cleanup for context switch
+					m.prepareStateTransition(transitionContextSwitch)
 					// reset breadcrumb and header
 					m.breadcrumb = []string{rc}
 					m.contentHeader = rc
@@ -904,7 +905,8 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 
 				// supported runtime targets -> generic drilldown for all configured targets
 			{
-				// Save current state before drilldown
+				// Save current state before drilldown, then clear sort/search for new view
+				m.prepareStateTransition(transitionDrilldown)
 				colsDrill := m.table.Columns()
 				rowsCopyDrill := append([]table.Row{}, m.table.Rows()...)
 				if len(colsDrill) > 0 {
@@ -1457,6 +1459,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			m.rowData = append(m.rowData[:deleteIdx], m.rowData[deleteIdx+1:]...)
 		}
 		// show success feedback (consistent with suspendedMsg/resumedMsg/retriedMsg)
+		m.clampCursorAfterRowRemoval()
 		msg2, kind, cmd := setFooterStatus(footerStatusSuccess,
 			fmt.Sprintf("✓ Terminated %s", msg.id), 3*time.Second)
 		m.footerError = msg2
