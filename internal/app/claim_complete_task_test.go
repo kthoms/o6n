@@ -561,7 +561,8 @@ func TestTabSkipsReadOnlyRows(t *testing.T) {
 // ── Scroll offset changes visible rows ────────────────────────────────────────
 
 func TestScrollOffsetChangesVisibleRows(t *testing.T) {
-	// height=20 → maxVisible=7. 8 rows (6 read-only + 2 editable) → scrollable.
+	// height=20: cap = height-4 = 16. Need totalRows+8 > 16 → totalRows >= 9.
+	// 10 rows (8 read-only + 2 editable): dialogH=18 capped to 16, maxVisible=9, maxOffset=1.
 	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
 	m.activeModal = ModalTaskComplete
 	m.taskCompleteTaskName = "My Task"
@@ -574,6 +575,8 @@ func TestScrollOffsetChangesVisibleRows(t *testing.T) {
 		"ad": {Value: "v4", TypeName: "String"},
 		"ae": {Value: "v5", TypeName: "String"},
 		"af": {Value: "v6", TypeName: "String"},
+		"ag": {Value: "v7", TypeName: "String"},
+		"ah": {Value: "v8", TypeName: "String"},
 	}
 	m.taskCompleteFields = m.buildTaskCompleteFields(
 		map[string]variableValue{
@@ -582,8 +585,8 @@ func TestScrollOffsetChangesVisibleRows(t *testing.T) {
 		},
 		m.taskInputVars,
 	)
-	// Unified sorted: aa(0), ab(1), ac(2), ad(3), ae(4), af(5), za(6), zb(7)
-	// With scrollOffset=1: visible range is rows[1..7] — "aa" is NOT shown
+	// Unified sorted: aa(0), ab(1), ac(2), ad(3), ae(4), af(5), ag(6), ah(7), za(8), zb(9)
+	// With scrollOffset=1: visible range is rows[1..9] — "aa" is NOT shown
 	m.taskCompleteScrollOffset = 1
 
 	out := m.renderTaskCompleteModal(120, 20)
@@ -600,8 +603,8 @@ func TestScrollOffsetChangesVisibleRows(t *testing.T) {
 // ── EnsureVisible adjusts scroll offset ──────────────────────────────────────
 
 func TestEnsureVisibleScrollsToFocusedField(t *testing.T) {
-	// height=20 → maxVisible=7. 8 rows: aa..af (read-only) + za, zb (editable).
-	// "zb" is at virtual index 7 (>= 0+7), so scrollOffset must become 1 after Tab.
+	// height=20: cap=16, maxVisible=9. 10 rows: aa..ah (read-only) + za, zb (editable).
+	// "zb" is at virtual index 9 (>= 0+9), so scrollOffset must become 1 after Tab.
 	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
 	m.activeModal = ModalTaskComplete
 	m.taskCompleteTaskName = "My Task"
@@ -613,6 +616,8 @@ func TestEnsureVisibleScrollsToFocusedField(t *testing.T) {
 		"ad": {Value: "v4", TypeName: "String"},
 		"ae": {Value: "v5", TypeName: "String"},
 		"af": {Value: "v6", TypeName: "String"},
+		"ag": {Value: "v7", TypeName: "String"},
+		"ah": {Value: "v8", TypeName: "String"},
 	}
 	m.taskCompleteFields = m.buildTaskCompleteFields(
 		map[string]variableValue{
@@ -621,15 +626,15 @@ func TestEnsureVisibleScrollsToFocusedField(t *testing.T) {
 		},
 		m.taskInputVars,
 	)
-	// Sorted fields: field[0]="za" (virtual idx 6), field[1]="zb" (virtual idx 7)
-	// Tab from field[0] → field[1] triggers ensureVisible for "zb" at idx 7
+	// Sorted: aa(0)..ah(7), za(8), zb(9). Sorted fields: field[0]="za", field[1]="zb"
+	// Tab field[0](za, idx 8) → field[1](zb, idx 9): ensureVisible fires
 	m.taskCompletePos = 0
 	m.taskCompleteFocus = focusTaskField
 	m.taskCompleteScrollOffset = 0
 	m.taskCompleteFields[0].input.Focus()
 
 	m2, _ := sendKeyString(m, "tab") // Tab: za(field[0]) → zb(field[1])
-	// "zb" virtual index=7, maxVisible=7 → scrollOffset = 7-7+1 = 1
+	// "zb" virtual index=9, maxVisible=9 → scrollOffset = 9-9+1 = 1
 	if m2.taskCompleteScrollOffset != 1 {
 		t.Errorf("expected scrollOffset 1 after Tab to field outside visible window, got %d", m2.taskCompleteScrollOffset)
 	}
@@ -809,6 +814,188 @@ func TestCompleteWithNoFormVarsSendsEmptyMap(t *testing.T) {
 	cmd := m.submitTaskComplete()
 	if cmd == nil {
 		t.Error("expected completeTaskCmd even with empty form vars")
+	}
+}
+
+// ── Polish: no hint line ──────────────────────────────────────────────────────
+
+func TestNoHintLineInModal(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 40
+	m.taskInputVars = map[string]variableValue{}
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{"fieldA": {Value: nil, TypeName: "String"}},
+		map[string]variableValue{},
+	)
+	out := m.renderTaskCompleteModal(120, 40)
+	if strings.Contains(out, "Tab: next field") {
+		t.Error("expected hint line NOT to appear in modal")
+	}
+}
+
+// ── Polish: content-driven height ────────────────────────────────────────────
+
+func TestContentDrivenHeight(t *testing.T) {
+	// 3 fields + 0 input vars: totalRows=3, dialogH=11 → 10 newlines in output
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 40
+	m.taskInputVars = map[string]variableValue{}
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{
+			"fieldA": {Value: nil, TypeName: "String"},
+			"fieldB": {Value: nil, TypeName: "String"},
+			"fieldC": {Value: nil, TypeName: "String"},
+		},
+		map[string]variableValue{},
+	)
+	out := m.renderTaskCompleteModal(120, 40)
+	newlines := strings.Count(out, "\n")
+	// dialogH = 3+8 = 11; output has dialogH-1 = 10 newlines (bottom border has no trailing \n)
+	if newlines != 10 {
+		t.Errorf("expected 10 newlines (dialogH=11) for 3 fields, got %d", newlines)
+	}
+	// Confirm shorter than old fixed height (40-4=36 rows → 35 newlines)
+	if newlines >= 35 {
+		t.Errorf("expected dialog shorter than full terminal height, got %d newlines", newlines)
+	}
+}
+
+// ── Polish: error line in dialog ─────────────────────────────────────────────
+
+func TestErrorLineShownInDialog(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 40
+	m.taskInputVars = map[string]variableValue{}
+	m.taskCompleteFields = []taskCompleteField{}
+	m.taskCompleteError = "task not found"
+
+	out := m.renderTaskCompleteModal(120, 40)
+	if !strings.Contains(out, "⚠") {
+		t.Error("expected '⚠' in modal when taskCompleteError is set")
+	}
+	if !strings.Contains(out, "task not found") {
+		t.Error("expected error text in modal")
+	}
+}
+
+func TestNoErrorLineWhenErrorEmpty(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 40
+	m.taskInputVars = map[string]variableValue{}
+	m.taskCompleteFields = []taskCompleteField{}
+	m.taskCompleteError = ""
+
+	out := m.renderTaskCompleteModal(120, 40)
+	if strings.Contains(out, "⚠") {
+		t.Error("expected no '⚠' in modal when taskCompleteError is empty")
+	}
+}
+
+// ── Polish: Space activates focused buttons ───────────────────────────────────
+
+func TestSpaceActivatesCompleteButton(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskID = "task-1"
+	m.taskCompleteTaskName = "My Task"
+	m.taskCompleteFields = []taskCompleteField{} // no form vars, so no validation errors
+	m.taskCompleteFocus = focusTaskComplete
+
+	_, cmd := sendKeyString(m, " ")
+	if cmd == nil {
+		t.Error("expected completeTaskCmd to be dispatched when Space pressed on focused Complete button")
+	}
+}
+
+func TestSpaceActivatesBackButton(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskID = "task-1"
+	m.taskCompleteTaskName = "My Task"
+	m.taskCompleteFields = []taskCompleteField{}
+	m.taskCompleteFocus = focusTaskBack
+
+	m2, _ := sendKeyString(m, " ")
+	if m2.activeModal != ModalNone {
+		t.Error("expected dialog to close when Space pressed on focused Back button")
+	}
+}
+
+// ── Polish: error cleared on field edit ──────────────────────────────────────
+
+func TestErrorClearedOnFieldEdit(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{"name": {Value: nil, TypeName: "String"}},
+		map[string]variableValue{},
+	)
+	m.taskCompletePos = 0
+	m.taskCompleteFocus = focusTaskField
+	m.taskCompleteFields[0].input.Focus()
+	m.taskCompleteError = "some API error"
+
+	m2, _ := sendKeyString(m, "x") // printable key fed to field
+	if m2.taskCompleteError != "" {
+		t.Errorf("expected taskCompleteError cleared after field edit, got %q", m2.taskCompleteError)
+	}
+}
+
+// ── Polish: scroll bounds correct when error is shown (M-1 regression) ────────
+
+func TestScrollMaxVisibleAccountsForErrorRow(t *testing.T) {
+	// height=20, 10 rows: totalRows+8+errorRows = 10+8+1 = 19 > height-4 = 16 → capped.
+	// maxVisible = height-11-errorRows = 20-11-1 = 8. maxOffset = 10-8 = 2.
+	// Without the fix, maxVisible would be 9 and maxOffset would be 1,
+	// making the last row (index 9) unreachable.
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 20
+	m.taskCompleteError = "API call failed"
+	m.taskInputVars = map[string]variableValue{
+		"aa": {Value: "v1", TypeName: "String"},
+		"ab": {Value: "v2", TypeName: "String"},
+		"ac": {Value: "v3", TypeName: "String"},
+		"ad": {Value: "v4", TypeName: "String"},
+		"ae": {Value: "v5", TypeName: "String"},
+		"af": {Value: "v6", TypeName: "String"},
+		"ag": {Value: "v7", TypeName: "String"},
+		"ah": {Value: "v8", TypeName: "String"},
+	}
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{
+			"za": {Value: nil, TypeName: "String"},
+			"zb": {Value: nil, TypeName: "String"},
+		},
+		m.taskInputVars,
+	)
+	// maxVisible=8, maxOffset=2. Scroll to offset=2 to reach the last row.
+	m.taskCompleteScrollOffset = 2
+
+	out := m.renderTaskCompleteModal(120, 20)
+	// "zb" is at virtual index 9; at scrollOffset=2 the window is rows[2..9] → "zb" visible.
+	if !strings.Contains(out, "zb") {
+		t.Error("expected 'zb' (last row) to be visible at scrollOffset=2 when error is shown")
+	}
+	// maxVisible helper must return 8 (not 9) when error row is present and capped.
+	maxVis := m.taskCompleteMaxVisible()
+	if maxVis != 8 {
+		t.Errorf("expected taskCompleteMaxVisible()=8 with error shown at height=20 and 10 rows, got %d", maxVis)
 	}
 }
 

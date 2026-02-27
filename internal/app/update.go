@@ -1993,15 +1993,20 @@ func (m *model) taskCompleteTabBackward() {
 
 // taskCompleteMaxVisible returns the number of variable rows visible at once
 // in the dialog for the current terminal height. Mirrors the content-driven
-// height formula in renderTaskCompleteModal: cap = height-4, floor = 9.
-// When the dialog is capped, maxVisible = height - 11 (contentH=height-6, minus 5 fixed lines).
+// height formula in renderTaskCompleteModal: cap = height-4, dialogH floor = 10+errorRows,
+// maxVis floor = 3. When the dialog is capped, maxVisible = height - 11 - errorRows
+// (contentH = height-6, minus 5 fixed lines, minus 1 if error line is present).
 func (m *model) taskCompleteMaxVisible() int {
 	total := m.taskCompleteTotalRows()
+	errorRows := 0
+	if m.taskCompleteError != "" {
+		errorRows = 1
+	}
 	maxVis := total // content-driven: all rows fit by default
 	// If the dialog would be taller than terminal, it is capped at height-4
-	// → maxVisible = (height-4-2) - 5 = height - 11
-	if total+8 > m.lastHeight-4 {
-		maxVis = m.lastHeight - 11
+	// → maxVisible = (height-4-2) - 5 - errorRows = height - 11 - errorRows
+	if total+8+errorRows > m.lastHeight-4 {
+		maxVis = m.lastHeight - 11 - errorRows
 	}
 	if maxVis < 3 {
 		maxVis = 3

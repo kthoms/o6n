@@ -1174,7 +1174,7 @@ func (m *model) renderActionsMenu(width, height int) string {
 // show "name : value", editable rows show "name │ <input>"); scrollable content area
 // with separator, buttons, and hint line always pinned at the bottom.
 func (m *model) renderTaskCompleteModal(width, height int) string {
-	// ── Dialog dimensions ─────────────────────────────────────────────────────
+	// ── Dialog width ──────────────────────────────────────────────────────────
 	dialogW := width - 8
 	if dialogW < 60 {
 		dialogW = 60
@@ -1183,20 +1183,8 @@ func (m *model) renderTaskCompleteModal(width, height int) string {
 		dialogW = 100
 	}
 	innerW := dialogW
-	dialogH := height - 4
-	if dialogH < 15 {
-		dialogH = 15
-	}
-	contentH := dialogH - 2 // lines inside border (top/bottom border excluded)
-	// Fixed lines below scroll region:
-	// blank(1) + separator(1) + blank(1) + buttons(1) + blank(1) + hint(1) = 6
-	// Plus blank top(1) = 7 total fixed lines; maxVisible = contentH - 7
-	maxVisible := contentH - 7
-	if maxVisible < 3 {
-		maxVisible = 3
-	}
 
-	// ── Unified row list ──────────────────────────────────────────────────────
+	// ── Unified row list (built first so totalRows drives dialogH) ────────────
 	type unifiedRow struct {
 		name       string
 		isEditable bool
@@ -1230,8 +1218,31 @@ func (m *model) renderTaskCompleteModal(width, height int) string {
 		}
 	}
 
-	// ── Scroll offset ─────────────────────────────────────────────────────────
+	// ── Dialog height — content-driven ────────────────────────────────────────
+	// dialogH = 2 borders + 1 top-blank + totalRows + 1 blank + 1 sep + 1 blank + 1 buttons
+	//         = totalRows + 8  (+ 1 when error line is present)
+	// Fixed content lines (below scroll region): blank+sep+blank+buttons = 4
+	// Plus blank top = 5 total fixed; maxVisible = contentH - 5 (- 1 if error line present)
 	totalRows := len(rows)
+	errorRows := 0
+	if m.taskCompleteError != "" {
+		errorRows = 1
+	}
+	dialogH := totalRows + 8 + errorRows
+	if dialogH > height-4 {
+		dialogH = height - 4
+	}
+	minDialogH := 10 + errorRows // 3 (maxVisible floor) + 5 (fixed) + 2 (borders) + errorRows
+	if dialogH < minDialogH {
+		dialogH = minDialogH
+	}
+	contentH := dialogH - 2 // lines inside border (top/bottom border excluded)
+	maxVisible := contentH - 5 - errorRows
+	if maxVisible < 3 {
+		maxVisible = 3
+	}
+
+	// ── Scroll offset ─────────────────────────────────────────────────────────
 	offset := m.taskCompleteScrollOffset
 	maxOffset := totalRows - maxVisible
 	if maxOffset < 0 {
@@ -1328,8 +1339,9 @@ func (m *model) renderTaskCompleteModal(width, height int) string {
 	}
 	contentLines = append(contentLines, "") // blank before buttons
 	contentLines = append(contentLines, completeBtn+"  "+backBtn)
-	contentLines = append(contentLines, "") // blank after buttons
-	contentLines = append(contentLines, m.styles.FgMuted.Render("Tab: next field  ↑↓: scroll  Space: toggle bool  Esc: back"))
+	if m.taskCompleteError != "" {
+		contentLines = append(contentLines, m.styles.ValidationError.Render("  ⚠ "+m.taskCompleteError))
+	}
 
 	// ── Render rounded box with title in top border ───────────────────────────
 	taskTitle := m.taskCompleteTaskName

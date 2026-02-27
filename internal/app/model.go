@@ -414,13 +414,14 @@ type model struct {
 	helpScroll int
 
 	// Task completion dialog state
-	taskCompleteTaskID      string
-	taskCompleteTaskName    string
-	taskInputVars           map[string]variableValue // from GET /task/{id}/variables (for pre-fill)
-	taskCompleteFields      []taskCompleteField      // editable output fields (form variables)
-	taskCompletePos         int                      // index of focused field (when focusTaskField)
-	taskCompleteFocus       taskCompleteFocusArea
-	taskCompleteScrollOffset int // vertical scroll offset for the unified variable list
+	taskCompleteTaskID       string
+	taskCompleteTaskName     string
+	taskInputVars            map[string]variableValue // from GET /task/{id}/variables (for pre-fill)
+	taskCompleteFields       []taskCompleteField      // editable output fields (form variables)
+	taskCompletePos          int                      // index of focused field (when focusTaskField)
+	taskCompleteFocus        taskCompleteFocusArea
+	taskCompleteScrollOffset int    // vertical scroll offset for the unified variable list
+	taskCompleteError        string // API error to show inside the dialog; cleared on field edit or dialog close
 
 	// Environment popup state
 	showEnvPopup   bool
