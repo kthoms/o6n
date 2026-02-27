@@ -581,17 +581,26 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				m.taskCompleteTabBackward()
 				return m, nil
 			case " ", "space":
-				if m.taskCompleteFocus == focusTaskField && len(m.taskCompleteFields) > 0 {
-					f := &m.taskCompleteFields[m.taskCompletePos]
-					if f.varType == "bool" {
-						current := strings.TrimSpace(strings.ToLower(f.input.Value()))
-						if current == "true" {
-							f.input.SetValue("false")
-						} else {
-							f.input.SetValue("true")
+				switch m.taskCompleteFocus {
+				case focusTaskComplete:
+					if cmd := m.submitTaskComplete(); cmd != nil {
+						return m, cmd
+					}
+				case focusTaskBack:
+					m.closeTaskCompleteDialog()
+				case focusTaskField:
+					if len(m.taskCompleteFields) > 0 {
+						f := &m.taskCompleteFields[m.taskCompletePos]
+						if f.varType == "bool" {
+							current := strings.TrimSpace(strings.ToLower(f.input.Value()))
+							if current == "true" {
+								f.input.SetValue("false")
+							} else {
+								f.input.SetValue("true")
+							}
+							f.input.CursorEnd()
+							f.error = ""
 						}
-						f.input.CursorEnd()
-						f.error = ""
 					}
 				}
 				return m, nil
@@ -612,6 +621,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			default:
 				// Feed printable keystrokes to the focused field
 				if m.taskCompleteFocus == focusTaskField && len(m.taskCompleteFields) > 0 {
+					m.taskCompleteError = ""
 					var cmd tea.Cmd
 					f := &m.taskCompleteFields[m.taskCompletePos]
 					f.input, cmd = f.input.Update(msg)
@@ -1001,8 +1011,9 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 					if def := m.findTableDef(rc); def != nil {
 						cols := m.buildColumnsFor(rc, m.paneWidth-4)
 						if len(cols) > 0 {
-							m.table.SetRows(normalizeRows(nil, len(cols)))
 							m.table.SetColumns(cols)
+							m.table.SetRows(normalizeRows(nil, len(cols)))
+							m.table.SetRows(normalizeRows(nil, len(cols)))
 						}
 						m.isLoading = true
 						m.apiCallStarted = time.Now()
@@ -1577,6 +1588,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 		m.taskCompletePos = 0
 		m.taskCompleteFocus = focusTaskField
 		m.taskCompleteScrollOffset = 0
+		m.taskCompleteError = ""
 		if len(m.taskCompleteFields) > 0 {
 			m.taskCompleteFields[0].input.Focus()
 		}
@@ -1836,6 +1848,9 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			log.Printf("[error] %v | screen: debug/screen-%s.txt", msg.err, id)
 		}
 		errText := friendlyError(m.currentEnv, msg.err) + " — Ctrl+r to retry"
+		if m.activeModal == ModalTaskComplete {
+			m.taskCompleteError = friendlyError(m.currentEnv, msg.err)
+		}
 		msg2, kind, cmd := setFooterStatus(footerStatusError, errText, 8*time.Second)
 		m.footerError = msg2
 		m.footerStatusKind = kind
@@ -1911,6 +1926,7 @@ func (m *model) closeTaskCompleteDialog() {
 	m.taskCompletePos = 0
 	m.taskCompleteFocus = focusTaskField
 	m.taskCompleteScrollOffset = 0
+	m.taskCompleteError = ""
 }
 
 // blurCurrentTaskField removes focus from the currently focused text input.
@@ -1976,13 +1992,17 @@ func (m *model) taskCompleteTabBackward() {
 }
 
 // taskCompleteMaxVisible returns the number of variable rows visible at once
-// in the dialog for the current terminal height.
+// in the dialog for the current terminal height. Mirrors the content-driven
+// height formula in renderTaskCompleteModal: cap = height-4, floor = 9.
+// When the dialog is capped, maxVisible = height - 11 (contentH=height-6, minus 5 fixed lines).
 func (m *model) taskCompleteMaxVisible() int {
-	dialogH := m.lastHeight - 4
-	if dialogH < 15 {
-		dialogH = 15
+	total := m.taskCompleteTotalRows()
+	maxVis := total // content-driven: all rows fit by default
+	// If the dialog would be taller than terminal, it is capped at height-4
+	// → maxVisible = (height-4-2) - 5 = height - 11
+	if total+8 > m.lastHeight-4 {
+		maxVis = m.lastHeight - 11
 	}
-	maxVis := dialogH - 9 // contentH(dialogH-2) - 7 fixed lines
 	if maxVis < 3 {
 		maxVis = 3
 	}
