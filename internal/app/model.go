@@ -560,6 +560,8 @@ func newModelEnvApp(envCfg *config.EnvConfig, appCfg *config.AppConfig, skinName
 	}
 	m.skin = skin
 	m.styles = buildStyleSet(skin)
+	// Apply the loaded skin to update styles, list/table styles, and other derived styles.
+	m.applyStyle()
 
 	// copy tables into m.config for backward compatibility
 	m.config = cfg
