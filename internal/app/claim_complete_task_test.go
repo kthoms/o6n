@@ -430,23 +430,269 @@ func TestRenderTaskCompleteModal(t *testing.T) {
 	if out == "" {
 		t.Fatal("expected non-empty modal output")
 	}
-	if !strings.Contains(out, "Complete Task") {
-		t.Error("expected 'Complete Task' title in modal")
+	// New layout: no static "Complete Task" title or section headers in body
+	if strings.Contains(out, "Complete Task") {
+		t.Error("expected 'Complete Task' static title NOT in modal body")
 	}
+	if strings.Contains(out, "INPUT VARIABLES") {
+		t.Error("expected INPUT VARIABLES section NOT in modal")
+	}
+	if strings.Contains(out, "OUTPUT VARIABLES") {
+		t.Error("expected OUTPUT VARIABLES section NOT in modal")
+	}
+	// Task name appears in modal (border title)
 	if !strings.Contains(out, "Review Order") {
 		t.Error("expected task name in modal")
 	}
-	if !strings.Contains(out, "INPUT VARIABLES") {
-		t.Error("expected INPUT VARIABLES section")
-	}
-	if !strings.Contains(out, "OUTPUT VARIABLES") {
-		t.Error("expected OUTPUT VARIABLES section")
-	}
+	// Buttons present
 	if !strings.Contains(out, "Complete") {
 		t.Error("expected Complete button in modal")
 	}
 	if !strings.Contains(out, "Back") {
 		t.Error("expected Back button in modal")
+	}
+	// orderId is input-only → appears as read-only row
+	if !strings.Contains(out, "orderId") {
+		t.Error("expected orderId in modal")
+	}
+	// approved is a form field → appears as editable row
+	if !strings.Contains(out, "approved") {
+		t.Error("expected approved row in modal")
+	}
+}
+
+// ── Merged list: no section headers ──────────────────────────────────────────
+
+func TestMergedListHasNoSectionHeaders(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 40
+	m.taskInputVars = map[string]variableValue{
+		"amount": {Value: "100", TypeName: "String"},
+	}
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{
+			"approved": {Value: nil, TypeName: "Boolean"},
+		},
+		m.taskInputVars,
+	)
+	out := m.renderTaskCompleteModal(120, 40)
+	if strings.Contains(out, "INPUT VARIABLES") {
+		t.Error("expected no INPUT VARIABLES heading in merged list")
+	}
+	if strings.Contains(out, "OUTPUT VARIABLES") {
+		t.Error("expected no OUTPUT VARIABLES heading in merged list")
+	}
+}
+
+// ── Read-only row style in merged list ────────────────────────────────────────
+
+func TestReadOnlyRowStyleInMergedList(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 40
+	// "inputOnly" is in input vars but not in form fields → read-only row with ":"
+	m.taskInputVars = map[string]variableValue{
+		"inputOnly": {Value: "someValue", TypeName: "String"},
+	}
+	// "formField" is in form fields → editable row with "│"
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{
+			"formField": {Value: nil, TypeName: "String"},
+		},
+		m.taskInputVars,
+	)
+	out := m.renderTaskCompleteModal(120, 40)
+	if !strings.Contains(out, "inputOnly") {
+		t.Error("expected inputOnly read-only row in modal output")
+	}
+	if !strings.Contains(out, "formField") {
+		t.Error("expected formField editable row in modal output")
+	}
+	// Read-only rows use ":" separator; editable rows use "│"
+	if !strings.Contains(out, ":") {
+		t.Error("expected ':' separator for read-only row")
+	}
+	if !strings.Contains(out, "│") {
+		t.Error("expected '│' separator for editable row")
+	}
+}
+
+// ── Tab skips read-only rows ──────────────────────────────────────────────────
+
+func TestTabSkipsReadOnlyRows(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastHeight = 40
+	// "dd" sits alphabetically between editable fields "cc" and "ee"
+	m.taskInputVars = map[string]variableValue{
+		"dd": {Value: "someValue", TypeName: "String"},
+	}
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{
+			"cc": {Value: nil, TypeName: "String"},
+			"ee": {Value: nil, TypeName: "String"},
+		},
+		m.taskInputVars,
+	)
+	// buildTaskCompleteFields sorts: field[0]="cc", field[1]="ee"
+	m.taskCompletePos = 0
+	m.taskCompleteFocus = focusTaskField
+	m.taskCompleteFields[0].input.Focus()
+
+	// Tab from field[0]("cc") should advance to field[1]("ee"), skipping read-only "dd"
+	m2, _ := sendKeyString(m, "tab")
+	if m2.taskCompletePos != 1 {
+		t.Errorf("expected pos 1 after Tab (should skip read-only row), got %d", m2.taskCompletePos)
+	}
+	if m2.taskCompleteFocus != focusTaskField {
+		t.Errorf("expected focusTaskField, got %v", m2.taskCompleteFocus)
+	}
+	if m2.taskCompleteFields[1].name != "ee" {
+		t.Errorf("expected field[1] to be 'ee', got %q", m2.taskCompleteFields[1].name)
+	}
+}
+
+// ── Scroll offset changes visible rows ────────────────────────────────────────
+
+func TestScrollOffsetChangesVisibleRows(t *testing.T) {
+	// height=20 → maxVisible=7. 8 rows (6 read-only + 2 editable) → scrollable.
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 20
+	m.taskInputVars = map[string]variableValue{
+		"aa": {Value: "v1", TypeName: "String"},
+		"ab": {Value: "v2", TypeName: "String"},
+		"ac": {Value: "v3", TypeName: "String"},
+		"ad": {Value: "v4", TypeName: "String"},
+		"ae": {Value: "v5", TypeName: "String"},
+		"af": {Value: "v6", TypeName: "String"},
+	}
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{
+			"za": {Value: nil, TypeName: "String"},
+			"zb": {Value: nil, TypeName: "String"},
+		},
+		m.taskInputVars,
+	)
+	// Unified sorted: aa(0), ab(1), ac(2), ad(3), ae(4), af(5), za(6), zb(7)
+	// With scrollOffset=1: visible range is rows[1..7] — "aa" is NOT shown
+	m.taskCompleteScrollOffset = 1
+
+	out := m.renderTaskCompleteModal(120, 20)
+	// "aa" (row 0) should not be visible at scroll offset 1
+	if strings.Contains(out, "aa") {
+		t.Error("expected 'aa' to not be visible with scrollOffset=1")
+	}
+	// "ab" (row 1) should be the first visible variable
+	if !strings.Contains(out, "ab") {
+		t.Error("expected 'ab' to be visible with scrollOffset=1")
+	}
+}
+
+// ── EnsureVisible adjusts scroll offset ──────────────────────────────────────
+
+func TestEnsureVisibleScrollsToFocusedField(t *testing.T) {
+	// height=20 → maxVisible=7. 8 rows: aa..af (read-only) + za, zb (editable).
+	// "zb" is at virtual index 7 (>= 0+7), so scrollOffset must become 1 after Tab.
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastHeight = 20
+	m.taskInputVars = map[string]variableValue{
+		"aa": {Value: "v1", TypeName: "String"},
+		"ab": {Value: "v2", TypeName: "String"},
+		"ac": {Value: "v3", TypeName: "String"},
+		"ad": {Value: "v4", TypeName: "String"},
+		"ae": {Value: "v5", TypeName: "String"},
+		"af": {Value: "v6", TypeName: "String"},
+	}
+	m.taskCompleteFields = m.buildTaskCompleteFields(
+		map[string]variableValue{
+			"za": {Value: nil, TypeName: "String"},
+			"zb": {Value: nil, TypeName: "String"},
+		},
+		m.taskInputVars,
+	)
+	// Sorted fields: field[0]="za" (virtual idx 6), field[1]="zb" (virtual idx 7)
+	// Tab from field[0] → field[1] triggers ensureVisible for "zb" at idx 7
+	m.taskCompletePos = 0
+	m.taskCompleteFocus = focusTaskField
+	m.taskCompleteScrollOffset = 0
+	m.taskCompleteFields[0].input.Focus()
+
+	m2, _ := sendKeyString(m, "tab") // Tab: za(field[0]) → zb(field[1])
+	// "zb" virtual index=7, maxVisible=7 → scrollOffset = 7-7+1 = 1
+	if m2.taskCompleteScrollOffset != 1 {
+		t.Errorf("expected scrollOffset 1 after Tab to field outside visible window, got %d", m2.taskCompleteScrollOffset)
+	}
+	if m2.taskCompletePos != 1 {
+		t.Errorf("expected pos 1 after Tab, got %d", m2.taskCompletePos)
+	}
+}
+
+// ── Button focus style: inverted colors (no brackets) ─────────────────────────
+
+func TestButtonFocusStyleIsInverted(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "My Task", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "My Task"
+	m.lastWidth = 120
+	m.lastHeight = 40
+	m.taskInputVars = map[string]variableValue{}
+	m.taskCompleteFields = []taskCompleteField{}
+
+	// Focused Complete: inverted style with no brackets
+	m.taskCompleteFocus = focusTaskComplete
+	out := m.renderTaskCompleteModal(120, 40)
+	if strings.Contains(out, "[ Complete") {
+		t.Error("expected focused Complete button to NOT have brackets (inverted style)")
+	}
+	if !strings.Contains(out, "[ Back ]") {
+		t.Error("expected unfocused Back button to have brackets")
+	}
+
+	// Unfocused Complete: plain style with brackets
+	m.taskCompleteFocus = focusTaskField
+	out2 := m.renderTaskCompleteModal(120, 40)
+	if !strings.Contains(out2, "[ Complete ]") {
+		t.Error("expected unfocused Complete button to have brackets")
+	}
+}
+
+// ── Border title contains task name ──────────────────────────────────────────
+
+func TestBorderTitleContainsTaskName(t *testing.T) {
+	m := setupTaskTable(t, "task-1", "Prepare Bank Transfer", "alice", "alice")
+	m.activeModal = ModalTaskComplete
+	m.taskCompleteTaskName = "Prepare Bank Transfer"
+	m.lastWidth = 120
+	m.lastHeight = 40
+	m.taskInputVars = map[string]variableValue{}
+	m.taskCompleteFields = []taskCompleteField{}
+
+	out := m.renderTaskCompleteModal(120, 40)
+	if !strings.Contains(out, "Prepare Bank Transfer") {
+		t.Fatal("expected task name in modal output")
+	}
+	// Task name should appear on the same line as the rounded border corner ╭
+	lines := strings.Split(out, "\n")
+	titleOnBorder := false
+	for _, line := range lines {
+		if strings.Contains(line, "Prepare Bank Transfer") && strings.Contains(line, "╭") {
+			titleOnBorder = true
+			break
+		}
+	}
+	if !titleOnBorder {
+		t.Error("expected task name to appear on the border line (line containing ╭)")
 	}
 }
 

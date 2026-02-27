@@ -1170,104 +1170,213 @@ func (m *model) renderActionsMenu(width, height int) string {
 }
 
 // renderTaskCompleteModal renders the full-screen task completion dialog.
+// Layout: task name in border title; merged INPUT+OUTPUT variable list (read-only rows
+// show "name : value", editable rows show "name │ <input>"); scrollable content area
+// with separator, buttons, and hint line always pinned at the bottom.
 func (m *model) renderTaskCompleteModal(width, height int) string {
-	const sep = "────────────────────────────────────"
+	// ── Dialog dimensions ─────────────────────────────────────────────────────
+	dialogW := width - 8
+	if dialogW < 60 {
+		dialogW = 60
+	}
+	if dialogW > 100 {
+		dialogW = 100
+	}
+	innerW := dialogW
+	dialogH := height - 4
+	if dialogH < 15 {
+		dialogH = 15
+	}
+	contentH := dialogH - 2 // lines inside border (top/bottom border excluded)
+	// Fixed lines below scroll region:
+	// blank(1) + separator(1) + blank(1) + buttons(1) + blank(1) + hint(1) = 6
+	// Plus blank top(1) = 7 total fixed lines; maxVisible = contentH - 7
+	maxVisible := contentH - 7
+	if maxVisible < 3 {
+		maxVisible = 3
+	}
 
-	var sb strings.Builder
-
-	// Title + subtitle
-	sb.WriteString("Complete Task\n")
-	sb.WriteString(m.styles.FgMuted.Render(m.taskCompleteTaskName) + "\n")
-	sb.WriteString(sep + "\n\n")
-
-	// INPUT VARIABLES section
-	sb.WriteString("INPUT VARIABLES\n")
-	if len(m.taskInputVars) == 0 {
-		sb.WriteString(m.styles.FgMuted.Render("  No context variables") + "\n")
-	} else {
-		// Sort alphabetically
-		names := make([]string, 0, len(m.taskInputVars))
-		for n := range m.taskInputVars {
-			names = append(names, n)
-		}
-		sortStrings(names)
-		for _, n := range names {
-			v := m.taskInputVars[n]
+	// ── Unified row list ──────────────────────────────────────────────────────
+	type unifiedRow struct {
+		name       string
+		isEditable bool
+		fieldIdx   int    // index into m.taskCompleteFields (-1 if read-only)
+		value      string // display value for read-only rows
+	}
+	allNames := make(map[string]bool)
+	for n := range m.taskInputVars {
+		allNames[n] = true
+	}
+	fieldIdxByName := make(map[string]int)
+	for i, f := range m.taskCompleteFields {
+		fieldIdxByName[f.name] = i
+		allNames[f.name] = true
+	}
+	sortedNames := make([]string, 0, len(allNames))
+	for n := range allNames {
+		sortedNames = append(sortedNames, n)
+	}
+	sortStrings(sortedNames)
+	rows := make([]unifiedRow, 0, len(sortedNames))
+	for _, n := range sortedNames {
+		if idx, ok := fieldIdxByName[n]; ok {
+			rows = append(rows, unifiedRow{name: n, isEditable: true, fieldIdx: idx})
+		} else {
 			val := ""
-			if v.Value != nil {
+			if v, ok2 := m.taskInputVars[n]; ok2 && v.Value != nil {
 				val = fmt.Sprintf("%v", v.Value)
 			}
-			sb.WriteString(m.styles.FgMuted.Render(fmt.Sprintf("  %s : %s", n, val)) + "\n")
+			rows = append(rows, unifiedRow{name: n, isEditable: false, fieldIdx: -1, value: val})
 		}
 	}
-	sb.WriteString("\n" + sep + "\n\n")
 
-	// OUTPUT VARIABLES section
-	sb.WriteString("OUTPUT VARIABLES\n")
-	if len(m.taskCompleteFields) == 0 {
-		sb.WriteString(m.styles.FgMuted.Render("  No output variables defined for this task") + "\n")
+	// ── Scroll offset ─────────────────────────────────────────────────────────
+	totalRows := len(rows)
+	offset := m.taskCompleteScrollOffset
+	maxOffset := totalRows - maxVisible
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if offset > maxOffset {
+		offset = maxOffset
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	scrollable := totalRows > maxVisible
+	scrollIndicator := ""
+	if scrollable {
+		if offset == 0 {
+			scrollIndicator = " ↓"
+		} else if offset >= maxOffset {
+			scrollIndicator = " ↑"
+		} else {
+			scrollIndicator = " ↕"
+		}
+	}
+
+	// ── Build content lines ────────────────────────────────────────────────────
+	contentLines := make([]string, 0, contentH)
+	contentLines = append(contentLines, "") // blank top
+
+	visibleEnd := offset + maxVisible
+	if visibleEnd > totalRows {
+		visibleEnd = totalRows
+	}
+	rowLinesAdded := 0
+	if len(rows) == 0 {
+		contentLines = append(contentLines, m.styles.FgMuted.Render("  No variables"))
+		rowLinesAdded = 1
 	} else {
-		for i, f := range m.taskCompleteFields {
-			focused := m.taskCompleteFocus == focusTaskField && m.taskCompletePos == i
-			_ = focused
-			inputView := f.input.View()
-			sb.WriteString(fmt.Sprintf("  %s │ %s\n", f.name, inputView))
-			if f.error != "" {
-				sb.WriteString(m.styles.ValidationError.Render("  ⚠ "+f.error) + "\n")
+		for _, row := range rows[offset:visibleEnd] {
+			if row.isEditable {
+				f := m.taskCompleteFields[row.fieldIdx]
+				contentLines = append(contentLines, fmt.Sprintf("  %-20s │ %s", f.name, f.input.View()))
+				rowLinesAdded++
+				if f.error != "" {
+					contentLines = append(contentLines, m.styles.ValidationError.Render("  ⚠ "+f.error))
+					rowLinesAdded++
+				}
+			} else {
+				contentLines = append(contentLines, m.styles.FgMuted.Render(fmt.Sprintf("  %-20s :  %s", row.name, row.value)))
+				rowLinesAdded++
 			}
 		}
 	}
-	sb.WriteString("\n" + sep + "\n\n")
+	// Pad to fill maxVisible lines so footer is always pinned at the bottom
+	for i := rowLinesAdded; i < maxVisible; i++ {
+		contentLines = append(contentLines, "")
+	}
 
-	// Buttons
+	// ── Separator with scroll indicator ──────────────────────────────────────
+	indW := lipgloss.Width(scrollIndicator)
+	sep := strings.Repeat("─", innerW-indW) + scrollIndicator
+	contentLines = append(contentLines, "") // blank after rows
+	contentLines = append(contentLines, sep)
+
+	// ── Buttons — fixed width, no border; focused = inverted colors ──────────
+	accentColor := col(m.skin, "borderFocus")
+	darkColor := col(m.skin, "bg")
 	completeDisabled := m.taskCompleteHasErrors()
+	const completeW = 12 // visual width of "[ Complete ]"
+	const backW = 8      // visual width of "[ Back ]"
+	focusStyle := lipgloss.NewStyle().Background(accentColor).Foreground(darkColor).Bold(true)
+	dimStyle := m.styles.FgMuted
 	var completeBtn, backBtn string
 	switch m.taskCompleteFocus {
 	case focusTaskComplete:
 		if completeDisabled {
-			completeBtn = m.styles.BtnDisabled.Copy().
-				Border(lipgloss.NormalBorder()).
-				BorderForeground(col(m.skin, "danger")).
-				Render("  Complete  ")
+			completeBtn = m.styles.BtnDisabled.Render(centerPad("Complete", completeW))
 		} else {
-			completeBtn = m.styles.BtnSaveFocused.Render("  Complete  ")
+			completeBtn = focusStyle.Render(centerPad("Complete", completeW))
 		}
-		backBtn = m.styles.BtnCancel.Render("  Back  ")
+		backBtn = dimStyle.Render("[ Back ]")
 	case focusTaskBack:
 		if completeDisabled {
-			completeBtn = m.styles.BtnDisabled.Render("  Complete  ")
+			completeBtn = m.styles.BtnDisabled.Render("[ Complete ]")
 		} else {
-			completeBtn = m.styles.BtnSave.Render("  Complete  ")
+			completeBtn = dimStyle.Render("[ Complete ]")
 		}
-		backBtn = m.styles.BtnCancelFocused.Render("  Back  ")
-	default:
+		backBtn = focusStyle.Render(centerPad("Back", backW))
+	default: // focusTaskField or no focus
 		if completeDisabled {
-			completeBtn = m.styles.BtnDisabled.Render("  Complete  ")
+			completeBtn = m.styles.BtnDisabled.Render("[ Complete ]")
 		} else {
-			completeBtn = m.styles.BtnSave.Render("  Complete  ")
+			completeBtn = dimStyle.Render("[ Complete ]")
 		}
-		backBtn = m.styles.BtnCancel.Render("  Back  ")
+		backBtn = dimStyle.Render("[ Back ]")
 	}
-	sb.WriteString(completeBtn + "  " + backBtn + "\n\n")
+	contentLines = append(contentLines, "") // blank before buttons
+	contentLines = append(contentLines, completeBtn+"  "+backBtn)
+	contentLines = append(contentLines, "") // blank after buttons
+	contentLines = append(contentLines, m.styles.FgMuted.Render("Tab: next field  ↑↓: scroll  Space: toggle bool  Esc: back"))
 
-	// Hint line
-	sb.WriteString(m.styles.FgMuted.Render("Tab: next  Space: toggle bool  Esc: back"))
-
-	// Wrap in modal style
-	modalW := width - 8
-	if modalW < 60 {
-		modalW = 60
+	// ── Render rounded box with title in top border ───────────────────────────
+	taskTitle := m.taskCompleteTaskName
+	titleStr := " " + taskTitle + " "
+	maxTitleW := innerW - 4
+	if lipgloss.Width(titleStr) > maxTitleW {
+		runes := []rune(taskTitle)
+		if len(runes) > maxTitleW-3 {
+			taskTitle = string(runes[:maxTitleW-3]) + "…"
+		}
+		titleStr = " " + taskTitle + " "
 	}
-	if modalW > 100 {
-		modalW = 100
-	}
-	modalStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(col(m.skin, "borderFocus")).
-		Padding(1, 2).
-		Width(modalW)
+	titleW := lipgloss.Width(titleStr)
+	leftDashes := (innerW - titleW) / 2
+	rightDashes := innerW - titleW - leftDashes
+	borderStyle := m.styles.BorderFocus
+	topBorder := borderStyle.Render("╭" + strings.Repeat("─", leftDashes) + titleStr + strings.Repeat("─", rightDashes) + "╮")
+	bottomBorder := borderStyle.Render("╰" + strings.Repeat("─", innerW) + "╯")
 
-	return modalStyle.Render(sb.String())
+	var result strings.Builder
+	result.WriteString(topBorder + "\n")
+	for i := 0; i < contentH; i++ {
+		var l string
+		if i < len(contentLines) {
+			l = contentLines[i]
+		}
+		lW := lipgloss.Width(l)
+		padW := innerW - lW
+		if padW < 0 {
+			padW = 0
+		}
+		result.WriteString(borderStyle.Render("│") + l + strings.Repeat(" ", padW) + borderStyle.Render("│") + "\n")
+	}
+	result.WriteString(bottomBorder)
+	return result.String()
+}
+
+// centerPad centers text within a fixed character width, padding with spaces on both sides.
+func centerPad(text string, width int) string {
+	textW := lipgloss.Width(text)
+	pad := width - textW
+	if pad <= 0 {
+		return text
+	}
+	leftPad := pad / 2
+	rightPad := pad - leftPad
+	return strings.Repeat(" ", leftPad) + text + strings.Repeat(" ", rightPad)
 }
 
 // sortStrings sorts a string slice in place (helper to avoid importing sort in view.go).

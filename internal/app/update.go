@@ -558,6 +558,22 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			case "esc":
 				m.closeTaskCompleteDialog()
 				return m, nil
+			case "up":
+				if m.taskCompleteScrollOffset > 0 {
+					m.taskCompleteScrollOffset--
+				}
+				return m, nil
+			case "down":
+				maxVis := m.taskCompleteMaxVisible()
+				total := m.taskCompleteTotalRows()
+				maxOff := total - maxVis
+				if maxOff < 0 {
+					maxOff = 0
+				}
+				if m.taskCompleteScrollOffset < maxOff {
+					m.taskCompleteScrollOffset++
+				}
+				return m, nil
 			case "tab":
 				m.taskCompleteTabForward()
 				return m, nil
@@ -1560,6 +1576,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 		m.taskCompleteFields = m.buildTaskCompleteFields(msg.formVars, msg.inputVars)
 		m.taskCompletePos = 0
 		m.taskCompleteFocus = focusTaskField
+		m.taskCompleteScrollOffset = 0
 		if len(m.taskCompleteFields) > 0 {
 			m.taskCompleteFields[0].input.Focus()
 		}
@@ -1893,6 +1910,7 @@ func (m *model) closeTaskCompleteDialog() {
 	m.taskCompleteFields = nil
 	m.taskCompletePos = 0
 	m.taskCompleteFocus = focusTaskField
+	m.taskCompleteScrollOffset = 0
 }
 
 // blurCurrentTaskField removes focus from the currently focused text input.
@@ -1917,6 +1935,7 @@ func (m *model) taskCompleteTabForward() {
 			m.blurCurrentTaskField()
 			m.taskCompletePos++
 			m.focusCurrentTaskField()
+			m.taskCompleteEnsureVisible()
 		} else {
 			m.blurCurrentTaskField()
 			m.taskCompleteFocus = focusTaskComplete
@@ -1927,6 +1946,7 @@ func (m *model) taskCompleteTabForward() {
 		m.taskCompleteFocus = focusTaskField
 		m.taskCompletePos = 0
 		m.focusCurrentTaskField()
+		m.taskCompleteEnsureVisible()
 	}
 }
 
@@ -1938,6 +1958,7 @@ func (m *model) taskCompleteTabBackward() {
 			m.blurCurrentTaskField()
 			m.taskCompletePos--
 			m.focusCurrentTaskField()
+			m.taskCompleteEnsureVisible()
 		} else {
 			m.blurCurrentTaskField()
 			m.taskCompleteFocus = focusTaskBack
@@ -1948,8 +1969,77 @@ func (m *model) taskCompleteTabBackward() {
 			m.taskCompletePos = len(m.taskCompleteFields) - 1
 		}
 		m.focusCurrentTaskField()
+		m.taskCompleteEnsureVisible()
 	case focusTaskBack:
 		m.taskCompleteFocus = focusTaskComplete
+	}
+}
+
+// taskCompleteMaxVisible returns the number of variable rows visible at once
+// in the dialog for the current terminal height.
+func (m *model) taskCompleteMaxVisible() int {
+	dialogH := m.lastHeight - 4
+	if dialogH < 15 {
+		dialogH = 15
+	}
+	maxVis := dialogH - 9 // contentH(dialogH-2) - 7 fixed lines
+	if maxVis < 3 {
+		maxVis = 3
+	}
+	return maxVis
+}
+
+// taskCompleteTotalRows returns the number of rows in the unified variable list.
+func (m *model) taskCompleteTotalRows() int {
+	allNames := make(map[string]bool)
+	for n := range m.taskInputVars {
+		allNames[n] = true
+	}
+	for _, f := range m.taskCompleteFields {
+		allNames[f.name] = true
+	}
+	return len(allNames)
+}
+
+// taskCompleteVirtualRowIndex returns the position of a named field in the unified
+// sorted variable list (same ordering as renderTaskCompleteModal).
+func (m *model) taskCompleteVirtualRowIndex(fieldName string) int {
+	allNames := make(map[string]bool)
+	for n := range m.taskInputVars {
+		allNames[n] = true
+	}
+	for _, f := range m.taskCompleteFields {
+		allNames[f.name] = true
+	}
+	names := make([]string, 0, len(allNames))
+	for n := range allNames {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	for i, n := range names {
+		if n == fieldName {
+			return i
+		}
+	}
+	return -1
+}
+
+// taskCompleteEnsureVisible adjusts taskCompleteScrollOffset so the currently
+// focused field is within the visible scroll window.
+func (m *model) taskCompleteEnsureVisible() {
+	if m.taskCompleteFocus != focusTaskField || len(m.taskCompleteFields) == 0 {
+		return
+	}
+	fieldName := m.taskCompleteFields[m.taskCompletePos].name
+	virtualIdx := m.taskCompleteVirtualRowIndex(fieldName)
+	if virtualIdx < 0 {
+		return
+	}
+	maxVis := m.taskCompleteMaxVisible()
+	if virtualIdx < m.taskCompleteScrollOffset {
+		m.taskCompleteScrollOffset = virtualIdx
+	} else if virtualIdx >= m.taskCompleteScrollOffset+maxVis {
+		m.taskCompleteScrollOffset = virtualIdx - maxVis + 1
 	}
 }
 
