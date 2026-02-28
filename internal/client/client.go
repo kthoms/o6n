@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -416,15 +417,53 @@ type loggingTransport struct {
 }
 
 func (t *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	t.mu.Lock()
-	fmt.Fprintf(t.writer, "[%s] %s %s\n", time.Now().Format(time.RFC3339), req.Method, req.URL)
-	t.mu.Unlock()
-	resp, err := t.base.RoundTrip(req)
-	if resp != nil {
-		t.mu.Lock()
-		fmt.Fprintf(t.writer, "  → %d\n", resp.StatusCode)
-		t.mu.Unlock()
+	// Capture request body so we can log it and then restore it for the actual call.
+	var reqBody []byte
+	if req.Body != nil {
+		reqBody, _ = io.ReadAll(req.Body)
+		req.Body = io.NopCloser(bytes.NewReader(reqBody))
 	}
+
+	resp, err := t.base.RoundTrip(req)
+
+	// Capture response body so we can log it and then restore it for the caller.
+	var respBody []byte
+	if resp != nil && resp.Body != nil {
+		respBody, _ = io.ReadAll(resp.Body)
+		resp.Body = io.NopCloser(bytes.NewReader(respBody))
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// Always write to o8n.log via the standard logger writer.
+	logW := log.Writer()
+	fmt.Fprintf(logW, "[http] %s %s", req.Method, req.URL)
+	if len(reqBody) > 0 {
+		fmt.Fprintf(logW, "\n  req: %s", reqBody)
+	}
+	if resp != nil {
+		fmt.Fprintf(logW, "\n  → %d", resp.StatusCode)
+	}
+	if len(respBody) > 0 {
+		fmt.Fprintf(logW, "\n  resp: %s", respBody)
+	}
+	fmt.Fprintln(logW)
+
+	// Also write to access.log when debug mode is active.
+	if t.writer != nil {
+		fmt.Fprintf(t.writer, "[%s] %s %s\n", time.Now().Format(time.RFC3339), req.Method, req.URL)
+		if len(reqBody) > 0 {
+			fmt.Fprintf(t.writer, "  req: %s\n", reqBody)
+		}
+		if resp != nil {
+			fmt.Fprintf(t.writer, "  → %d\n", resp.StatusCode)
+		}
+		if len(respBody) > 0 {
+			fmt.Fprintf(t.writer, "  resp: %s\n", respBody)
+		}
+	}
+
 	return resp, err
 }
 
@@ -454,17 +493,20 @@ func (c *CompatClient) AuthContext() context.Context {
 }
 
 // NewClient creates a CompatClient from the environment config.
-// When debug is true, all HTTP requests are logged to ./debug/access.log.
+// All HTTP requests are always logged (method, URL, body, status, response) to debug/o8n.log.
+// When debug is true, requests are additionally logged to debug/access.log.
 func NewClient(env cfgpkg.Environment, debug bool) *CompatClient {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
+	transport := &loggingTransport{base: http.DefaultTransport}
 	if debug {
 		_ = os.MkdirAll("./debug", 0o755)
 		fpath := filepath.Join(".", "debug", "access.log")
 		if f, err := os.OpenFile(fpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
-			httpClient.Transport = &loggingTransport{base: http.DefaultTransport, writer: f}
+			transport.writer = f
 		}
 	}
+	httpClient.Transport = transport
 
 	cfg := operaton.NewConfiguration()
 	cfg.HTTPClient = httpClient

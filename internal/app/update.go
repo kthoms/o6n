@@ -2107,7 +2107,9 @@ func (m *model) submitTaskComplete() tea.Cmd {
 		parsedVal, _ := validation.ValidateAndParse(f.input.Value(), f.varType)
 		v := operaton.VariableValueDto{}
 		v.SetValue(parsedVal)
-		v.SetType(f.origType)
+		if f.origType != "" {
+			v.SetType(f.origType)
+		}
 		vars[f.name] = v
 	}
 	m.isLoading = true

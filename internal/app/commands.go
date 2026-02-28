@@ -706,6 +706,13 @@ func (m model) completeTaskCmd(taskID, taskName string, vars map[string]operaton
 		dto.SetVariables(vars)
 		_, _, err := c.OperatonAPI().TaskAPI.Complete(c.AuthContext(), taskID).CompleteTaskDto(dto).Execute()
 		if err != nil {
+			// Include the server response body when available (OpenAPI errors carry it).
+			type bodyErr interface {
+				Body() []byte
+			}
+			if be, ok := err.(bodyErr); ok && len(be.Body()) > 0 {
+				return errMsg{fmt.Errorf("complete task: %s: %s", err, be.Body())}
+			}
 			return errMsg{fmt.Errorf("complete task: %w", err)}
 		}
 		return actionExecutedMsg{label: label, closeTaskDialog: true}
