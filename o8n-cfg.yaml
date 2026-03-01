@@ -17,10 +17,9 @@ tables:
           hide_order: 2
           align: left
       drilldown:
-        target: history-external-task-log
-          label: History
-          param: externalTaskId
-          column: id
+        label: History
+        param: externalTaskId
+        column: id
       actions:
         - key: u
           label: Unlock
@@ -75,10 +74,9 @@ tables:
         - name: batchId
           visible: false
       drilldown:
-        target: history-job-log
-          label: History
-          param: jobId
-          column: id
+        label: History
+        param: jobId
+        column: id
       actions:
         - key: r
           label: Retry (retries=1)
@@ -135,10 +133,9 @@ tables:
         - name: deploymentId
           visible: false
       drilldown:
-        target: job
-          label: Jobs
-          param: jobDefinitionId
-          column: id
+        label: Jobs
+        param: jobDefinitionId
+        column: id
       actions:
         - key: s
           label: Suspend Job Definition
@@ -172,11 +169,10 @@ tables:
           hide_order: 2
           align: left
       drilldown:
-        target: process-instance
-          param: processDefinitionId
-          column: id
-          label: Instances
-          title_attribute: key
+        param: processDefinitionId
+        column: id
+        label: Instances
+        title_attribute: key
       actions:
         - key: s
           label: Suspend Definition
@@ -215,10 +211,9 @@ tables:
           hide_order: 3
           align: left
       drilldown:
-        target: process-variables
-          param: processInstanceId
-          column: id
-          label: Variables
+        param: processInstanceId
+        column: id
+        label: Variables
       actions:
         - key: s
           label: Suspend Instance
@@ -264,10 +259,9 @@ tables:
           hide_order: 4
           align: left
       drilldown:
-        target: variable-instance
-          label: Var Instances
-          param: taskIdIn
-          column: id
+        label: Var Instances
+        param: taskIdIn
+        column: id
       actions:
         - key: c
           label: Claim Task
@@ -322,10 +316,9 @@ tables:
           type: id
           align: left
       drilldown:
-        target: history-batch
-          label: History
-          param: batchId
-          column: id
+        label: History
+        param: batchId
+        column: id
       actions:
         - key: s
           label: Suspend Batch
@@ -367,10 +360,9 @@ tables:
         - name: resource
           align: left
       drilldown:
-        target: history-decision-instance
-          label: History
-          param: decisionDefinitionKey
-          column: key
+        label: History
+        param: decisionDefinitionKey
+        column: key
       actions:
         - key: ctrl+d
           label: Delete Definition
@@ -404,10 +396,9 @@ tables:
           type: id
           align: left
       drilldown:
-        target: process-definition
-          label: Definitions
-          param: deploymentId
-          column: id
+        label: Definitions
+        param: deploymentId
+        column: id
       actions:
         - key: ctrl+d
           label: Delete Deployment
@@ -473,10 +464,9 @@ tables:
         - name: type
           align: left
       drilldown:
-        target: history-identity-link-log
-          label: Identity Links
-          param: groupId
-          column: id
+        label: Identity Links
+        param: groupId
+        column: id
       actions:
         - key: ctrl+d
           label: Delete Group
@@ -758,10 +748,9 @@ tables:
         - name: name
           align: left
       drilldown:
-        target: process-definition
-          label: Definitions
-          param: tenantIdIn
-          column: id
+        label: Definitions
+        param: tenantIdIn
+        column: id
       actions:
         - key: ctrl+d
           label: Delete Tenant
