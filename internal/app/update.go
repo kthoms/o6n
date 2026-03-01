@@ -2104,6 +2104,12 @@ func (m *model) submitTaskComplete() tea.Cmd {
 	}
 	vars := make(map[string]operaton.VariableValueDto, len(m.taskCompleteFields))
 	for _, f := range m.taskCompleteFields {
+		// Skip File type variables: servers expect valueInfo for files and the TUI
+		// does not support file upload. Omitting file vars preserves existing values
+		// and avoids 500 errors like "Cannot create file without valueInfo".
+		if strings.EqualFold(f.origType, "File") {
+			continue
+		}
 		parsedVal, _ := validation.ValidateAndParse(f.input.Value(), f.varType)
 		v := operaton.VariableValueDto{}
 		v.SetValue(parsedVal)
