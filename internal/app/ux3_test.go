@@ -23,9 +23,7 @@ func TestGenericLoadedMsgAddsDrilldownPrefix(t *testing.T) {
 				{Name: "id", Type: "text"},
 				{Name: "name", Type: "text"},
 			},
-			Drilldown: []config.DrillDownDef{
-				{Target: "widget-details", Param: "widgetId"},
-			},
+			Drilldown: &config.DrillDownDef{Target: "widget-details", Param: "widgetId"},
 		},
 	}
 	m.paneWidth = 120

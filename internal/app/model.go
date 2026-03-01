@@ -229,9 +229,10 @@ type editableColumn struct {
 
 // actionItem represents a context-specific action in the actions menu
 type actionItem struct {
-	key   string // single-key shortcut
-	label string // display label
-	cmd   func(m *model) tea.Cmd
+	key        string // single-key shortcut
+	label      string // display label
+	cmd        func(m *model) tea.Cmd
+	isNavigate bool
 }
 
 // viewState captures the complete state of a view for navigation history

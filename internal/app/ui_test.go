@@ -160,7 +160,7 @@ func TestConfigDrivenDrilldownFromDefinitionToInstances(t *testing.T) {
 			{
 				Name:      "process-definition",
 				Columns:   []config.ColumnDef{{Name: "key"}, {Name: "name"}, {Name: "version"}, {Name: "resource"}},
-				Drilldown: []config.DrillDownDef{{Target: "process-instance", Param: "processDefinitionKey", Column: "key"}},
+				Drilldown: &config.DrillDownDef{Target: "process-instance", Param: "processDefinitionKey", Column: "key"},
 			},
 			{
 				Name:    "process-instance",
@@ -220,7 +220,7 @@ func TestConfigDrivenDrilldownFromInstancesToVariables(t *testing.T) {
 			{
 				Name:      "process-instance",
 				Columns:   []config.ColumnDef{{Name: "id"}, {Name: "definitionId"}},
-				Drilldown: []config.DrillDownDef{{Target: "process-variables", Param: "processInstanceId", Column: "id"}},
+				Drilldown: &config.DrillDownDef{Target: "process-variables", Param: "processInstanceId", Column: "id"}},
 			},
 			{
 				Name:    "process-variables",
@@ -288,7 +288,7 @@ func TestNavigationStackPreservesRowSelection(t *testing.T) {
 			{
 				Name:      "process-definition",
 				Columns:   []config.ColumnDef{{Name: "key"}, {Name: "name"}},
-				Drilldown: []config.DrillDownDef{{Target: "process-instance", Param: "processDefinitionKey", Column: "key"}},
+				Drilldown: &config.DrillDownDef{Target: "process-instance", Param: "processDefinitionKey", Column: "key"}},
 			},
 		},
 	}
@@ -470,12 +470,12 @@ func TestExtraEntersDontPushNavigationStack(t *testing.T) {
 			{
 				Name:      "process-definition",
 				Columns:   []config.ColumnDef{{Name: "key"}, {Name: "name"}},
-				Drilldown: []config.DrillDownDef{{Target: "process-instance", Param: "processDefinitionKey", Column: "key"}},
+				Drilldown: &config.DrillDownDef{Target: "process-instance", Param: "processDefinitionKey", Column: "key"}},
 			},
 			{
 				Name:      "process-instance",
 				Columns:   []config.ColumnDef{{Name: "id"}, {Name: "definitionId"}},
-				Drilldown: []config.DrillDownDef{{Target: "process-variables", Param: "processInstanceId", Column: "id"}},
+				Drilldown: &config.DrillDownDef{Target: "process-variables", Param: "processInstanceId", Column: "id"}},
 			},
 			{
 				Name:    "process-variables",

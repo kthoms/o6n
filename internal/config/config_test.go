@@ -43,8 +43,8 @@ tables:
 	if tbl.CountPath != "/history/process-instance/count" {
 		t.Errorf("CountPath: got %q, want %q", tbl.CountPath, "/history/process-instance/count")
 	}
-	if len(tbl.Drilldown) != 1 || tbl.Drilldown[0].Label != "Activity Instances" {
-		t.Errorf("DrillDownDef.Label: got %q, want %q", tbl.Drilldown[0].Label, "Activity Instances")
+	if tbl.Drilldown == nil || tbl.Drilldown.Label != "Activity Instances" {
+		t.Errorf("DrillDownDef.Label: got %q, want %q", tbl.Drilldown.Label, "Activity Instances")
 	}
 	if tbl.EditAction == nil {
 		t.Fatal("EditAction is nil")
@@ -102,7 +102,10 @@ tables:
 	if err := yaml.NewDecoder(strings.NewReader(raw)).Decode(&cfg); err != nil {
 		t.Fatalf("unmarshal error: %v", err)
 	}
-	dd := cfg.Tables[0].Drilldown[0]
+	dd := cfg.Tables[0].Drilldown
+	if dd == nil {
+		t.Fatal("expected drilldown present")
+	}
 	if dd.Label != "" {
 		t.Errorf("expected empty Label when not set, got %q", dd.Label)
 	}

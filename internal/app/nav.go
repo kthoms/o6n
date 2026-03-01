@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -84,25 +85,74 @@ func (m *model) buildActionsForRoot() []actionItem {
 			if td.Name == tableKey || td.Name == root {
 				for _, action := range td.Actions {
 					act := action // capture loop variable
-					items = append(items, actionItem{
-						key:   act.Key,
-						label: act.Label,
-						cmd: func(m *model) tea.Cmd {
-							id := m.resolveActionID(act)
-							if id == "" {
-								return nil
-							}
-							resolvedPath := strings.Replace(act.Path, "{id}", id, 1)
-							if act.Confirm {
-								m.pendingAction = &act
-								m.pendingActionID = id
-								m.pendingActionPath = resolvedPath
-								m.activeModal = ModalConfirmDelete
-								return nil
-							}
-							return tea.Batch(m.executeActionCmd(act, resolvedPath), flashOnCmd())
-						},
-					})
+					if act.Type == "navigate" {
+						// Build navigate action: resolves ID from rowData/visible cell and triggers drilldown
+						colName := act.Column
+						if colName == "" {
+							colName = "id"
+						}
+						items = append(items, actionItem{
+							key:        act.Key,
+							label:      act.Label + " →",
+							isNavigate: true,
+							cmd: func(m *model) tea.Cmd {
+								cursor := m.table.Cursor()
+								val := ""
+								if cursor >= 0 && cursor < len(m.rowData) {
+									if v, ok := m.rowData[cursor][colName]; ok && v != nil {
+										val = fmt.Sprintf("%v", v)
+									}
+								}
+								if val == "" {
+									// fallback to visible cell
+									def := m.findTableDef(m.currentTableKey())
+									visIdx := -1
+									if def != nil {
+										visIdx = m.visibleColumnIndex(def, colName)
+									}
+									row := m.table.SelectedRow()
+									if visIdx >= 0 && visIdx < len(row) {
+										val = stripFocusIndicatorPrefix(fmt.Sprintf("%v", row[visIdx]))
+									} else if len(row) > 0 {
+										val = stripFocusIndicatorPrefix(fmt.Sprintf("%v", row[0]))
+									}
+								}
+								if val == "" {
+									return nil
+								}
+								d := &config.DrillDownDef{
+									Target: act.Target,
+									Param:  act.Param,
+									Column: colName,
+									Label:  act.Label,
+								}
+								newM, cmd := m.executeDrilldown(d)
+								*m = newM
+								return cmd
+							},
+						})
+					} else {
+						// HTTP mutation action (existing logic)
+						items = append(items, actionItem{
+							key:   act.Key,
+							label: act.Label,
+							cmd: func(m *model) tea.Cmd {
+								id := m.resolveActionID(act)
+								if id == "" {
+									return nil
+								}
+								resolvedPath := strings.Replace(act.Path, "{id}", id, 1)
+								if act.Confirm {
+									m.pendingAction = &act
+									m.pendingActionID = id
+									m.pendingActionPath = resolvedPath
+									m.activeModal = ModalConfirmDelete
+									return nil
+								}
+								return tea.Batch(m.executeActionCmd(act, resolvedPath), flashOnCmd())
+							},
+						})
+					}
 				}
 				break
 			}
@@ -325,6 +375,96 @@ func (m *model) navigateToBreadcrumb(idx int) tea.Cmd {
 		m.genericParams = nil
 	}
 	return tea.Batch(m.fetchForRoot(last), flashOnCmd())
+}
+
+// executeDrilldown performs the full navigation-stack push and resource fetch
+// for the given drilldown definition, using the current table cursor as context.
+func (m model) executeDrilldown(d *config.DrillDownDef) (model, tea.Cmd) {
+	// Save current state before drilldown, then clear sort/search for new view
+	m.prepareStateTransition(transitionDrilldown)
+	colsDrill := m.table.Columns()
+	rowsCopyDrill := append([]table.Row{}, m.table.Rows()...)
+	if len(colsDrill) > 0 {
+		rowsCopyDrill = normalizeRows(rowsCopyDrill, len(colsDrill))
+	}
+	currentStateDrill := viewState{
+		viewMode:              m.viewMode,
+		breadcrumb:            append([]string{}, m.breadcrumb...),
+		contentHeader:         m.contentHeader,
+		selectedDefinitionKey: m.selectedDefinitionKey,
+		selectedInstanceID:    m.selectedInstanceID,
+		tableRows:             rowsCopyDrill,
+		tableCursor:           m.table.Cursor(),
+		cachedDefinitions:     m.cachedDefinitions,
+		tableColumns:          append([]table.Column{}, colsDrill...),
+		genericParams:         m.genericParams,
+		rowData:               append([]map[string]interface{}{}, m.rowData...),
+	}
+	m.navigationStack = append(m.navigationStack, currentStateDrill)
+
+	// Resolve drilldown value: prefer rowData (includes hidden columns like id),
+	// fall back to visible cell with focus-indicator prefix stripped
+	colName := d.Column
+	if colName == "" {
+		colName = "id"
+	}
+	val := ""
+	cursor := m.table.Cursor()
+	if cursor >= 0 && cursor < len(m.rowData) {
+		if v, ok := m.rowData[cursor][colName]; ok && v != nil {
+			val = fmt.Sprintf("%v", v)
+		}
+	}
+	if val == "" {
+		visIdx := m.visibleColumnIndex(m.findTableDef(m.currentTableKey()), colName)
+		row := m.table.SelectedRow()
+		if visIdx >= 0 && visIdx < len(row) {
+			val = stripFocusIndicatorPrefix(fmt.Sprintf("%v", row[visIdx]))
+		} else if len(row) > 0 {
+			val = stripFocusIndicatorPrefix(fmt.Sprintf("%v", row[0]))
+		}
+		log.Printf("drilldown: column %q not in rowData at cursor %d, used visible cell: %q", colName, cursor, val)
+	}
+
+	// Preserve context state needed by edit/save flows
+	switch d.Target {
+	case "process-instance":
+		m.selectedDefinitionKey = val
+	case "process-variables":
+		m.selectedInstanceID = val
+	}
+
+	// breadcrumb label: use configured label or target name
+	label := d.Label
+	if label == "" {
+		label = d.Target
+	}
+
+	m.currentRoot = d.Target
+	m.viewMode = d.Target
+	m.genericParams = map[string]string{d.Param: val}
+	m.breadcrumb = append(m.breadcrumb, label)
+
+	// Build content header: use title_attribute if configured, else fallback to param value
+	titleVal := val
+	if d.TitleAttribute != "" && cursor >= 0 && cursor < len(m.rowData) {
+		if tv, ok := m.rowData[cursor][d.TitleAttribute]; ok && tv != nil && fmt.Sprintf("%v", tv) != "" {
+			titleVal = fmt.Sprintf("%v", tv)
+		}
+	}
+	m.contentHeader = fmt.Sprintf("%s — %s", d.Target, titleVal)
+	m.table.SetCursor(0)
+
+	// Pre-set columns for target table to avoid stale columns during load
+	colsTarget := m.buildColumnsFor(d.Target, m.paneWidth-4)
+	if len(colsTarget) > 0 {
+		m.table.SetRows(normalizeRows(nil, len(colsTarget)))
+		m.table.SetColumns(colsTarget)
+	} else {
+		m.table.SetRows([]table.Row{})
+	}
+
+	return m, tea.Batch(m.fetchGenericCmd(d.Target), flashOnCmd(), m.saveStateCmd())
 }
 
 // currentNavState returns the current navigation position as a serialisable NavState.

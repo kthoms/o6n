@@ -12,7 +12,6 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kthoms/o8n/internal/config"
 	"github.com/kthoms/o8n/internal/dao"
 	"github.com/kthoms/o8n/internal/operaton"
 	"github.com/kthoms/o8n/internal/validation"
@@ -1074,110 +1073,10 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			// (deferred) save state only when we actually perform a drilldown
 
 			// Config-driven drilldown: consult TableDef.Drilldown (if present)
-			if def := m.findTableDef(currentTableKey); def != nil && len(def.Drilldown) > 0 {
-				// choose the drill that best matches visible columns (fallback to first)
-				var chosen *config.DrillDownDef
-				for i := range def.Drilldown {
-					d := &def.Drilldown[i]
-					col := d.Column
-					if col == "" {
-						col = "id"
-					}
-					if idx := m.visibleColumnIndex(def, col); idx >= 0 && idx < len(row) {
-						chosen = d
-						break
-					}
-				}
-				if chosen == nil {
-					chosen = &def.Drilldown[0]
-				}
-
-				// resolve drilldown value: prefer rowData (includes hidden columns like id),
-				// fall back to visible cell with focus-indicator prefix stripped
-				colName := chosen.Column
-				if colName == "" {
-					colName = "id"
-				}
-				val := ""
-				cursor := m.table.Cursor()
-				if cursor >= 0 && cursor < len(m.rowData) {
-					if v, ok := m.rowData[cursor][colName]; ok && v != nil {
-						val = fmt.Sprintf("%v", v)
-					}
-				}
-				if val == "" {
-					visIdx := m.visibleColumnIndex(def, colName)
-					if visIdx >= 0 && visIdx < len(row) {
-						val = stripFocusIndicatorPrefix(fmt.Sprintf("%v", row[visIdx]))
-					} else {
-						val = stripFocusIndicatorPrefix(fmt.Sprintf("%v", row[0]))
-					}
-					log.Printf("drilldown: column %q not in rowData at cursor %d, used visible cell: %q", colName, cursor, val)
-				}
-
-				// supported runtime targets -> generic drilldown for all configured targets
-				{
-					// Save current state before drilldown, then clear sort/search for new view
-					m.prepareStateTransition(transitionDrilldown)
-					colsDrill := m.table.Columns()
-					rowsCopyDrill := append([]table.Row{}, m.table.Rows()...)
-					if len(colsDrill) > 0 {
-						rowsCopyDrill = normalizeRows(rowsCopyDrill, len(colsDrill))
-					}
-					currentStateDrill := viewState{
-						viewMode:              m.viewMode,
-						breadcrumb:            append([]string{}, m.breadcrumb...),
-						contentHeader:         m.contentHeader,
-						selectedDefinitionKey: m.selectedDefinitionKey,
-						selectedInstanceID:    m.selectedInstanceID,
-						tableRows:             rowsCopyDrill,
-						tableCursor:           m.table.Cursor(),
-						cachedDefinitions:     m.cachedDefinitions,
-						tableColumns:          append([]table.Column{}, colsDrill...),
-						genericParams:         m.genericParams,
-						rowData:               append([]map[string]interface{}{}, m.rowData...),
-					}
-					m.navigationStack = append(m.navigationStack, currentStateDrill)
-
-					// Persist values used by edit/save (variable editing needs selectedInstanceID)
-					switch chosen.Target {
-					case "process-instance":
-						m.selectedDefinitionKey = val
-					case "process-variables":
-						m.selectedInstanceID = val
-					}
-
-					// breadcrumb label: use configured label or target name
-					label := chosen.Label
-					if label == "" {
-						label = chosen.Target
-					}
-
-					m.currentRoot = chosen.Target
-					m.viewMode = chosen.Target
-					m.genericParams = map[string]string{chosen.Param: val}
-					m.breadcrumb = append(m.breadcrumb, label)
-
-					// Build content header: use title_attribute if configured, else fallback to param value
-					titleVal := val
-					if chosen.TitleAttribute != "" && cursor >= 0 && cursor < len(m.rowData) {
-						if tv, ok := m.rowData[cursor][chosen.TitleAttribute]; ok && tv != nil && fmt.Sprintf("%v", tv) != "" {
-							titleVal = fmt.Sprintf("%v", tv)
-						}
-					}
-					m.contentHeader = fmt.Sprintf("%s — %s", chosen.Target, titleVal)
-					m.table.SetCursor(0)
-
-					// Pre-set columns for target table to avoid stale columns during load
-					colsTarget := m.buildColumnsFor(chosen.Target, m.paneWidth-4)
-					if len(colsTarget) > 0 {
-						m.table.SetRows(normalizeRows(nil, len(colsTarget)))
-						m.table.SetColumns(colsTarget)
-					} else {
-						m.table.SetRows([]table.Row{})
-					}
-					return m, tea.Batch(m.fetchGenericCmd(chosen.Target), flashOnCmd(), m.saveStateCmd())
-				}
+			if def := m.findTableDef(currentTableKey); def != nil && def.Drilldown != nil {
+				// Use the single configured drilldown entry
+				d := def.Drilldown
+				return m.executeDrilldown(d)
 			}
 
 		case "tab":
@@ -1647,7 +1546,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 		// Build rows from items; also capture raw data for drilldown column lookup
 		rows := make([]table.Row, 0, len(msg.items))
 		rd := make([]map[string]interface{}, 0, len(msg.items))
-		hasDrilldown := def != nil && len(def.Drilldown) > 0
+		hasDrilldown := def != nil && def.Drilldown != nil
 		for _, it := range msg.items {
 			rd = append(rd, it)
 			if len(cols) == 0 {

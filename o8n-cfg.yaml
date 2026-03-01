@@ -812,11 +812,6 @@ tables:
           align: left
         - name: email
           align: left
-      drilldown:
-        - target: history-user-operation
-          label: Operations
-          param: userId
-          column: id
       actions:
         - key: l
           label: Unlock User
@@ -827,6 +822,12 @@ tables:
           method: DELETE
           path: /user/{id}
           confirm: true
+        - key: h
+          label: View Operation Log
+          type: navigate
+          target: history-user-operation
+          param: userId
+          column: id
     - name: variable-instance
       edit_action:
         method: PUT

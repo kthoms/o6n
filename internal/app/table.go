@@ -35,7 +35,7 @@ func (m *model) buildColumnsFor(tableName string, totalWidth int) []table.Column
 	}
 
 	const drilldownPrefixWidth = 2 // "▶ " is prepended to first column when drilldown exists
-	hasDrilldownPrefix := len(def.Drilldown) > 0
+	hasDrilldownPrefix := def.Drilldown != nil
 
 	entries := make([]colEntry, 0, len(def.Columns))
 	firstVisible := true

@@ -32,9 +32,7 @@ func TestT2_IDColumnWidthAccountsForDrilldownPrefix(t *testing.T) {
 				{Name: "id", Type: "id"}, // default width 36
 				{Name: "name"},
 			},
-			Drilldown: []config.DrillDownDef{
-				{Target: "child-table", Param: "parentId", Column: "id"},
-			},
+			Drilldown: &config.DrillDownDef{Target: "child-table", Param: "parentId", Column: "id"},
 		},
 		{
 			Name: "leaf-table",

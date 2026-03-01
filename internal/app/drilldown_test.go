@@ -116,13 +116,13 @@ func TestDrilldownConfigParsing(t *testing.T) {
 	}
 
 	// Verify drilldown config exists
-	if len(defTableDef.Drilldown) == 0 {
+	if defTableDef.Drilldown == nil {
 		t.Error("expected drilldown config for process-definition")
 		return
 	}
 
 	// First drilldown should be to process-instance
-	first := defTableDef.Drilldown[0]
+	first := defTableDef.Drilldown
 	if first.Target != "process-instance" {
 		t.Errorf("expected first drilldown target 'process-instance', got '%s'", first.Target)
 	}
@@ -186,13 +186,11 @@ func TestDrilldownAllResources(t *testing.T) {
 
 	drilldownCount := 0
 	for _, table := range m.config.Tables {
-		if len(table.Drilldown) > 0 {
+		if table.Drilldown != nil {
 			drilldownCount++
 			t.Logf("Found drilldown for %s:", table.Name)
-			for i, dd := range table.Drilldown {
-				t.Logf("  [%d] target=%s, param=%s, column=%s",
-					i, dd.Target, dd.Param, dd.Column)
-			}
+			dd := table.Drilldown
+			t.Logf("  target=%s, param=%s, column=%s", dd.Target, dd.Param, dd.Column)
 		}
 	}
 
@@ -245,9 +243,7 @@ func TestDrilldownResolvesHiddenColumnFromRowData(t *testing.T) {
 					{Name: "key"},
 					{Name: "name"},
 				},
-				Drilldown: []config.DrillDownDef{
-					{Target: "process-instance", Param: "processDefinitionId", Column: "id"},
-				},
+				Drilldown: &config.DrillDownDef{Target: "process-instance", Param: "processDefinitionId", Column: "id"},
 			},
 		},
 	}
@@ -272,10 +268,10 @@ func TestDrilldownResolvesHiddenColumnFromRowData(t *testing.T) {
 
 	// Resolve the drilldown value the same way the Enter handler does
 	def := m.findTableDef("process-definition")
-	if def == nil || len(def.Drilldown) == 0 {
+	if def == nil || def.Drilldown == nil {
 		t.Fatal("expected process-definition drilldown config")
 	}
-	chosen := &def.Drilldown[0]
+	chosen := def.Drilldown
 	colName := chosen.Column
 
 	val := ""

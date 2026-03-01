@@ -155,6 +155,10 @@ type EditActionDef struct {
 type ActionDef struct {
 	Key      string `yaml:"key"`                 // shortcut key (e.g. "s", "r", "ctrl+d")
 	Label    string `yaml:"label"`               // display label (e.g. "Suspend Instance")
+	Type     string `yaml:"type,omitempty"`      // "navigate" | "" (default: HTTP mutation)
+	Target   string `yaml:"target,omitempty"`    // navigate: target resource key
+	Param    string `yaml:"param,omitempty"`     // navigate: query param name
+	Column   string `yaml:"column,omitempty"`    // navigate: source column for ID (default "id")
 	Method   string `yaml:"method"`              // HTTP method: GET, PUT, POST, DELETE
 	Path     string `yaml:"path"`                // URL path with {id} placeholder (e.g. /process-instance/{id}/suspended)
 	Body     string `yaml:"body,omitempty"`      // optional JSON body to send
@@ -169,7 +173,7 @@ type TableDef struct {
 	CountPath   string         `yaml:"count_path,omitempty"`   // count endpoint (defaults to {api_path}/count)
 	SearchParam string         `yaml:"search_param,omitempty"` // query param name for server-side text search
 	Columns     []ColumnDef    `yaml:"columns"`
-	Drilldown   []DrillDownDef `yaml:"drilldown,omitempty"`
+	Drilldown   *DrillDownDef  `yaml:"drilldown,omitempty"`
 	Actions     []ActionDef    `yaml:"actions,omitempty"`
 	EditAction  *EditActionDef `yaml:"edit_action,omitempty"` // generic save config for editable columns
 }
