@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -26,35 +27,36 @@ func (m *model) getKeyHints(width int) []KeyHint {
 		KeyHint{":", "switch", 2},
 	)
 
-	// Context-specific hints based on viewMode
-	if m.viewMode == "process-definition" {
-		hints = append(hints,
-			KeyHint{"↑↓", "nav", 3},
-			KeyHint{"Enter", "drill", 4},
-		)
-		// Drill-down drilldown hint
-		if width >= 85 {
-			hints = append(hints, KeyHint{"e", "Edit def", 4})
+	// Config-driven context hints based on current table definition
+	// Always show navigation hint
+	hints = append(hints, KeyHint{"↑↓", "nav", 3})
+
+	// Search hint — always visible per spec
+	hints = append(hints, KeyHint{"/", "find", 3})
+
+	// Look up current table definition to derive context hints
+	def := m.findTableDef(m.currentRoot)
+	if def != nil {
+		// Show drilldown hint if table has a drilldown target
+		if def.Drilldown != nil {
+			hints = append(hints, KeyHint{"Enter", "drill", 4})
 		}
-	} else if m.viewMode == "process-instance" {
-		hints = append(hints,
-			KeyHint{"Esc", "back", 5},
-			KeyHint{"↑↓", "nav", 3},
-			KeyHint{"Enter", "vars", 4},
-		)
-		// Terminate instance hint in instances view
-		if width >= 100 {
-			hints = append(hints, KeyHint{"Ctrl+d", "terminate", 7})
-		}
-	} else if m.viewMode == "process-variables" {
-		hints = append(hints,
-			KeyHint{"Esc", "back", 5},
-			KeyHint{"↑↓", "nav", 3},
-		)
-		// Show edit hint for variables when columns are editable
+
+		// Show edit hint if current table has editable columns
 		if m.hasEditableColumns() {
-			hints = append(hints, KeyHint{"e", "edit var", 4})
+			hints = append(hints, KeyHint{"e", "edit", 4})
 		}
+	}
+
+	// Show back hint if we've drilled down (navigation stack non-empty)
+	if len(m.navigationStack) > 0 {
+		hints = append(hints, KeyHint{"Esc", "back", 5})
+	}
+
+	// Breadcrumb hotkey hint - show when user has drilled down (breadcrumb depth > 1)
+	if len(m.breadcrumb) > 1 {
+		n := len(m.breadcrumb) - 1
+		hints = append(hints, KeyHint{fmt.Sprintf("1–%d", n), "back", 5})
 	}
 
 	// Add other hints based on width thresholds
@@ -69,14 +71,13 @@ func (m *model) getKeyHints(width int) []KeyHint {
 	}
 	if width >= 90 {
 		hints = append(hints, KeyHint{"Ctrl+r", "refresh", 6})
+		hints = append(hints, KeyHint{"Ctrl+T", "skin", 6})
+		hints = append(hints, KeyHint{"Ctrl+e", "env", 6})
 	}
 	// Latency hint intentionally removed from header hints — keep toggle available via help/README
 	hints = append(hints, KeyHint{"PgDn/PgUp", "page", 3})
 	if width >= 110 {
 		hints = append(hints, KeyHint{"Ctrl+c", "quit", 8})
-	}
-	if width >= 105 {
-		hints = append(hints, KeyHint{"Ctrl+e", "env", 9})
 	}
 
 	return hints
@@ -127,7 +128,18 @@ func (m *model) renderCompactHeader(width int) string {
 
 	// Row 2: Key hints (priority-based)
 	hints := m.getKeyHints(width)
+	// Sort by priority so lower-priority-number hints (more important) appear first and survive truncation
+	sort.Slice(hints, func(i, j int) bool {
+		return hints[i].Priority < hints[j].Priority
+	})
 	row2Parts := []string{}
+
+	// Add active filter badge if filter is locked
+	if m.searchTerm != "" {
+		badge := m.styles.Accent.Render(fmt.Sprintf("[/%s/ Esc:clear]", m.searchTerm))
+		row2Parts = append(row2Parts, badge)
+	}
+
 	for _, hint := range hints {
 		part := fmt.Sprintf("%s %s", hint.Key, hint.Description)
 		row2Parts = append(row2Parts, part)
@@ -289,6 +301,12 @@ Ctrl+d   Half-page dn`
 		arrowLine = "                          │                         │"
 	}
 
+	breadcrumbLine := ""
+	if len(m.breadcrumb) > 1 {
+		n := len(m.breadcrumb) - 1
+		breadcrumbLine = fmt.Sprintf("1–%d      Jump to level  │                         │", n)
+	}
+
 	helpContent := fmt.Sprintf(`o8n Help
 
 NAVIGATION               │  ACTIONS                │  GLOBAL
@@ -298,13 +316,14 @@ PgUp/Dn  Page up/down    │  Ctrl+r  Auto-refresh   │  :     Switch view
 Home/End First/last row  │  Space   Actions menu   │  Ctrl+c Quit
 %s
 %s
+%s
 Esc      Go back         │  SEARCH                 │  CONTEXT
                           │  ────────────────────   │  ──────────────────
                           │  /       Search/filter  │  Tab    Complete
                           │  Esc     Clear filter   │  Enter  Confirm
                           │  Enter   Lock filter    │  Esc    Cancel
                           │                         │  s      Sort
-                          │                         │  y      Detail view`, enterLine, arrowLine) +		vimSection + resourceActionsSection + viewsSection + `
+                          │                         │  y      Detail view`, enterLine, arrowLine, breadcrumbLine) +		vimSection + resourceActionsSection + viewsSection + `
 
 STATUS INDICATORS
 ────────────────────────────────────────────
@@ -674,6 +693,21 @@ func (m model) View() string {
 	} else if total, ok := m.pageTotals[m.currentRoot]; ok && total >= 0 {
 		baseTitle = fmt.Sprintf("%s — %d items", m.contentHeader, total)
 	}
+
+	// Add page position to title if pagination is active
+	if m.currentRoot != "" {
+		if total, ok := m.pageTotals[m.currentRoot]; ok && total > 0 {
+			pageSize := m.getPageSize()
+			if pageSize > 0 {
+				totalPages := (total + pageSize - 1) / pageSize
+				if totalPages > 1 {
+					currentPage := (m.pageOffsets[m.currentRoot] / pageSize) + 1
+					baseTitle = fmt.Sprintf("%s [pg %d/%d]", baseTitle, currentPage, totalPages)
+				}
+			}
+		}
+	}
+
 	title := baseTitle
 
 	// Render search bar when in search mode
@@ -693,7 +727,7 @@ func (m model) View() string {
 		displayName := strings.ReplaceAll(m.currentRoot, "-", " ")
 		emptyMsg := "No " + displayName + " found"
 		if m.footerStatusKind == footerStatusError {
-			emptyMsg = "Error loading data — press r to retry"
+			emptyMsg = "Error loading data — press Ctrl+r to retry"
 		} else if len(m.navigationStack) > 0 && m.selectedDefinitionKey != "" {
 			emptyMsg = "No " + displayName + " for " + m.selectedDefinitionKey
 		}

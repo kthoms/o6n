@@ -147,6 +147,7 @@ func (m *model) buildActionsForRoot() []actionItem {
 									m.pendingActionID = id
 									m.pendingActionPath = resolvedPath
 									m.activeModal = ModalConfirmDelete
+									m.confirmFocusedBtn = 1 // default to Cancel (safe)
 									return nil
 								}
 								return tea.Batch(m.executeActionCmd(act, resolvedPath), flashOnCmd())

@@ -17,6 +17,42 @@ func newTestModel(t *testing.T) model {
 		Environments: map[string]config.Environment{
 			"local": {URL: "http://localhost:8080"},
 		},
+		Tables: []config.TableDef{
+			{
+				Name: "process-definition",
+				Columns: []config.ColumnDef{
+					{Name: "id"},
+					{Name: "key"},
+				},
+				Drilldown: &config.DrillDownDef{
+					Target: "process-instance",
+					Param:  "processDefinitionId",
+					Column: "id",
+				},
+			},
+			{
+				Name: "process-instance",
+				Columns: []config.ColumnDef{
+					{Name: "id"},
+					{Name: "key"},
+					{Name: "businessKey"},
+					{Name: "startTime"},
+				},
+				Drilldown: &config.DrillDownDef{
+					Target: "process-variables",
+					Param:  "processInstanceId",
+					Column: "id",
+				},
+			},
+			{
+				Name: "process-variables",
+				Columns: []config.ColumnDef{
+					{Name: "name"},
+					{Name: "type"},
+					{Name: "value", Editable: true},
+				},
+			},
+		},
 	}
 	return newModel(cfg)
 }

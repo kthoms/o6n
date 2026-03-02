@@ -563,6 +563,8 @@ Three columns:
 | Center | Status message (errors, info, success) | Error: red+bold. Success: green. Info: blue. Auto-clears after 5s |
 | Right | Remote activity indicator + optional latency | `lightning bolt` flashes 200ms on API calls. `L` toggles latency display |
 
+> **Loading state:** Indicated solely by the footer — center column shows the spinner during active requests; right column shows `⚡` on each API call. No additional loading indicator in the header is required or desired.
+
 ### Splash Screen
 
 On startup: animated ASCII logo reveal over 15 frames (~1.2s total). Version number appears at frame 8. Centered. Bypassed with `--no-splash`. Any key skips.

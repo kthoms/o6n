@@ -1206,6 +1206,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 						m.pendingDeleteLabel = ""
 					}
 					m.activeModal = ModalConfirmDelete
+					m.confirmFocusedBtn = 1 // default to Cancel (safe)
 				}
 				return m, nil
 			}

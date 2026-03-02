@@ -82,18 +82,18 @@ func TestWin2_ContextAwareKeyHints(t *testing.T) {
 		t.Error("expected definitions hints to contain 'drill' or 'Edit'")
 	}
 
-	// Test instances view hints
+	// Test instances view hints - should have drilldown hint (to variables)
 	m.viewMode = "process-instance"
 	hints = m.getKeyHints(100)
 	hasExpectedHint = false
 	for _, h := range hints {
-		if strings.Contains(h.Description, "terminate") {
+		if strings.Contains(h.Description, "drill") {
 			hasExpectedHint = true
 			break
 		}
 	}
 	if !hasExpectedHint {
-		t.Error("expected instances hints to contain 'terminate'")
+		t.Error("expected instances hints to contain 'drill' (config-driven drilldown to variables)")
 	}
 
 	// Test variables view hints
@@ -117,28 +117,28 @@ func TestWin2_KeyHintsRespectTerminalWidth(t *testing.T) {
 	m := newTestModel(t)
 	m.viewMode = "process-instance"
 
-	// At small width, delete hint should not appear
+	// At small width, refresh hint should not appear (Ctrl+r appears at width >= 90)
 	hints := m.getKeyHints(80)
-	hasDelete := false
+	hasRefresh := false
 	for _, h := range hints {
-		if strings.Contains(h.Key, "Ctrl") && strings.Contains(h.Description, "terminate") {
-			hasDelete = true
+		if strings.Contains(h.Key, "Ctrl+r") && strings.Contains(h.Description, "refresh") {
+			hasRefresh = true
 		}
 	}
-	if hasDelete {
-		t.Error("expected no terminate hint at width 80")
+	if hasRefresh {
+		t.Error("expected no refresh hint at width 80")
 	}
 
-	// At large width, delete hint should appear
+	// At large width, refresh hint should appear
 	hints = m.getKeyHints(100)
-	hasDelete = false
+	hasRefresh = false
 	for _, h := range hints {
-		if strings.Contains(h.Key, "Ctrl") && strings.Contains(h.Description, "terminate") {
-			hasDelete = true
+		if strings.Contains(h.Key, "Ctrl+r") && strings.Contains(h.Description, "refresh") {
+			hasRefresh = true
 		}
 	}
-	if !hasDelete {
-		t.Error("expected terminate hint at width 100")
+	if !hasRefresh {
+		t.Error("expected refresh hint at width 100")
 	}
 }
 
@@ -265,7 +265,7 @@ func TestAllQuickWinsIntegration(t *testing.T) {
 		{"Context-aware hints", func() bool {
 			hints := m.getKeyHints(100)
 			for _, h := range hints {
-				if strings.Contains(h.Description, "terminate") {
+				if strings.Contains(h.Description, "drill") || strings.Contains(h.Description, "nav") {
 					return true
 				}
 			}
