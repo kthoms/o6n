@@ -17,6 +17,7 @@ A terminal UI for Operaton
 - **35 resource types** — Process definitions, instances, tasks, jobs, incidents, history, deployments, and more
 - **Config-driven actions** — Suspend, resume, delete, retry, claim, complete — all defined in YAML
 - **Drill-down navigation** — Definition -> Instances -> Variables with full state restoration on back
+- **Navigation actions** — The actions menu separates HTTP mutations from view-style navigations (`→` suffix) and the help screen now lists these view shortcuts under a dedicated **VIEWS** section
 - **Live search & sort** — `/` to filter rows, `s` to sort by any column
 - **35 color themes** — Dracula, Nord, Gruvbox, Solarized, and more with live preview via `Ctrl+T`
 - **Multi-environment** — Switch between local, staging, production with `Ctrl+E`
@@ -91,6 +92,8 @@ go build -o o8n .
 | `Ctrl+D` | Delete/terminate (with confirmation) |
 
 Actions are resource-specific and defined in `o8n-cfg.yaml`. Press `Space` on any row to see available actions.
+
+Mutation actions (HTTP verbs) are listed first, followed by view-style navigation actions that show a `→` suffix and are separated from the mutations; the help screen also surfaces these navigation actions under a **VIEWS** section for quick reference.
 
 ## Configuration
 

@@ -256,37 +256,55 @@ Ctrl+u   Half-page up
 Ctrl+d   Half-page dn`
 	}
 
-	// Resource-specific actions section
-	resourceActionsSection := ""
-	if def := m.findTableDef(m.currentRoot); def != nil && len(def.Actions) > 0 {
-		var actionLines []string
+	def := m.findTableDef(m.currentRoot)
+	var actionLines []string
+	var navLines []string
+	if def != nil && len(def.Actions) > 0 {
 		for _, act := range def.Actions {
-			key := act.Key
-			label := act.Label
-			actionLines = append(actionLines, fmt.Sprintf("%-10s %s", key, label))
+			line := fmt.Sprintf("%-10s %s", act.Key, act.Label)
+			if act.Type == "navigate" {
+				navLines = append(navLines, line)
+			} else {
+				actionLines = append(actionLines, line)
+			}
 		}
+	}
+	resourceActionsSection := ""
+	if len(actionLines) > 0 {
 		resourceActionsSection = "\nRESOURCE ACTIONS (" + m.currentRoot + ")\n" +
 			"──────────────────────────────────\n" +
 			strings.Join(actionLines, "\n")
 	}
+	viewsSection := ""
+	if len(navLines) > 0 {
+		viewsSection = "\nVIEWS (" + m.currentRoot + ")\n" +
+			"──────────────────────────────────\n" +
+			strings.Join(navLines, "\n")
+	}
 
-	helpContent := `o8n Help
+	enterLine := "Enter    Drill down      │  Ctrl+a  Search all pg  │"
+	arrowLine := "→        Drill down      │                         │"
+	if def == nil || def.Drilldown == nil {
+		enterLine = "                          │  Ctrl+a  Search all pg  │"
+		arrowLine = "                          │                         │"
+	}
+
+	helpContent := fmt.Sprintf(`o8n Help
 
 NAVIGATION               │  ACTIONS                │  GLOBAL
-──────────────────────   │  ────────────────────   │  ──────────────────
+─────────────────────   │  ────────────────────   │  ──────────────────
 ↑/↓      Navigate list   │  Ctrl+e  Switch env     │  ?     This help
 PgUp/Dn  Page up/down    │  Ctrl+r  Auto-refresh   │  :     Switch view
 Home/End First/last row  │  Space   Actions menu   │  Ctrl+c Quit
-Enter    Drill down      │  Ctrl+a  Search all pg  │
-→        Drill down      │                         │
+%s
+%s
 Esc      Go back         │  SEARCH                 │  CONTEXT
-                         │  ────────────────────   │  ──────────────────
-                         │  /       Search/filter  │  Tab    Complete
-                         │  Esc     Clear filter   │  Enter  Confirm
-                         │  Enter   Lock filter    │  Esc    Cancel
-                         │                         │  s      Sort
-                         │                         │  y      Detail view` +
-		vimSection + resourceActionsSection + `
+                          │  ────────────────────   │  ──────────────────
+                          │  /       Search/filter  │  Tab    Complete
+                          │  Esc     Clear filter   │  Enter  Confirm
+                          │  Enter   Lock filter    │  Esc    Cancel
+                          │                         │  s      Sort
+                          │                         │  y      Detail view`, enterLine, arrowLine) +		vimSection + resourceActionsSection + viewsSection + `
 
 STATUS INDICATORS
 ────────────────────────────────────────────
@@ -1150,7 +1168,16 @@ func (m *model) renderActionsMenu(width, height int) string {
 		rowLabel = "\n" + ansi.Strip(stripFocusIndicatorPrefix(row[0]))
 	}
 	b.WriteString(fmt.Sprintf("Actions: %s%s\n\n", root, rowLabel))
+	insertedNavSeparator := false
+	seenMutation := false
 	for i, item := range m.actionsMenuItems {
+		if item.isNavigate && seenMutation && !insertedNavSeparator {
+			b.WriteString("──────────────────────────────────\n")
+			insertedNavSeparator = true
+		}
+		if !item.isNavigate {
+			seenMutation = true
+		}
 		cursor := "  "
 		if i == m.actionsMenuCursor {
 			cursor = "▸ "

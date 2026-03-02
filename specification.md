@@ -341,6 +341,12 @@ Resource-specific action examples:
 
 "View as JSON" (`y`) is always appended as the last item.
 
+### Navigate Actions
+
+- Actions in `o8n-cfg.yaml` can declare `type: navigate` along with `target`, `param`, and optional `column` (defaults to `id`). These actions reuse the drill-down flow (`executeDrilldown`) and do not perform HTTP mutations.
+- The actions menu inserts a visual separator before the first `type: navigate` entry and appends `→` to its label so view-style actions are distinguished from mutations.
+- The help screen shows `Enter` and drill-down hints only when the current resource defines its canonical `drilldown`, and lists `type: navigate` actions under a dedicated **VIEWS** section for quick access.
+
 ### Two-Step Confirmation Pattern
 
 For destructive actions (`confirm: true`):

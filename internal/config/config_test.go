@@ -17,10 +17,10 @@ tables:
     columns:
       - name: id
     drilldown:
-      - target: history-activity-instance
-        param: processInstanceId
-        column: id
-        label: Activity Instances
+      target: history-activity-instance
+      param: processInstanceId
+      column: id
+      label: Activity Instances
     edit_action:
       method: PUT
       path: /process-instance/{parentId}/variables/{name}
@@ -94,9 +94,9 @@ tables:
     columns:
       - name: id
     drilldown:
-      - target: process-instance
-        param: processDefinitionId
-        column: id
+      target: process-instance
+      param: processDefinitionId
+      column: id
 `
 	var cfg config.AppConfig
 	if err := yaml.NewDecoder(strings.NewReader(raw)).Decode(&cfg); err != nil {

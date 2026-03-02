@@ -89,9 +89,7 @@ func TestArrowRightDrillsDown(t *testing.T) {
 			Columns: []config.ColumnDef{
 				{Name: "id"},
 			},
-			Drilldown: []config.DrillDownDef{
-				{Target: "process-instance", Param: "processDefinitionId", Column: "id"},
-			},
+			Drilldown: &config.DrillDownDef{Target: "process-instance", Param: "processDefinitionId", Column: "id"},
 		},
 		{
 			Name: "process-instance",

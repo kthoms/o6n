@@ -16,10 +16,6 @@ tables:
           type: datetime
           hide_order: 2
           align: left
-      drilldown:
-        label: History
-        param: externalTaskId
-        column: id
       actions:
         - key: u
           label: Unlock
@@ -35,6 +31,12 @@ tables:
           method: POST
           path: /external-task/{id}/extendLock
           body: '{"newDuration":600000}'
+        - key: h
+          label: View History
+          type: navigate
+          target: history-external-task-log
+          param: externalTaskId
+          column: id
     - name: job
       columns:
         - name: id
@@ -73,10 +75,6 @@ tables:
           visible: false
         - name: batchId
           visible: false
-      drilldown:
-        label: History
-        param: jobId
-        column: id
       actions:
         - key: r
           label: Retry (retries=1)
@@ -102,6 +100,12 @@ tables:
           method: DELETE
           path: /job/{id}
           confirm: true
+        - key: h
+          label: View History
+          type: navigate
+          target: history-job-log
+          param: jobId
+          column: id
     - name: job-definition
       columns:
         - name: id
@@ -192,6 +196,12 @@ tables:
           path: /process-definition/key/{id}
           id_column: key
           confirm: true
+        - key: h
+          label: View History
+          type: navigate
+          target: history-process-instance
+          param: processDefinitionId
+          column: id
     - name: process-instance
       search_param: businessKeyLike
       columns:
@@ -230,6 +240,18 @@ tables:
           method: DELETE
           path: /process-instance/{id}
           confirm: true
+        - key: t
+          label: View Tasks
+          type: navigate
+          target: task
+          param: processInstanceId
+          column: id
+        - key: i
+          label: View Incidents
+          type: navigate
+          target: incident
+          param: processInstanceId
+          column: id
     - name: process-variables
       api_path: /process-instance/{parentId}/variables
       count_path: ""
@@ -258,10 +280,6 @@ tables:
         - name: assignee
           hide_order: 4
           align: left
-      drilldown:
-        label: Var Instances
-        param: taskIdIn
-        column: id
       actions:
         - key: c
           label: Claim Task
@@ -282,6 +300,18 @@ tables:
           method: DELETE
           path: /task/{id}
           confirm: true
+        - key: h
+          label: View History
+          type: navigate
+          target: history-detail
+          param: taskId
+          column: id
+        - key: v
+          label: View Variables
+          type: navigate
+          target: variable-instance
+          param: taskIdIn
+          column: id
     - name: authorization
       columns:
         - name: id
@@ -315,10 +345,6 @@ tables:
         - name: tenantId
           type: id
           align: left
-      drilldown:
-        label: History
-        param: batchId
-        column: id
       actions:
         - key: s
           label: Suspend Batch
@@ -335,6 +361,12 @@ tables:
           method: DELETE
           path: /batch/{id}
           confirm: true
+        - key: h
+          label: View History
+          type: navigate
+          target: history-batch
+          param: batchId
+          column: id
     - name: batch-statistics
       columns:
         - name: id
@@ -359,10 +391,6 @@ tables:
           align: center
         - name: resource
           align: left
-      drilldown:
-        label: History
-        param: decisionDefinitionKey
-        column: key
       actions:
         - key: ctrl+d
           label: Delete Definition
@@ -370,6 +398,12 @@ tables:
           path: /decision-definition/key/{id}
           id_column: key
           confirm: true
+        - key: h
+          label: View History
+          type: navigate
+          target: history-decision-instance
+          param: decisionDefinitionKey
+          column: key
     - name: decision-requirements-definition
       columns:
         - name: key
@@ -405,6 +439,12 @@ tables:
           method: DELETE
           path: /deployment/{id}
           confirm: true
+        - key: D
+          label: View Decision Defs
+          type: navigate
+          target: decision-definition
+          param: deploymentId
+          column: id
     - name: event-subscription
       columns:
         - name: id
@@ -463,16 +503,18 @@ tables:
           align: left
         - name: type
           align: left
-      drilldown:
-        label: Identity Links
-        param: groupId
-        column: id
       actions:
         - key: ctrl+d
           label: Delete Group
           method: DELETE
           path: /group/{id}
           confirm: true
+        - key: h
+          label: View Identity Links
+          type: navigate
+          target: history-identity-link-log
+          param: groupId
+          column: id
     - name: history-activity-instance
       api_path: /history/activity-instance
       count_path: /history/activity-instance/count
@@ -747,16 +789,30 @@ tables:
           align: left
         - name: name
           align: left
-      drilldown:
-        label: Definitions
-        param: tenantIdIn
-        column: id
       actions:
         - key: ctrl+d
           label: Delete Tenant
           method: DELETE
           path: /tenant/{id}
           confirm: true
+        - key: d
+          label: View Definitions
+          type: navigate
+          target: process-definition
+          param: tenantIdIn
+          column: id
+        - key: i
+          label: View Instances
+          type: navigate
+          target: process-instance
+          param: tenantIdIn
+          column: id
+        - key: e
+          label: View Deployments
+          type: navigate
+          target: deployment
+          param: tenantIdIn
+          column: id
     - name: user
       search_param: idLike
       columns:
