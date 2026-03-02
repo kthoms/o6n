@@ -137,6 +137,7 @@ tables:
         - name: deploymentId
           visible: false
       drilldown:
+        target: job
         label: Jobs
         param: jobDefinitionId
         column: id
@@ -173,6 +174,7 @@ tables:
           hide_order: 2
           align: left
       drilldown:
+        target: process-instance
         param: processDefinitionId
         column: id
         label: Instances
@@ -221,6 +223,7 @@ tables:
           hide_order: 3
           align: left
       drilldown:
+        target: process-variables
         param: processInstanceId
         column: id
         label: Variables
@@ -430,6 +433,7 @@ tables:
           type: id
           align: left
       drilldown:
+        target: process-definition
         label: Definitions
         param: deploymentId
         column: id

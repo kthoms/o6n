@@ -870,7 +870,7 @@ func (m model) View() string {
 	lastRenderedView = baseView
 	if m.debugEnabled {
 		_ = os.MkdirAll("./debug", 0755)
-		_ = os.WriteFile("./debug/last-screen.txt", []byte(baseView), 0644)
+		_ = os.WriteFile("./debug/last-screen.txt", []byte(ansi.Strip(baseView)), 0644)
 	}
 	return lipgloss.Place(w, h, lipgloss.Left, lipgloss.Top, baseView)
 }

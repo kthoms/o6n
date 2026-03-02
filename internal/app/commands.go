@@ -379,6 +379,9 @@ func (m model) fetchGenericCmd(root string) tea.Cmd {
 				urlStr = urlStr + fmt.Sprintf("?firstResult=%d&maxResults=%d", offset, limit)
 			}
 		}
+		if m.debugEnabled {
+			log.Printf("[http] GET %s", urlStr)
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
@@ -415,6 +418,9 @@ func (m model) fetchGenericCmd(root string) tea.Cmd {
 			} else {
 				countURL = fmt.Sprintf("%s?%s=%s", countURL, k, v)
 			}
+		}
+		if m.debugEnabled {
+			log.Printf("[http] GET %s (count)", countURL)
 		}
 		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel2()

@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/kthoms/o8n/internal/dao"
 	"github.com/kthoms/o8n/internal/operaton"
 	"github.com/kthoms/o8n/internal/validation"
@@ -24,7 +25,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			id := fmt.Sprintf("%d", time.Now().UnixNano())
 			_ = os.MkdirAll("./debug", 0755)
 			screenFile := fmt.Sprintf("./debug/screen-%s.txt", id)
-			_ = os.WriteFile(screenFile, []byte(lastRenderedView), 0644)
+			_ = os.WriteFile(screenFile, []byte(ansi.Strip(lastRenderedView)), 0644)
 			log.Printf("[panic] %v | screen: debug/screen-%s.txt\n%s", r, id, stack)
 			// Mutate return values to surface error in UI without crashing
 			recovered := m
@@ -1010,8 +1011,8 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 					if def := m.findTableDef(rc); def != nil {
 						cols := m.buildColumnsFor(rc, m.paneWidth-4)
 						if len(cols) > 0 {
+							m.table.SetRows([]table.Row{})
 							m.table.SetColumns(cols)
-							m.table.SetRows(normalizeRows(nil, len(cols)))
 							m.table.SetRows(normalizeRows(nil, len(cols)))
 						}
 						m.isLoading = true
@@ -1740,7 +1741,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 		id := fmt.Sprintf("%d", time.Now().UnixNano())
 		_ = os.MkdirAll("./debug", 0755)
 		screenFile := fmt.Sprintf("./debug/screen-%s.txt", id)
-		_ = os.WriteFile(screenFile, []byte(lastRenderedView), 0644)
+		_ = os.WriteFile(screenFile, []byte(ansi.Strip(lastRenderedView)), 0644)
 		if m.debugEnabled {
 			log.Printf("[error] %v | screen: debug/screen-%s.txt\n%s", msg.err, id, debug.Stack())
 		} else {
