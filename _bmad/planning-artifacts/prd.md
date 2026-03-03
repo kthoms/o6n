@@ -245,6 +245,10 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 | `o8n-cfg.yaml` | Table definitions, columns, actions, drilldowns, key bindings | Yes |
 | `o8n-stat.yaml` | Runtime state (last context, last environment, active skin) | No — auto-managed |
 
+### Scripting Support
+
+**Scripting Support:** None — o8n is interactive-only. No non-interactive/headless mode, no pipe-friendly stdout, no shell completion for CLI flags. Scriptable output is a growth feature deferred to post-MVP.
+
 ---
 
 ## Functional Requirements
@@ -267,7 +271,7 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 
 ### Modal & Dialog System
 
-- **FR11**: All modal dialog types render with consistent visual styling and layout
+- **FR11**: All modal dialog types render with identical border style, padding, and button placement — produced by a shared modal factory, not per-type layout code
 - **FR12**: Operator can dismiss any modal by pressing Escape
 - **FR13**: Operator can confirm any modal by pressing Enter on the confirm action
 - **FR14**: Operator can interact with edit dialogs that validate input by type (string, integer, boolean, JSON)
@@ -294,7 +298,7 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 
 ### Environment & Configuration
 
-- **FR26**: Operator can configure multiple named environments with distinct API URLs, credentials, and accent colors
+- **FR26**: Operator can configure 2 or more named environments with distinct API URLs, credentials, and accent colors
 - **FR27**: Application reads resource types, columns, actions, and drilldown rules from `o8n-cfg.yaml` at startup
 - **FR28**: Contributor can add a new standard resource type by editing `o8n-cfg.yaml` without modifying Go source code
 
@@ -302,7 +306,7 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 
 - **FR29**: Operator can inspect process variables associated with a process instance
 - **FR30**: Operator can edit a process variable value inline with type validation
-- **FR31**: Operator can copy the selected resource row as YAML to the system clipboard
+- **FR31**: Operator can copy the selected resource row as YAML to the system clipboard *(supports DevOps incident response — Alex persona)*
 
 ### Search & Filter
 
@@ -313,10 +317,10 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 ### Visual Presentation
 
 - **FR35**: Application renders without overflow or truncation of critical information at 120×20 terminal size
-- **FR36**: Application adapts column visibility and hint display when the terminal is narrower than optimal
+- **FR36**: Application adapts column visibility and hint display when the terminal is narrower than 120 columns
 - **FR37**: Application handles terminal resize events without corrupting the layout
-- **FR38**: Operator can switch between available color skins
-- **FR39**: Operator can toggle vim-style key bindings in-session
+- **FR38**: Operator can switch between available color skins *(supports environment differentiation — Alex/Priya personas)*
+- **FR39**: Operator can toggle vim-style key bindings in-session *(supports keyboard-native workflow — Marco persona)*
 
 ---
 
@@ -326,13 +330,13 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 
 - **NFR1**: The UI responds to any key press within 100ms — no perceptible input lag
 - **NFR2**: API calls that take longer than 500ms surface a visible loading indicator; the UI does not appear frozen
-- **NFR3**: All API calls are asynchronous — network operations never block the Bubble Tea event loop or UI rendering
+- **NFR3**: All API calls are asynchronous — network operations never block the application's event loop or UI rendering
 
 ### Reliability
 
 - **NFR4**: The application must not panic or crash on any malformed, partial, or unexpected API response
 - **NFR5**: All API errors surface as user-visible footer messages — no silent failures
-- **NFR6**: The application recovers gracefully from network timeouts and connection failures without requiring a restart
+- **NFR6**: After a network timeout or connection failure, the application continues to accept user input and displays an error in the footer — no restart required
 - **NFR7**: Footer error and success messages auto-clear after 5 seconds and do not block further interaction
 
 ### Security
@@ -342,8 +346,8 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 
 ### Terminal Compatibility
 
-- **NFR10**: Application renders correctly at 120×20 in VSCode integrated terminal and IntelliJ IDEA terminal without overflow or truncation of critical information
-- **NFR11**: Application functions correctly in standard POSIX terminals (xterm, iTerm2, Alacritty) without modification
+- **NFR10**: Application renders at 120×20 in VSCode integrated terminal and IntelliJ IDEA terminal without layout corruption, text overflow, or missing primary content
+- **NFR11**: Application operates in standard POSIX terminals (xterm, iTerm2, Alacritty) without modification — no missing key bindings, rendering artifacts, or color failures
 - **NFR12**: Application handles terminal resize events without corrupting the rendered layout
 
 ### Maintainability
