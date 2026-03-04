@@ -361,47 +361,29 @@ func (m *model) navigateToBreadcrumb(idx int) tea.Cmd {
 		m.footerError = "Invalid breadcrumb index"
 		return nil
 	}
-	// centralized state cleanup for breadcrumb navigation (truncates navStack to idx)
-	m.prepareStateTransition(transitionBreadcrumb, idx)
-	// truncate breadcrumb to target depth
+	if idx == 0 || idx >= len(m.navigationStack) {
+		// Full reset for root navigation or when stack doesn't have the target entry.
+		m.prepareStateTransition(TransitionFull)
+	} else {
+		// Truncate stack so the target state sits at the top, then pop and restore it.
+		// stack[idx] holds the state captured when drilling into breadcrumb level idx+1.
+		m.navigationStack = m.navigationStack[:idx+1]
+		m.prepareStateTransition(TransitionPop)
+	}
+	// Set active navigation context from the breadcrumb target.
 	m.breadcrumb = append([]string{}, m.breadcrumb[:idx+1]...)
 	last := m.breadcrumb[len(m.breadcrumb)-1]
 	m.currentRoot = last
 	m.viewMode = last
 	m.contentHeader = last
-	// Clear drilldown-specific state when navigating to root
-	if idx == 0 {
-		m.selectedDefinitionKey = ""
-		m.selectedInstanceID = ""
-		m.genericParams = nil
-	}
 	return tea.Batch(m.fetchForRoot(last), flashOnCmd())
 }
 
 // executeDrilldown performs the full navigation-stack push and resource fetch
 // for the given drilldown definition, using the current table cursor as context.
 func (m model) executeDrilldown(d *config.DrillDownDef) (model, tea.Cmd) {
-	// Save current state before drilldown, then clear sort/search for new view
-	m.prepareStateTransition(transitionDrilldown)
-	colsDrill := m.table.Columns()
-	rowsCopyDrill := append([]table.Row{}, m.table.Rows()...)
-	if len(colsDrill) > 0 {
-		rowsCopyDrill = normalizeRows(rowsCopyDrill, len(colsDrill))
-	}
-	currentStateDrill := viewState{
-		viewMode:              m.viewMode,
-		breadcrumb:            append([]string{}, m.breadcrumb...),
-		contentHeader:         m.contentHeader,
-		selectedDefinitionKey: m.selectedDefinitionKey,
-		selectedInstanceID:    m.selectedInstanceID,
-		tableRows:             rowsCopyDrill,
-		tableCursor:           m.table.Cursor(),
-		cachedDefinitions:     m.cachedDefinitions,
-		tableColumns:          append([]table.Column{}, colsDrill...),
-		genericParams:         m.genericParams,
-		rowData:               append([]map[string]interface{}{}, m.rowData...),
-	}
-	m.navigationStack = append(m.navigationStack, currentStateDrill)
+	// Push current viewState snapshot and clear non-stack state for the child view.
+	m.prepareStateTransition(TransitionDrillDown)
 
 	// Resolve drilldown value: prefer rowData (includes hidden columns like id),
 	// fall back to visible cell with focus-indicator prefix stripped

@@ -310,7 +310,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 					m.activeModal = ModalNone
 					if targetEnv != m.currentEnv {
 						m.switchToEnvironment(targetEnv)
-						m.prepareStateTransition(transitionEnvSwitch)
+						m.prepareStateTransition(TransitionFull)
 						m.breadcrumb = []string{m.currentRoot}
 						m.isLoading = true
 						m.apiCallStarted = time.Now()
@@ -1002,7 +1002,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 					// clear any footer error
 					m.footerError = ""
 					// centralized state cleanup for context switch
-					m.prepareStateTransition(transitionContextSwitch)
+					m.prepareStateTransition(TransitionFull)
 					// reset breadcrumb and header
 					m.breadcrumb = []string{rc}
 					m.contentHeader = rc

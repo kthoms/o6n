@@ -42,8 +42,8 @@ story_location: _bmad/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-modal-factory-foundation: done
-  1-2-state-transition-contract: backlog
-  1-3-environment-and-context-switching-correctness: backlog
+  1-2-state-transition-contract: in-progress
+  1-3-environment-and-context-switching-correctness: ready-for-dev
   1-4-consistent-modal-ux-esc-enter-type-validation: backlog
   1-5-startup-state-restoration-firstrunmodal-and-api-resilience: backlog
   epic-1-retrospective: optional

@@ -2,75 +2,126 @@ package app
 
 import "github.com/charmbracelet/bubbles/table"
 
-// transitionScope identifies the category of state transition so
-// prepareStateTransition knows what to clean up.
-type transitionScope int
+// TransitionType identifies the category of navigation state transition.
+// Every navigation path in internal/app/ MUST call prepareStateTransition before
+// modifying view state. Any navigation code that does not call prepareStateTransition is a bug.
+type TransitionType int
 
 const (
-	transitionEnvSwitch     transitionScope = iota // switching environments (Ctrl+E)
-	transitionContextSwitch                        // switching root context (:)
-	transitionDrilldown                            // drilling into a child resource (Enter/→)
-	transitionBack                                 // navigating back (Esc)
-	transitionBreadcrumb                           // jumping to a breadcrumb level (1-4)
+	// TransitionFull performs a complete state reset: clears activeModal, footerError,
+	// search, sort, cursor, navigationStack, and identity params.
+	// Use for: environment switch, context switch, breadcrumb jump to root.
+	TransitionFull TransitionType = iota
+
+	// TransitionDrillDown captures the current viewState snapshot onto the navigationStack
+	// (push-before-clear), then clears non-stack view state for the incoming child view.
+	// Use for: drill-down navigation (Enter/→).
+	TransitionDrillDown
+
+	// TransitionPop pops the top viewState from navigationStack and restores all captured
+	// fields (viewMode, breadcrumb, contentHeader, selectedKeys, tableRows, tableColumns,
+	// tableCursor, genericParams, rowData). Performs no clearing.
+	// Use for: Esc (back) and breadcrumb jump to non-root level (after caller truncates stack).
+	TransitionPop
 )
 
-// prepareStateTransition cleans up model state appropriate to the given transition scope.
-// It always clears sort and search state. Additional cleanup depends on scope.
-// For transitionBreadcrumb, pass the target depth (0-based index) as the optional depth arg.
-func (m *model) prepareStateTransition(scope transitionScope, depth ...int) {
-	// Clear sort state for all transitions
-	m.sortColumn = -1
-	m.sortAscending = true
-
-	// Clear search state for all transitions
-	m.searchTerm = ""
-	m.searchMode = false
-	m.searchInput.Blur()
-	m.originalRows = nil
-	m.filteredRows = nil
-
-	// Reset popup if it was search mode
-	if m.popup.mode == popupModeSearch {
-		m.popup.mode = popupModeNone
-		m.popup.input = ""
-		m.popup.cursor = -1
-		m.popup.offset = 0
-		// restore original rows so table isn't stuck on filtered subset
-		if m.originalRows != nil {
-			m.table.SetRows(m.originalRows)
-		}
-	}
-
-	switch scope {
-	case transitionEnvSwitch:
+// prepareStateTransition is the single mandatory gate for all navigation changes.
+// Call it before modifying any view state in a navigation handler.
+func (m *model) prepareStateTransition(t TransitionType) {
+	switch t {
+	case TransitionFull:
+		// Clear all view state for a fresh navigation context.
+		m.activeModal = ModalNone
+		m.footerError = ""
+		m.footerStatusKind = footerStatusNone
+		m.sortColumn = -1
+		m.sortAscending = true
+		m.searchTerm = ""
+		m.searchMode = false
+		m.searchInput.Blur()
+		m.originalRows = nil
+		m.filteredRows = nil
 		m.navigationStack = nil
 		m.genericParams = make(map[string]string)
 		m.selectedDefinitionKey = ""
 		m.selectedInstanceID = ""
-		// breadcrumb reset is handled by the caller (depends on new root)
-
-	case transitionContextSwitch:
-		m.navigationStack = nil
-		m.genericParams = make(map[string]string)
-
-	case transitionDrilldown:
-		// navStack push handled by caller
-		// sort/search already cleared above
-
-	case transitionBack:
-		// navStack pop handled by caller
-		// sort/search already cleared above
-
-	case transitionBreadcrumb:
-		if len(depth) > 0 {
-			d := depth[0]
-			if d <= 0 {
-				m.navigationStack = nil
-			} else if d < len(m.navigationStack) {
-				m.navigationStack = m.navigationStack[:d]
-			}
-			// if d >= len(navigationStack), no truncation needed
+		m.table.SetCursor(0)
+		if m.popup.mode != popupModeNone {
+			m.popup.mode = popupModeNone
+			m.popup.input = ""
+			m.popup.cursor = -1
+			m.popup.offset = 0
 		}
+
+	case TransitionDrillDown:
+		// Push current viewState BEFORE clearing (push-before-clear ordering ensures
+		// the parent's cursor and column state are preserved in the snapshot).
+		cols := m.table.Columns()
+		var rows []table.Row
+		if len(cols) > 0 {
+			rows = normalizeRows(append([]table.Row{}, m.table.Rows()...), len(cols))
+		} else {
+			rows = append([]table.Row{}, m.table.Rows()...)
+		}
+		snapshot := viewState{
+			viewMode:              m.viewMode,
+			breadcrumb:            append([]string{}, m.breadcrumb...),
+			contentHeader:         m.contentHeader,
+			selectedDefinitionKey: m.selectedDefinitionKey,
+			selectedInstanceID:    m.selectedInstanceID,
+			tableRows:             rows,
+			tableCursor:           m.table.Cursor(),
+			cachedDefinitions:     m.cachedDefinitions,
+			tableColumns:          append([]table.Column{}, cols...),
+			genericParams:         m.genericParams,
+			rowData:               append([]map[string]interface{}{}, m.rowData...),
+		}
+		m.navigationStack = append(m.navigationStack, snapshot)
+		// Clear non-stack fields for the incoming child view.
+		m.activeModal = ModalNone
+		m.footerError = ""
+		m.footerStatusKind = footerStatusNone
+		m.sortColumn = -1
+		m.sortAscending = true
+		m.searchTerm = ""
+		m.searchMode = false
+		m.searchInput.Blur()
+		m.originalRows = nil
+		m.filteredRows = nil
+		if m.popup.mode == popupModeSearch {
+			m.popup.mode = popupModeNone
+			m.popup.input = ""
+			m.popup.cursor = -1
+			m.popup.offset = 0
+		}
+
+	case TransitionPop:
+		if len(m.navigationStack) == 0 {
+			return
+		}
+		top := m.navigationStack[len(m.navigationStack)-1]
+		m.navigationStack = m.navigationStack[:len(m.navigationStack)-1]
+		// Restore all viewState fields — no clearing.
+		m.viewMode = top.viewMode
+		m.breadcrumb = top.breadcrumb
+		m.contentHeader = top.contentHeader
+		m.selectedDefinitionKey = top.selectedDefinitionKey
+		m.selectedInstanceID = top.selectedInstanceID
+		m.cachedDefinitions = top.cachedDefinitions
+		m.genericParams = top.genericParams
+		m.rowData = top.rowData
+		// Restore table widget state: columns first, then rows, then cursor.
+		if len(top.tableColumns) > 0 {
+			m.table.SetRows(normalizeRows(nil, len(top.tableColumns)))
+			m.table.SetColumns(top.tableColumns)
+		}
+		cols := m.table.Columns()
+		if len(cols) > 0 {
+			m.table.SetRows(normalizeRows(top.tableRows, len(cols)))
+		} else {
+			m.table.SetRows(top.tableRows)
+		}
+		m.table.SetCursor(top.tableCursor)
 	}
 }
 
