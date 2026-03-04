@@ -587,6 +587,17 @@ High-contrast friendly skins: `stock`, `black-and-wtf`, `solarized-16`.
 | 8 | 110+ | `Ctrl+C quit` |
 | 9 | 105+ | `Ctrl+E env` |
 
+### Per-View Hint Dispatch
+
+The footer always reflects the actions available in the **currently active view state**. `currentViewHints(m)` dispatches to the appropriate hint function based on the following priority order:
+
+1. **Active modal** (`m.activeModal != ModalNone`) → returns the modal's `HintLine` from `modalRegistry`. Each modal declares its own hints (e.g., ModalEdit: `Tab switch  Enter save  Esc cancel`). ModalFirstRun intentionally omits `Esc` — selection is required.
+2. **Active popup mode** (`m.popup.mode`) → returns per-popup hints:
+   - `popupModeContext` (`:` key) → `↑↓ select  Tab/Enter switch  Esc cancel`
+   - `popupModeSearch` (`/` key) → `↑↓ select  Enter jump  Esc cancel`
+   - `popupModeSkin` (`Ctrl+T` key) → `↑↓ preview  Enter apply  Esc revert`
+3. **Default** → `tableViewHints(m)`: full table-view hints gated by terminal width and model state (drilldown, editable columns, navigation stack depth).
+
 ### Footer
 
 Three columns:

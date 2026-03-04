@@ -52,6 +52,10 @@ func init() {
 		},
 		ConfirmLabel: "Delete",
 		CancelLabel:  "Cancel",
+		HintLine: []Hint{
+			{Key: "Enter", Label: "confirm", Priority: 1},
+			{Key: "Esc", Label: "cancel", Priority: 2},
+		},
 	})
 
 	registerModal(ModalConfirmQuit, ModalConfig{
@@ -61,6 +65,10 @@ func init() {
 		},
 		ConfirmLabel: "Quit",
 		CancelLabel:  "Cancel",
+		HintLine: []Hint{
+			{Key: "Enter", Label: "quit", Priority: 1},
+			{Key: "Esc", Label: "cancel", Priority: 2},
+		},
 	})
 
 	registerModal(ModalSort, ModalConfig{
@@ -68,12 +76,22 @@ func init() {
 		BodyRenderer: func(m model) string {
 			return m.renderSortPopup(m.lastWidth, m.lastHeight)
 		},
+		HintLine: []Hint{
+			{Key: "↑↓", Label: "select", Priority: 1},
+			{Key: "Enter", Label: "apply", Priority: 1},
+			{Key: "Esc", Label: "cancel", Priority: 2},
+		},
 	})
 
 	registerModal(ModalEnvironment, ModalConfig{
 		SizeHint: OverlayCenter,
 		BodyRenderer: func(m model) string {
 			return m.renderEnvPopup(m.lastWidth, m.lastHeight)
+		},
+		HintLine: []Hint{
+			{Key: "↑↓", Label: "select", Priority: 1},
+			{Key: "Enter", Label: "switch", Priority: 1},
+			{Key: "Esc", Label: "cancel", Priority: 2},
 		},
 	})
 
@@ -84,6 +102,11 @@ func init() {
 		},
 		ConfirmLabel: "Save",
 		CancelLabel:  "Cancel",
+		HintLine: []Hint{
+			{Key: "Tab", Label: "switch", Priority: 1},
+			{Key: "Enter", Label: "save", Priority: 1},
+			{Key: "Esc", Label: "cancel", Priority: 2},
+		},
 	})
 
 	registerModal(ModalHelp, ModalConfig{
@@ -124,6 +147,11 @@ func init() {
 		SizeHint: OverlayCenter,
 		BodyRenderer: func(m model) string {
 			return m.renderFirstRunModal(m.lastWidth, m.lastHeight)
+		},
+		HintLine: []Hint{
+			{Key: "↑↓", Label: "nav", Priority: 1},
+			{Key: "Enter", Label: "select", Priority: 1},
+			// Intentionally no Esc — selection is required (Story 1.5 AC2)
 		},
 	})
 }

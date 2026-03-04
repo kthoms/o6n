@@ -31,6 +31,27 @@ func filterHints(hints []Hint, width int) []Hint {
 }
 
 func currentViewHints(m model) []Hint {
+	// Active modal → use the modal's HintLine (nil if not configured)
+	if m.activeModal != ModalNone {
+		if cfg, ok := modalRegistry[m.activeModal]; ok && len(cfg.HintLine) > 0 {
+			return cfg.HintLine
+		}
+		return nil
+	}
+	// Active popup mode → per-popup hints
+	switch m.popup.mode {
+	case popupModeContext:
+		return contextSwitcherHints()
+	case popupModeSearch:
+		return searchPopupHints()
+	case popupModeSkin:
+		return skinPickerHints()
+	}
+	// Default: main table view hints
+	return tableViewHints(m)
+}
+
+func tableViewHints(m model) []Hint {
 	hints := []Hint{
 		{Key: "?", Label: "help", MinWidth: 0, Priority: 1},
 		{Key: ":", Label: "switch", MinWidth: 0, Priority: 2},
@@ -60,4 +81,28 @@ func currentViewHints(m model) []Hint {
 	}
 
 	return hints
+}
+
+func contextSwitcherHints() []Hint {
+	return []Hint{
+		{Key: "↑↓", Label: "select", MinWidth: 0, Priority: 1},
+		{Key: "Tab/Enter", Label: "switch", MinWidth: 0, Priority: 1},
+		{Key: "Esc", Label: "cancel", MinWidth: 0, Priority: 2},
+	}
+}
+
+func searchPopupHints() []Hint {
+	return []Hint{
+		{Key: "↑↓", Label: "select", MinWidth: 0, Priority: 1},
+		{Key: "Enter", Label: "jump", MinWidth: 0, Priority: 1},
+		{Key: "Esc", Label: "cancel", MinWidth: 0, Priority: 2},
+	}
+}
+
+func skinPickerHints() []Hint {
+	return []Hint{
+		{Key: "↑↓", Label: "preview", MinWidth: 0, Priority: 1},
+		{Key: "Enter", Label: "apply", MinWidth: 0, Priority: 1},
+		{Key: "Esc", Label: "revert", MinWidth: 0, Priority: 2},
+	}
 }

@@ -124,3 +124,157 @@ func TestCurrentViewHints_EditHintOnlyWhenEditableColumns(t *testing.T) {
 		t.Fatal("expected edit hint for table with editable columns")
 	}
 }
+
+// --- Per-view dispatch tests (AC 2–5) ---
+
+func TestCurrentViewHints_ContextSwitcherPopup(t *testing.T) {
+	m := newTestModel(t)
+	m.popup.mode = popupModeContext
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "Tab/Enter", "switch"); !ok {
+		t.Fatal("expected Tab/Enter switch hint for context switcher")
+	}
+	if _, ok := findHint(hints, "↑↓", "select"); !ok {
+		t.Fatal("expected ↑↓ select hint for context switcher")
+	}
+	if _, ok := findHint(hints, "Esc", "cancel"); !ok {
+		t.Fatal("expected Esc cancel hint for context switcher")
+	}
+	// Table hints must NOT appear when context switcher is open
+	if _, ok := findHint(hints, "?", "help"); ok {
+		t.Fatal("did not expect table help hint while context switcher is active")
+	}
+}
+
+func TestCurrentViewHints_SearchPopup(t *testing.T) {
+	m := newTestModel(t)
+	m.popup.mode = popupModeSearch
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "Enter", "jump"); !ok {
+		t.Fatal("expected Enter jump hint for search popup")
+	}
+	if _, ok := findHint(hints, "↑↓", "select"); !ok {
+		t.Fatal("expected ↑↓ select hint for search popup")
+	}
+	if _, ok := findHint(hints, "Esc", "cancel"); !ok {
+		t.Fatal("expected Esc cancel hint for search popup")
+	}
+	if _, ok := findHint(hints, "?", "help"); ok {
+		t.Fatal("did not expect table help hint while search popup is active")
+	}
+}
+
+func TestCurrentViewHints_SkinPickerPopup(t *testing.T) {
+	m := newTestModel(t)
+	m.popup.mode = popupModeSkin
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "Enter", "apply"); !ok {
+		t.Fatal("expected Enter apply hint for skin picker")
+	}
+	if _, ok := findHint(hints, "↑↓", "preview"); !ok {
+		t.Fatal("expected ↑↓ preview hint for skin picker")
+	}
+	if _, ok := findHint(hints, "Esc", "revert"); !ok {
+		t.Fatal("expected Esc revert hint for skin picker")
+	}
+	if _, ok := findHint(hints, "?", "help"); ok {
+		t.Fatal("did not expect table help hint while skin picker is active")
+	}
+}
+
+func TestCurrentViewHints_ModalHelpActive(t *testing.T) {
+	m := newTestModel(t)
+	m.activeModal = ModalHelp
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "↑↓", "scroll"); !ok {
+		t.Fatal("expected ↑↓ scroll hint for ModalHelp")
+	}
+	if _, ok := findHint(hints, "q/Esc", "close"); !ok {
+		t.Fatal("expected q/Esc close hint for ModalHelp")
+	}
+	if _, ok := findHint(hints, "?", "help"); ok {
+		t.Fatal("did not expect table help hint while ModalHelp is active")
+	}
+}
+
+func TestCurrentViewHints_ModalEditActive(t *testing.T) {
+	m := newTestModel(t)
+	m.activeModal = ModalEdit
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "Tab", "switch"); !ok {
+		t.Fatal("expected Tab switch hint for ModalEdit")
+	}
+	if _, ok := findHint(hints, "Enter", "save"); !ok {
+		t.Fatal("expected Enter save hint for ModalEdit")
+	}
+	if _, ok := findHint(hints, "Esc", "cancel"); !ok {
+		t.Fatal("expected Esc cancel hint for ModalEdit")
+	}
+	if _, ok := findHint(hints, "?", "help"); ok {
+		t.Fatal("did not expect table help hint while ModalEdit is active")
+	}
+}
+
+func TestCurrentViewHints_ModalFirstRunNoEsc(t *testing.T) {
+	m := newTestModel(t)
+	m.activeModal = ModalFirstRun
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "↑↓", "nav"); !ok {
+		t.Fatal("expected ↑↓ nav hint for ModalFirstRun")
+	}
+	if _, ok := findHint(hints, "Enter", "select"); !ok {
+		t.Fatal("expected Enter select hint for ModalFirstRun")
+	}
+	// Esc MUST NOT appear — documented exception: selection is required (Story 1.5 AC2)
+	for _, h := range hints {
+		if h.Key == "Esc" {
+			t.Fatalf("Esc hint must not appear in ModalFirstRun (selection required): got %+v", h)
+		}
+	}
+}
+
+func TestCurrentViewHints_ModalConfirmDeleteActive(t *testing.T) {
+	m := newTestModel(t)
+	m.activeModal = ModalConfirmDelete
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "Enter", "confirm"); !ok {
+		t.Fatal("expected Enter confirm hint for ModalConfirmDelete")
+	}
+	if _, ok := findHint(hints, "Esc", "cancel"); !ok {
+		t.Fatal("expected Esc cancel hint for ModalConfirmDelete")
+	}
+	if _, ok := findHint(hints, "?", "help"); ok {
+		t.Fatal("did not expect table help hint while ModalConfirmDelete is active")
+	}
+}
+
+func TestCurrentViewHints_MainTableUnchanged(t *testing.T) {
+	m := newTestModel(t)
+	// No modal, no popup — must dispatch to tableViewHints
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "?", "help"); !ok {
+		t.Fatal("expected help hint in main table view")
+	}
+	if _, ok := findHint(hints, ":", "switch"); !ok {
+		t.Fatal("expected : switch hint in main table view")
+	}
+	if _, ok := findHint(hints, "↑↓", "nav"); !ok {
+		t.Fatal("expected ↑↓ nav hint in main table view")
+	}
+}
