@@ -1,5 +1,9 @@
 ---
-stepsCompleted: ["step-01-init", "step-02-discovery", "step-02b-vision", "step-02c-executive-summary", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type", "step-08-scoping", "step-09-functional", "step-10-nonfunctional", "step-11-polish"]
+stepsCompleted: ["step-01-init", "step-02-discovery", "step-02b-vision", "step-02c-executive-summary", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type", "step-08-scoping", "step-09-functional", "step-10-nonfunctional", "step-11-polish", "step-e-01-discovery", "step-e-02-review", "step-e-03-edit"]
+lastEdited: '2026-03-04'
+editHistory:
+  - date: '2026-03-04'
+    changes: 'FR16: Space key → Ctrl+Space key binding; FR31: copy as YAML → copy as JSON (J/Ctrl+J); cascading updates to Success Criteria, Product Scope, Output Formats, Journey 2 narrative, Journey Requirements Summary'
 inputDocuments:
   - "CLAUDE.md"
   - "README.md"
@@ -56,7 +60,7 @@ The primary users are DevOps engineers and BPMN-familiar technical operators who
 ### User Success
 
 - A DevOps engineer or BPMN operator can open o8n, navigate to any resource type, and complete actions (drill-down, edit, execute, delete) without inconsistent behavior, silent failures, or UI corruption
-- Available actions are visible without opening the help menu — discoverable via footer hints and the Space action dialog
+- Available actions are visible without opening the help menu — discoverable via footer hints and the `Ctrl+Space` action dialog
 - All modal dialogs behave predictably: `Esc` cancels, `Enter` confirms, styling is consistent, errors surface inline
 - Navigation transitions (context switch, environment switch, drill-down, breadcrumb jump) leave no stale state
 - Application renders correctly at 120×20 in VSCode integrated terminal and IntelliJ IDEA terminal with no overflow or truncation of critical information
@@ -105,7 +109,7 @@ The current sprint goal. o8n has 35 resource types and a rich feature set — th
 - All 35 resource types: load, paginate, drill-down, and execute configured actions correctly
 - Config-driven modal system: consistent styling and Esc/Enter behavior across all modal types
 - Footer action hints: primary actions discoverable without opening help menu
-- Space action dialog: context-aware action menu surfacing configured actions
+- Ctrl+Space action dialog: context-aware action menu surfacing configured actions
 - State transition contract: all navigation transitions use `prepareStateTransition` — zero known leakage bugs
 - Correct rendering at 120×20 in VSCode and IntelliJ IDEA terminals
 - `specification.md` updated to reflect post-sprint behavior
@@ -160,7 +164,7 @@ Slack pings — a process instance for `invoice-approval` is stuck. Alex presses
 **Task Processing:**
 Priya is assigned a batch of loan review tasks. She launches o8n, opens help (`?`), scans key categories. Two minutes later she's navigating like a pro. She switches to `task` view with `:` + `task` + `Enter`. The table shows 12 open tasks. She filters with `/loan-review` — 5 matching tasks appear.
 
-She selects the first, presses `Space` — the action menu appears. She presses `c` to claim the task; the assignee column updates instantly. She presses `Enter` — the task completion dialog opens, showing input variables (loan application data) read-only and output form variables (her review decision) editable. She fills in `decision: approved`, `notes: all criteria met`, presses `Enter` on `[Complete]`. The task disappears. The footer confirms: `✓ Completed: Loan Review #4521`.
+She selects the first, presses `Ctrl+Space` — the action menu appears. She presses `c` to claim the task; the assignee column updates instantly. She presses `Enter` — the task completion dialog opens, showing input variables (loan application data) read-only and output form variables (her review decision) editable. She fills in `decision: approved`, `notes: all criteria met`, presses `Enter` on `[Complete]`. The task disappears. The footer confirms: `✓ Completed: Loan Review #4521`.
 
 **Outcome:** All 5 tasks completed in 8 minutes. Cockpit would have taken 25+ minutes across browser tabs. Priya adopts o8n for daily task processing and starts teaching colleagues.
 
@@ -192,7 +196,7 @@ For a tailored view showing worker registration counts, Marco opens `internal/ap
 | Environment switching with status indicators | Alex |
 | Incident drill-down and job retry | Alex |
 | Variable inspection and inline editing | Alex, Priya |
-| Action discoverability (footer hints + Space dialog) | All |
+| Action discoverability (footer hints + `Ctrl+Space` dialog) | All |
 | Task claim / complete with form variable dialog | Priya |
 | Search and filter in table views | Priya |
 | Context switcher (`:`) for resource type navigation | All |
@@ -235,7 +239,7 @@ Single binary; no subcommands.
 
 ### Output Formats
 
-Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawing characters. No JSON stdout, no pipe-friendly output mode. The `y` key copies the selected row as YAML to the clipboard — convenience action, not a machine-readable output mode.
+Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawing characters. No JSON stdout, no pipe-friendly output mode. The `J` key opens a JSON viewer for the selected row; `Ctrl+J` copies it as JSON to the clipboard — convenience action, not a machine-readable output mode.
 
 ### Configuration Schema
 
@@ -279,7 +283,7 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 ### Action Discoverability
 
 - **FR15**: Operator can see the primary available actions for the current view in the footer without opening a help screen
-- **FR16**: Operator can open a context-sensitive action menu via the Space key showing all available actions for the selected row
+- **FR16**: Operator can open a context-sensitive action menu via the `Ctrl+Space` key binding showing all available actions for the selected row
 - **FR17**: Operator can view the full key binding reference via the `?` key
 
 ### State Management & Navigation
@@ -306,7 +310,7 @@ Terminal rendering only — ANSI escape codes, Lipgloss-styled output, box-drawi
 
 - **FR29**: Operator can inspect process variables associated with a process instance
 - **FR30**: Operator can edit a process variable value inline with type validation
-- **FR31**: Operator can copy the selected resource row as YAML to the system clipboard *(supports DevOps incident response — Alex persona)*
+- **FR31**: Operator can copy the selected resource row as JSON to the system clipboard (`J` to open JSON viewer, `Ctrl+J` to copy directly) *(supports DevOps incident response — Alex persona)*
 
 ### Search & Filter
 

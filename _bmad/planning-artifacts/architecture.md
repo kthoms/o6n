@@ -75,8 +75,10 @@ must not require Go source changes.
    thresholds; layout decisions must use the established sizing contract
 6. **Credential Security** — `o8n-env.yaml` must never appear in git, logs, or clipboard;
    Basic Auth is the only supported mechanism
-7. **Theming** — 25 semantic color roles; `ui_color` per environment always overrides
-   border accent; skin changes must not require restarts
+7. **Theming** — 26 semantic color roles (including `env_name`); `env_name` per skin
+   governs the environment label color in the fixed top-right header — the primary
+   environment identity signal; `ui_color` per environment overrides border accent only
+   (secondary accent); skin changes must not require restarts
 
 ## Starter Template Evaluation
 
@@ -111,8 +113,10 @@ Regenerated via `.devenv/scripts/generate-api-client.sh`.
 - `o8n-cfg.yaml` — tables, columns, actions, drilldowns (version-controlled)
 - `o8n-stat.yaml` — runtime state (auto-managed, git-ignored)
 
-**Theming:** 35 built-in skins as YAML files in `skins/`. 25 semantic color roles —
-no hardcoded color values. Environment `ui_color` always overrides border accent.
+**Theming:** 35 built-in skins as YAML files in `skins/`. 26 semantic color roles —
+no hardcoded color values. `env_name` semantic role governs the environment label color
+in the fixed top-right header (primary environment signal). Environment `ui_color`
+overrides border accent only (secondary accent).
 
 **Testing:** Go stdlib `testing` + `httptest.NewServer()` for API tests; model state
 assertion pattern for UI tests; temp files with `defer os.Remove()` for config tests.
@@ -186,7 +190,7 @@ management, no OAuth.
 
 **Credential Isolation:** Credentials live exclusively in `o8n-env.yaml` (git-ignored,
 `chmod 600`). They must never appear in: log files, debug output (`./debug/`), clipboard
-operations (the `y` key copies row data, not credentials), or any serialized state.
+operations (`J`/`Ctrl+J` copies row data as JSON, not credentials), or any serialized state.
 
 **API Security:** All API calls go through `internal/client/` wrapping the generated
 `internal/operaton/` client. Direct use of `internal/operaton/` from `internal/app/` is
@@ -221,11 +225,22 @@ from API responses.
 **Decision:** The modal system is config-driven via a `ModalConfig` struct. The view path
 contains no `switch modalType` logic for rendering individual modal bodies. Instead, each
 modal type registers a `ModalConfig` at initialization that specifies:
-- Size hint: `OverlayCenter` (small modals) or `FullScreen` (help, detail, sort, env)
+- Size hint: `OverlayCenter` (compact dialogs, ~50%×auto), `OverlayLarge` (~80%×80%, rich
+  content), or `FullScreen` (immersive flows)
 - Title string
 - Body renderer: `func(m Model) string` — produces the modal's inner content
 - Button layout: derived from modal config (confirm/cancel labels, positions)
 - Border and padding: uniform across all types (enforced by factory, not per-type code)
+- Hint line: `[]Hint` — required for all `OverlayLarge` and `FullScreen` modals; rendered
+  at the modal bottom using the same `Hint{Key, Label, MinWidth, Priority}` system as the
+  main footer. Must include at minimum `Esc Close` and the modal's primary action.
+
+**Size class usage:**
+- `OverlayCenter` — Operational modals: Edit, Sort, ConfirmDelete, ConfirmQuit, ModalActionMenu, FirstRunModal
+- `OverlayLarge` — Contextual modals: ModalHelp, ModalDetailView, ModalJSONView. Preserves
+  background context; operator retains spatial orientation while viewing rich content.
+  Approximate dimensions: ~80% termWidth × ~80% termHeight (at 120×20 minimum: ~96×16).
+- `FullScreen` — Immersive flows: TaskComplete dialog.
 
 The factory function signature:
 ```go
@@ -237,7 +252,9 @@ the factory function or view render path required.
 
 **Rationale:** Eliminates per-type hardcoded layout code. Ensures FR11 (identical border,
 padding, button placement) is structurally enforced. Satisfies NFR15 (config-driven modal
-system). Reduces cognitive load for contributors adding new modal types.
+system). Three size classes allow operators to retain background context for reference
+modals (OverlayLarge) while keeping destructive confirmations compact (OverlayCenter).
+Reduces cognitive load for contributors adding new modal types.
 
 #### Decision 2: State Transition Contract
 
@@ -295,20 +312,23 @@ hint visibility logic without full render cycle.
 
 #### Decision 4: Space Action Dialog — ModalActionMenu
 
-**Decision:** The Space action dialog is `ModalActionMenu`, a factory-registered modal
-type. It reads the current table's `actions` slice from the resolved config at render
+**Decision:** The `Ctrl+Space` action dialog is `ModalActionMenu`, a factory-registered
+modal type. It reads the current table's `actions` slice from the resolved config at render
 time. Its body renderer produces a list of action entries:
 - Mutation actions listed first (HTTP verbs)
 - Visual separator before the first `type: navigate` action
 - Navigate actions shown with `→` suffix
-- `[y] View as JSON` appended as the last item always
+- `[J] View as JSON` / `[Ctrl+J] Copy JSON` appended as the last item always
 
 Keyboard handling for `ModalActionMenu`: single-character shortcuts dispatch directly to
 the corresponding action. `Esc` closes the menu. The modal uses `OverlayCenter` size hint.
 
+`Space` (without Ctrl) is reserved for future row selection — it must not trigger the
+action menu.
+
 **Rationale:** Gives the action dialog full visual consistency with other modals (border,
 Esc/Enter). Keeps action definitions in `o8n-cfg.yaml` — the factory reads config, it does
-not duplicate it. Satisfies FR16 (context-sensitive action menu via Space).
+not duplicate it. Satisfies FR16 (context-sensitive action menu via `Ctrl+Space`).
 
 ---
 
@@ -484,8 +504,11 @@ function is introducing a state leakage bug.
 **Skin/Color Usage:**
 - Always use semantic color roles via the active skin's `lipgloss.Style`
 - Never hardcode hex values or ANSI codes in Go source
-- Environment `ui_color` is applied only to border accent and footer breadcrumb
-  background — never to text content colors
+- `env_name` semantic role: applied to the environment label in the fixed top-right
+  header position — this is the primary environment identity signal. Set per-skin;
+  configured in `o8n-env.yaml` per environment to distinguish prod/staging/dev.
+- Environment `ui_color` is applied only to border accent — never to text content colors.
+  It is a secondary accent, not the primary environment signal.
 
 ---
 

@@ -1,17 +1,19 @@
 ---
 stepsCompleted: ["step-01-validate-prerequisites", "step-02-design-epics", "step-03-create-stories", "step-04-final-validation"]
 status: 'complete'
-completedAt: '2026-03-03'
+completedAt: '2026-03-04'
 inputDocuments:
   - "_bmad/planning-artifacts/prd.md"
   - "_bmad/planning-artifacts/architecture.md"
+  - "_bmad/planning-artifacts/ux-design-specification.md"
+  - "_bmad/planning-artifacts/implementation-readiness-report-2026-03-04.md"
 ---
 
 # o8n - Epic Breakdown
 
 ## Overview
 
-This document provides the complete epic and story breakdown for o8n, decomposing the requirements from the PRD and Architecture into implementable stories.
+This document provides the complete epic and story breakdown for o8n, decomposing the requirements from the PRD, UX Design, and Architecture into implementable stories.
 
 ## Requirements Inventory
 
@@ -32,7 +34,7 @@ FR12: Operator can dismiss any modal by pressing Escape
 FR13: Operator can confirm any modal by pressing Enter on the confirm action
 FR14: Operator can interact with edit dialogs that validate input by type (string, integer, boolean, JSON)
 FR15: Operator can see the primary available actions for the current view in the footer without opening a help screen
-FR16: Operator can open a context-sensitive action menu via the Space key showing all available actions for the selected row
+FR16: Operator can open a context-sensitive action menu via `Ctrl+Space` showing all available actions for the selected row
 FR17: Operator can view the full key binding reference via the `?` key
 FR18: Operator can switch between configured environments at any time
 FR19: Operator can switch to any resource context using the `:` context switcher without leaving stale state
@@ -47,15 +49,15 @@ FR27: Application reads resource types, columns, actions, and drilldown rules fr
 FR28: Contributor can add a new standard resource type by editing `o8n-cfg.yaml` without modifying Go source code
 FR29: Operator can inspect process variables associated with a process instance
 FR30: Operator can edit a process variable value inline with type validation
-FR31: Operator can copy the selected resource row as YAML to the system clipboard
+FR31: Operator can copy the selected resource row as JSON to the system clipboard (`J` opens JSON viewer; `Ctrl+J` copies directly)
 FR32: Operator can filter the current resource table by entering a search term
 FR33: Operator can clear the active search filter and return to the full table
 FR34: Operator can toggle auto-refresh to continuously update the current table view
 FR35: Application renders without overflow or truncation of critical information at 120×20 terminal size
 FR36: Application adapts column visibility and hint display when the terminal is narrower than 120 columns
 FR37: Application handles terminal resize events without corrupting the layout
-FR38: Operator can switch between available color skins
-FR39: Operator can toggle vim-style key bindings in-session
+FR38: Operator can switch between available color skins *(supports environment differentiation — Alex/Priya personas)*
+FR39: Operator can toggle vim-style key bindings in-session *(supports keyboard-native workflow — Marco persona)*
 
 ### NonFunctional Requirements
 
@@ -77,12 +79,15 @@ NFR15: The modal system is config-driven — new modal types are supported throu
 
 ### Additional Requirements
 
-- **Modal Factory (arch-critical):** `ModalConfig` struct + `renderModal()` factory must be extracted into `internal/app/modal.go` (new file). New modal types registered via config — no changes to render switch path.
+- **Modal Factory (arch-critical):** `ModalConfig` struct + `renderModal()` factory must be extracted into `internal/app/modal.go` (new file). Three size classes: `OverlayCenter` (compact, ~50%×auto), `OverlayLarge` (rich content, ~80%×80%), `FullScreen` (immersive). All `OverlayLarge` and `FullScreen` modals must render a mandatory `HintLine []Hint` at the bottom using the same `Hint{Key, Label, MinWidth, Priority}` system as the main footer.
 - **State Transition Contract (arch-critical):** `prepareStateTransition(TransitionType)` is the mandatory gate for all navigation. `TransitionFull`, `TransitionDrillDown`, `TransitionPop` types must be defined and enforced across all nav paths in `internal/app/nav.go`.
 - **Footer Hint Push Model (arch-critical):** `Hint{Key, Label, MinWidth, Priority}` struct + per-view hint functions extracted into `internal/app/hints.go` (new file). Footer renderer is stateless.
-- **ModalActionMenu:** Space action dialog implemented as a factory-registered modal type (`ModalActionMenu`) — reads config actions at render time, single-char shortcuts dispatch actions, visual separator before navigate actions.
+- **ModalActionMenu:** `Ctrl+Space` action dialog implemented as a factory-registered modal type (`ModalActionMenu`) — reads config actions at render time, single-char shortcuts dispatch actions, visual separator before navigate actions. Last item always: `[J] View as JSON` / `[Ctrl+J] Copy JSON`. `Space` (without Ctrl) reserved for future row selection.
+- **ModalJSONView (NEW):** `OverlayLarge` modal. Title = resource type + ID. `J` opens it; `Ctrl+J` copies JSON directly to clipboard without opening. Hint line: `Ctrl+J Copy  Esc Close`. Replaces the `y` copy-as-YAML pattern throughout.
+- **FirstRunModal (NEW):** `OverlayCenter` modal. On fresh start (no `o8n-stat.yaml`), prompts operator to select their home context from configured resource types. Selection persisted to `o8n-stat.yaml`. `Ctrl+H` opens it in subsequent sessions to revisit the home context choice.
+- **env_name semantic color role (NEW):** Added to skin contract. Governs the environment label color in the fixed top-right header position — the primary environment identity signal. Set per-skin; configured in `o8n-env.yaml` per environment. `ui_color` is demoted to border accent only (secondary accent).
 - **Brownfield — no starter bootstrap required:** Existing codebase is the foundation. No template scaffolding needed.
-- **`specification.md` update obligation:** Post-sprint, `specification.md` MUST be updated to document the modal factory, hint push model, and `TransitionType` enum. This is part of the definition of done for each sprint task.
+- **`specification.md` update obligation:** Post-sprint, `specification.md` MUST be updated to document the modal factory, hint push model, `TransitionType` enum, `ModalActionMenu`, and `ModalJSONView`. This is part of the definition of done for each sprint task.
 - **Async contract:** All API calls via `tea.Cmd` — no goroutines writing to model directly. No blocking of Bubble Tea event loop.
 - **Generated client:** `internal/operaton/` is auto-generated and must never be edited manually. Regenerated via `.devenv/scripts/generate-api-client.sh`.
 - **Credential isolation:** `o8n-env.yaml` git-ignored, `chmod 600`. Credentials must never appear in logs, debug output (`./debug/`), or clipboard operations.
@@ -105,12 +110,12 @@ FR12: Epic 1 — Dismiss any modal with Escape
 FR13: Epic 1 — Confirm any modal with Enter
 FR14: Epic 1 — Edit dialogs validate input by type (string, integer, boolean, JSON)
 FR15: Epic 2 — Primary actions visible in footer without help screen
-FR16: Epic 2 — Ctrl+Space opens context-sensitive action menu (Space reserved for row selection)
+FR16: Epic 2 — Ctrl+Space opens context-sensitive action menu (Space reserved for future row selection)
 FR17: Epic 2 — Full key binding reference via `?` key
 FR18: Epic 1 — Switch between configured environments at any time
 FR19: Epic 1 — Switch resource context via `:` without stale state
 FR20: Epic 1 — All navigation transitions clear prior view state completely
-FR21: Epic 1 — Restore last active context and environment on startup
+FR21: Epic 1 — Restore last active context and environment on startup; FirstRunModal on fresh start
 FR22: Epic 3 — Claim an unassigned task
 FR23: Epic 3 — Unclaim a task
 FR24: Epic 3 — Complete task via dialog (input read-only, output editable)
@@ -120,14 +125,14 @@ FR27: Epic 5 — Read resource types, columns, actions, drilldowns from `o8n-cfg
 FR28: Epic 5 — Add standard resource type via `o8n-cfg.yaml` only (no Go changes)
 FR29: Epic 3 — Inspect process variables associated with a process instance
 FR30: Epic 3 — Edit process variable value inline with type validation
-FR31: Epic 3 — Copy selected resource row as YAML to system clipboard
+FR31: Epic 3 — Copy selected resource row as JSON to system clipboard (`J` viewer / `Ctrl+J` direct copy)
 FR32: Epic 3 — Filter current resource table by search term
 FR33: Epic 3 — Clear active search filter and return to full table
 FR34: Epic 3 — Toggle auto-refresh for continuous table updates
 FR35: Epic 4 — Render without overflow or truncation at 120×20
 FR36: Epic 4 — Adapt column visibility and hint display below 120 columns
 FR37: Epic 4 — Handle terminal resize events without layout corruption
-FR38: Epic 4 — Switch between color skins
+FR38: Epic 4 — Switch between color skins (env_name semantic role for environment identity)
 FR39: Epic 4 — Toggle vim-style key bindings in-session
 
 NFR1: Epic 3 — UI responds to any key press within 100ms
@@ -149,28 +154,30 @@ NFR15: Epic 1 — Modal system is config-driven via factory, no per-type hardcod
 ## Epic List
 
 ### Epic 1: Consistent & Reliable Modal System
-Operators can interact with any modal type — confirm, delete, help, edit, sort, environment switch — with completely consistent UX: identical border styling, Esc always dismisses, Enter always confirms, all produced by a shared factory. Navigation between resources and environments never leaves stale state behind.
+Operators can interact with any modal type — confirm, delete, help, edit, sort, environment switch, JSON view — with completely consistent UX: identical border styling, three size classes (OverlayCenter / OverlayLarge / FullScreen), mandatory hint lines on large modals, Esc always dismisses, Enter always confirms, all produced by a shared factory. Navigation between resources and environments never leaves stale state behind. First-run home context selection is guided by a modal.
 **FRs covered:** FR11, FR12, FR13, FR14, FR18, FR19, FR20, FR21
 **NFRs covered:** NFR4, NFR15
-**Architecture deliverables:** Modal factory extraction (`internal/app/modal.go`), state transition contract enforcement (`internal/app/nav.go`)
+**Architecture deliverables:** Modal factory extraction (`internal/app/modal.go`), state transition contract enforcement (`internal/app/nav.go`), `OverlayLarge` size class, hint line contract for large modals, `FirstRunModal`
 
 ### Epic 2: Discoverable Actions
-Operators can see the primary available actions for any view directly in the footer — no help screen required. `Ctrl+Space` opens a context-sensitive action menu showing all configured actions for the selected row.
+Operators can see the primary available actions for any view directly in the footer — no help screen required. `Ctrl+Space` opens a context-sensitive action menu showing all configured actions for the selected row, with `[J] View as JSON` / `[Ctrl+J] Copy JSON` as the final item.
 **FRs covered:** FR15, FR16, FR17
 **Architecture deliverables:** Footer hint push model (`internal/app/hints.go` + `view.go` wiring), `ModalActionMenu` registration in `internal/app/update.go`
 
 ### Epic 3: Core Operational Workflows
-Operators can navigate all 35 resource types, execute configured actions with success/error feedback, drill down through resource hierarchies, handle incidents (retry jobs, set annotations), claim and complete tasks with typed form variables, inspect and edit process variables, and search/filter any table.
+Operators can navigate all 35 resource types, execute configured actions with success/error feedback, drill down through resource hierarchies, handle incidents (retry jobs, set annotations), claim and complete tasks with typed form variables, inspect and edit process variables, view and copy resource data as JSON (`J` / `Ctrl+J`), and search/filter any table.
 **FRs covered:** FR1, FR2, FR3, FR4, FR5, FR6, FR7, FR8, FR9, FR10, FR22, FR23, FR24, FR25, FR29, FR30, FR31, FR32, FR33, FR34
 **NFRs covered:** NFR1, NFR2, NFR3, NFR5, NFR6, NFR7
+**Architecture deliverables:** `ModalJSONView` (OverlayLarge) — `J` opens viewer, `Ctrl+J` copies directly; replaces `y`/YAML pattern
 
 ### Epic 4: Stable Rendering & Visual Polish
-The application renders correctly at 120×20 in VSCode and IntelliJ IDEA terminals, adapts gracefully to narrower viewports (column and hint visibility), handles terminal resize events without layout corruption, and gives operators access to color skins and vim-style key bindings.
+The application renders correctly at 120×20 in VSCode and IntelliJ IDEA terminals, adapts gracefully to narrower viewports, handles terminal resize events without layout corruption, and gives operators access to color skins (with `env_name` semantic role as primary environment identity signal) and vim-style key bindings.
 **FRs covered:** FR35, FR36, FR37, FR38, FR39
 **NFRs covered:** NFR10, NFR11, NFR12
+**Architecture deliverables:** `env_name` semantic color role in skin system
 
 ### Epic 5: Configuration, Security & Documentation
-Operators can configure 2+ named environments with distinct credentials and accent colors; contributors can add standard resource types via `o8n-cfg.yaml` alone. Credentials are never exposed in logs, debug output, or clipboard. `specification.md` accurately reflects post-sprint behavior.
+Operators can configure 2+ named environments with distinct credentials, accent colors, and `env_name` identity colors; contributors can add standard resource types via `o8n-cfg.yaml` alone. Credentials are never exposed in logs, debug output, or clipboard operations (JSON copy via `J`/`Ctrl+J` verified credential-free). `specification.md` accurately reflects post-sprint behavior.
 **FRs covered:** FR26, FR27, FR28
 **NFRs covered:** NFR8, NFR9, NFR13, NFR14
 **Additional:** `specification.md` update is part of the definition of done for all sprint tasks
@@ -179,7 +186,7 @@ Operators can configure 2+ named environments with distinct credentials and acce
 
 ## Epic 1: Consistent & Reliable Modal System
 
-Operators can interact with any modal type — confirm, delete, help, edit, sort, environment switch — with completely consistent UX: identical border styling, Esc always dismisses, Enter always confirms, all produced by a shared factory. Navigation between resources and environments never leaves stale state behind.
+Operators can interact with any modal type — confirm, delete, help, edit, sort, environment switch, JSON view — with completely consistent UX: identical border styling, three size classes (OverlayCenter / OverlayLarge / FullScreen), mandatory hint lines on large modals, Esc always dismisses, Enter always confirms, all produced by a shared factory. Navigation between resources and environments never leaves stale state behind. First-run home context selection is guided by a modal.
 
 ### Story 1.1: Modal Factory Foundation
 
@@ -189,12 +196,28 @@ So that all modal types are rendered from a single, consistent code path with no
 
 **Acceptance Criteria:**
 
-**Given** `ModalConfig` is defined with: `sizeHint` (OverlayCenter / FullScreen), `title string`, `bodyRenderer func(m Model) string`, and button label fields
+**Given** `ModalConfig` is defined with: `sizeHint` (OverlayCenter / OverlayLarge / FullScreen), `title string`, `bodyRenderer func(m Model) string`, button label fields, and `hintLine []Hint`
 **When** `renderModal(m Model, cfg ModalConfig)` is called for any registered modal type
 **Then** the rendered modal has identical border style, padding, and button placement regardless of which type it is
 **And** the view render path contains no `switch modalType` statement for modal body content
 **And** new modal types are added by defining a new `ModalConfig` — no changes to `renderModal()` required
 **And** all existing modal types (confirm, delete, help, edit, sort, environment) are migrated to use the factory
+
+**Given** `sizeHint` is `OverlayCenter`
+**When** the modal renders
+**Then** it occupies approximately 50% of terminal width, auto-height, centered
+
+**Given** `sizeHint` is `OverlayLarge`
+**When** the modal renders
+**Then** it occupies approximately 80% of terminal width × 80% of terminal height, centered, with background content visible behind it
+**And** the `hintLine []Hint` field is populated and rendered at the modal bottom using the same `Hint{Key, Label, MinWidth, Priority}` system as the main footer
+**And** the hint line includes at minimum `Esc Close` and the modal's primary action
+
+**Given** `sizeHint` is `FullScreen`
+**When** the modal renders
+**Then** it occupies the full terminal viewport
+**And** the `hintLine []Hint` field is populated and rendered at the modal bottom
+
 **And** `internal/app/main_modal_test.go` is created covering the factory with ≥80% line coverage on `modal.go`
 
 ### Story 1.2: State Transition Contract
@@ -253,11 +276,11 @@ So that modal interaction is fully predictable across every modal in the applica
 **Then** the dialog displays an inline validation error and does not submit the value
 **And** when a valid value is entered and Enter pressed, the value is accepted and saved
 
-### Story 1.5: Startup State Restoration & API Resilience
+### Story 1.5: Startup State Restoration, FirstRunModal & API Resilience
 
 As an **operator**,
-I want the application to restore my last context and environment on startup and never crash on unexpected API responses,
-So that each session starts where I left off and operational incidents don't require tool restarts.
+I want the application to restore my last context and environment on startup, guide me to choose a home context on first run, and never crash on unexpected API responses,
+So that each session starts where I left off (or with a useful default I chose), and operational incidents don't require tool restarts.
 
 **Acceptance Criteria:**
 
@@ -267,7 +290,16 @@ So that each session starts where I left off and operational incidents don't req
 
 **Given** no previous state file exists (first run)
 **When** the application starts
-**Then** it opens with a sensible default context without error
+**Then** `FirstRunModal` opens as an `OverlayCenter` modal prompting the operator to select their home context from the list of configured resource types
+**And** the modal displays a searchable list of all resource types defined in `o8n-cfg.yaml`
+**And** on selection, the chosen context is persisted to `o8n-stat.yaml` as the home context and the application navigates to it
+**And** the modal cannot be dismissed with Esc — a home context selection is required to proceed
+
+**Given** the application is running (any session)
+**When** the operator presses `Ctrl+H`
+**Then** `FirstRunModal` opens, allowing the operator to change their home context
+**And** on selection, the new home context is persisted to `o8n-stat.yaml`
+**And** the application navigates to the newly selected context
 
 **Given** the API returns a malformed, partial, or empty JSON response for any resource type
 **When** the application processes the response
@@ -279,7 +311,7 @@ So that each session starts where I left off and operational incidents don't req
 
 ## Epic 2: Discoverable Actions
 
-Operators can see the primary available actions for any view directly in the footer — no help screen required. `Ctrl+Space` opens a context-sensitive action menu showing all configured actions for the selected row.
+Operators can see the primary available actions for any view directly in the footer — no help screen required. `Ctrl+Space` opens a context-sensitive action menu showing all configured actions for the selected row, with `[J] View as JSON` / `[Ctrl+J] Copy JSON` as the final item.
 
 ### Story 2.1: Footer Hint Push Model
 
@@ -321,17 +353,17 @@ So that the footer always reflects the actions relevant to my current context.
 
 As an **operator**,
 I want pressing `Ctrl+Space` on any table row to open a context-sensitive action menu showing all configured actions for that resource,
-So that I can discover and execute any available action without memorising every key binding, while Space remains available for row selection.
+So that I can discover and execute any available action without memorising every key binding, while Space remains available for future row selection.
 
 **Acceptance Criteria:**
 
-**Given** `ModalActionMenu` is registered as a factory modal type using `ModalConfig`
+**Given** `ModalActionMenu` is registered as a factory modal type using `ModalConfig` with `sizeHint: OverlayCenter`
 **When** the operator presses `Ctrl+Space` on a table row
 **Then** `ModalActionMenu` opens as a centered overlay listing all configured actions for the current resource type from `o8n-cfg.yaml`
 **And** mutation actions (HTTP verbs) are listed first
 **And** a visual separator appears before the first `type: navigate` action
 **And** navigate actions display a `→` suffix
-**And** `[y] View as YAML` is always the last item
+**And** `[J] View as JSON` is always the last item, with `Ctrl+J` shown as the direct-copy shortcut
 
 **Given** `ModalActionMenu` is open
 **When** the operator presses a single-character shortcut matching an action's configured key
@@ -339,7 +371,7 @@ So that I can discover and execute any available action without memorising every
 **And** `Up`/`Down` moves the cursor; Enter dispatches the highlighted action
 **And** Esc closes the menu without executing any action
 
-**Note:** `Space` (without Ctrl) is reserved for row selection — it must not trigger the action menu.
+**Note:** `Space` (without Ctrl) is reserved for future row selection — it must not trigger the action menu.
 
 ### Story 2.4: Full Key Binding Reference
 
@@ -351,18 +383,20 @@ So that I can discover any binding I've forgotten without leaving the applicatio
 
 **Given** the operator is in any view
 **When** the operator presses `?`
-**Then** the help modal opens as a full-screen overlay displaying all key bindings organized by category
+**Then** the help modal opens as an `OverlayLarge` overlay displaying all key bindings organized by category
+**And** the background content remains visible behind the modal
+**And** a hint line is rendered at the bottom showing at minimum: `Esc Close`
 
 **Given** the help modal is open
 **When** the operator presses Esc or `?` again
 **Then** the help modal closes and the operator returns to the previous view unchanged
-**And** the help modal is rendered via the modal factory (`ModalConfig` with `FullScreen` size hint)
+**And** the help modal is rendered via the modal factory (`ModalConfig` with `OverlayLarge` size hint)
 
 ---
 
 ## Epic 3: Core Operational Workflows
 
-Operators can navigate all 35 resource types, execute configured actions with success/error feedback, drill down through resource hierarchies, handle incidents (retry jobs, set annotations), claim and complete tasks with typed form variables, inspect and edit process variables, and search/filter any table.
+Operators can navigate all 35 resource types, execute configured actions with success/error feedback, drill down through resource hierarchies, handle incidents (retry jobs, set annotations), claim and complete tasks with typed form variables, inspect and edit process variables, view and copy resource data as JSON (`J` / `Ctrl+J`), and search/filter any table.
 
 ### Story 3.1: Resource Navigation & Context Switcher
 
@@ -475,11 +509,11 @@ So that I can process my task queue without switching to Operaton Cockpit.
 **And** pressing Enter on `[Complete]` submits the completion and the task disappears from the table
 **And** the footer confirms: `✓ Completed: [task name]`
 
-### Story 3.6: Process Variable Inspection & Editing
+### Story 3.6: Process Variable Inspection, Editing & JSON View
 
 As an **operator**,
-I want to inspect and edit process variables associated with a process instance,
-So that I can diagnose and correct stuck processes directly from the TUI.
+I want to inspect and edit process variables associated with a process instance, and view or copy any resource row as JSON,
+So that I can diagnose and correct stuck processes and extract resource data directly from the TUI.
 
 **Acceptance Criteria:**
 
@@ -493,9 +527,21 @@ So that I can diagnose and correct stuck processes directly from the TUI.
 **And** input is validated against the variable type (string, integer, boolean, JSON)
 **And** on confirmation, the variable is updated via the API and the table refreshes
 
-**Given** the operator presses `y` on any table row
+**Given** the operator presses `J` on any table row
+**When** the JSON viewer opens
+**Then** `ModalJSONView` opens as an `OverlayLarge` modal with title `ResourceType: ID` and the row's full data formatted as JSON in a scrollable viewport
+**And** a hint line is rendered at the bottom: `Ctrl+J Copy  Esc Close`
+**And** background content remains visible behind the modal
+
+**Given** `ModalJSONView` is open
+**When** the operator presses `Ctrl+J`
+**Then** the JSON content is copied to the system clipboard and the footer confirms: `✓ Copied to clipboard`
+**And** the modal remains open
+
+**Given** the operator presses `Ctrl+J` directly on any table row (without opening the viewer)
 **When** the copy action executes
-**Then** the row is copied as YAML to the system clipboard and the footer confirms
+**Then** the row's JSON is copied directly to the system clipboard and the footer confirms: `✓ Copied to clipboard`
+**And** `ModalJSONView` does not open
 
 ### Story 3.7: Search, Filter & Auto-Refresh
 
@@ -527,7 +573,7 @@ So that I can efficiently find specific resources and monitor live state.
 
 ## Epic 4: Stable Rendering & Visual Polish
 
-The application renders correctly at 120×20 in VSCode and IntelliJ IDEA terminals, adapts gracefully to narrower viewports (column and hint visibility), handles terminal resize events without layout corruption, and gives operators access to color skins and vim-style key bindings.
+The application renders correctly at 120×20 in VSCode and IntelliJ IDEA terminals, adapts gracefully to narrower viewports (column and hint visibility), handles terminal resize events without layout corruption, and gives operators access to color skins (with `env_name` semantic role as the primary environment identity signal) and vim-style key bindings.
 
 ### Story 4.1: 120×20 Rendering Validation
 
@@ -585,25 +631,30 @@ So that layout corruption doesn't interrupt my workflow.
 
 **Given** the terminal is resized to below the 120×20 minimum
 **When** the application renders
-**Then** it degrades gracefully per Story 4.2 — no panic, no corruption
+**Then** it degrades gracefully per the responsive rules in Story 4.2 — no panic, no corruption
 
-### Story 4.4: Color Skins
+### Story 4.4: Color Skins & Environment Identity
 
 As an **operator**,
-I want to switch between the available color skins to match my terminal theme or differentiate environments,
-So that I can customise the visual experience and use color as an environment signal.
+I want to switch between the available color skins, with the environment name displayed in a distinct color in the header so I can instantly distinguish prod from staging,
+So that I can customise the visual experience and use color as an environment identity signal.
 
 **Acceptance Criteria:**
 
-**Given** 35 built-in skin files exist in `skins/`
+**Given** built-in skin files exist in `skins/`
 **When** the operator switches skins using the skin selection key
 **Then** the active skin is applied immediately without a restart
 **And** all UI elements use semantic color roles from the new skin — no hardcoded colors remain
 **And** the active skin name is persisted to `o8n-stat.yaml` and restored on next startup
 
+**Given** a skin is active and the operator is viewing any resource table
+**When** the header renders
+**Then** the environment name label is displayed in the fixed top-right header position using the `env_name` semantic color role from the active skin
+**And** the environment label is always visible regardless of terminal width
+
 **Given** `ui_color` is set in `o8n-env.yaml` for the active environment
 **When** the skin is applied
-**Then** `ui_color` overrides the border accent and footer breadcrumb background regardless of which skin is active
+**Then** `ui_color` overrides the border accent color — it does not affect the `env_name` label color or any text content color
 
 ### Story 4.5: Vim-Style Key Bindings Toggle
 
@@ -631,7 +682,7 @@ So that keyboard-native operators can use familiar `j`/`k`/`g`/`G` navigation al
 
 ## Epic 5: Configuration, Security & Documentation
 
-Operators can configure 2+ named environments with distinct credentials and accent colors; contributors can add standard resource types via `o8n-cfg.yaml` alone. Credentials are never exposed in logs, debug output, or clipboard. `specification.md` accurately reflects post-sprint behavior.
+Operators can configure 2+ named environments with distinct credentials, accent colors, and `env_name` identity colors; contributors can add standard resource types via `o8n-cfg.yaml` alone. Credentials are never exposed in logs, debug output, or clipboard operations (JSON copy via `J`/`Ctrl+J` verified credential-free). `specification.md` accurately reflects post-sprint behavior.
 
 ### Story 5.1: Multi-Environment Configuration
 
@@ -644,12 +695,12 @@ So that I can operate across local, staging, and production without editing conf
 **Given** `o8n-env.yaml` contains 2 or more named environment entries, each with `name`, `api_url`, `username`, `password`, and `ui_color`
 **When** the application starts
 **Then** all configured environments are available in the environment switcher
-**And** the active environment's `ui_color` is applied to the border accent and footer breadcrumb background
+**And** the active environment's `ui_color` is applied to the border accent color
 
 **Given** the operator switches to a different environment
 **When** the switch completes
 **Then** all subsequent API calls use the new environment's `api_url` and credentials
-**And** the environment name and accent color update immediately in the UI
+**And** the environment name updates immediately in the top-right header position using the `env_name` semantic color role
 
 **Given** a single environment is configured
 **When** the application starts
@@ -671,7 +722,7 @@ So that sensitive API credentials cannot leak into version control or observabil
 **When** debug output is written to `./debug/o8n.log` and `./debug/last-screen.txt`
 **Then** no credentials (username, password, API URL with embedded auth) appear in any debug file
 
-**Given** the operator presses `y` to copy a row as YAML to the clipboard
+**Given** the operator presses `J` to open the JSON viewer or `Ctrl+J` to copy a row as JSON to the clipboard
 **When** the clipboard content is inspected
 **Then** no credential fields from `o8n-env.yaml` are present in the clipboard content
 
@@ -709,7 +760,7 @@ So that I can understand the full system from documentation alone without readin
 
 **Given** the modal factory pattern has been implemented
 **When** `specification.md` is reviewed
-**Then** it documents: the `ModalConfig` struct fields, the `renderModal()` factory signature, and the rule that new modal types are added via config registration — not via switch statements
+**Then** it documents: the `ModalConfig` struct fields (including `sizeHint` with all three size classes and `hintLine`), the `renderModal()` factory signature, and the rule that new modal types are added via config registration — not via switch statements
 
 **Given** the footer hint push model has been implemented
 **When** `specification.md` is reviewed
@@ -719,8 +770,13 @@ So that I can understand the full system from documentation alone without readin
 **When** `specification.md` is reviewed
 **Then** it documents: the `TransitionType` enum values and the rule that `prepareStateTransition` is mandatory for all navigation changes
 
-**Given** the `Ctrl+Space` action dialog has been implemented
+**Given** the `Ctrl+Space` action dialog and JSON viewer have been implemented
 **When** `specification.md` is reviewed
-**Then** it documents: `ModalActionMenu`, its `Ctrl+Space` trigger, the action list ordering (mutations first, separator, navigate with `→`), and single-char shortcut dispatch
+**Then** it documents: `ModalActionMenu` (`Ctrl+Space` trigger, action list ordering, `[J]`/`[Ctrl+J]` as last item), and `ModalJSONView` (`J` opens, `Ctrl+J` copies, `OverlayLarge` size class)
+
+**Given** the `env_name` semantic color role and `FirstRunModal` have been implemented
+**When** `specification.md` is reviewed
+**Then** it documents: `env_name` role in skin contract (fixed top-right header, primary env signal), `ui_color` as border accent only, and `FirstRunModal` flow (`Ctrl+H` to revisit)
 
 **Note:** `specification.md` updates are part of the definition of done for each sprint task throughout all epics — this story serves as the final verification pass.
+
