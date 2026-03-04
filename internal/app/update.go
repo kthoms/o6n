@@ -311,6 +311,8 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 					if targetEnv != m.currentEnv {
 						m.switchToEnvironment(targetEnv)
 						m.prepareStateTransition(TransitionFull)
+						m.currentRoot = dao.ResourceProcessDefinitions
+						m.contentHeader = dao.ResourceProcessDefinitions
 						m.breadcrumb = []string{m.currentRoot}
 						m.isLoading = true
 						m.apiCallStarted = time.Now()
@@ -971,8 +973,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 					m.popup.mode = popupModeNone
 					m.popup.input = ""
 					m.popup.cursor = -1
-					// clear any footer error
-					m.footerError = ""
+					m.popup.offset = 0
 					// centralized state cleanup for context switch
 					m.prepareStateTransition(TransitionFull)
 					m.currentRoot = rc
