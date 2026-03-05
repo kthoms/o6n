@@ -349,3 +349,23 @@ func TestBreadcrumbNumericNavigation(t *testing.T) {
 		t.Errorf("expected definitions view after pressing '1', got %q", m2.viewMode)
 	}
 }
+
+// TestHelpModalToggleWithQuestionMark verifies pressing ? again while ModalHelp is open closes it.
+func TestHelpModalToggleWithQuestionMark(t *testing.T) {
+	m := newTestModel(t)
+
+	// Open help modal with ?
+	m2, _ := sendKeyString(m, "?")
+	if m2.activeModal != ModalHelp {
+		t.Fatalf("expected ModalHelp after '?', got %v", m2.activeModal)
+	}
+
+	// Press ? again — should toggle the modal closed
+	m3, _ := sendKeyString(m2, "?")
+	if m3.activeModal != ModalNone {
+		t.Fatalf("expected ModalNone after second '?', got %v", m3.activeModal)
+	}
+	if m3.helpScroll != 0 {
+		t.Errorf("expected helpScroll reset to 0 after close, got %d", m3.helpScroll)
+	}
+}

@@ -440,7 +440,7 @@ All 8 modal types dismiss on `Esc`. This is the universal close key — no modal
 |---|---|---|---|---|
 | `ModalConfirmDelete` | Cancel with "Cancelled" feedback | Confirm (execute delete) | — | Focus: Cancel button safe default |
 | `ModalConfirmQuit` | Cancel | Confirm (quit) | — | Focus: Cancel button safe default |
-| `ModalHelp` | Close + reset scroll | Swallowed (no-op) | `q` | Only `q`/`Esc` close; all other keys swallowed |
+| `ModalHelp` | Close + reset scroll | Swallowed (no-op) | `q`, `?` | `q`/`Esc`/`?` close; all other keys swallowed |
 | `ModalEdit` | Close without saving; clears inline error | Validate + save via API | — | Modal stays open on validation error |
 | `ModalSort` | Cancel (no sort change) | Apply selected sort | — | `↑`/`↓` to navigate columns |
 | `ModalDetailView` | Close | Swallowed | `q` | Scroll with `↑`/`↓` |
