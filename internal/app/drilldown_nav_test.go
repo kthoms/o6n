@@ -95,7 +95,7 @@ func TestUserNavigateActionH(t *testing.T) {
 	}
 
 	// Open actions menu and simulate pressing 'h'
-	m.showActionsMenu = true
+	m.activeModal = ModalActionMenu
 	m.actionsMenuItems = items
 	ret, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("h")})
 	newM := ret.(model)

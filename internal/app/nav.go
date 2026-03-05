@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -160,7 +161,7 @@ func (m *model) buildActionsForRoot() []actionItem {
 		}
 	}
 
-	// Always add "View as JSON" as the last action
+	// Always add "View as JSON" and "Copy as JSON" as the last two actions
 	items = append(items, actionItem{key: "J", label: "View as JSON", cmd: func(m *model) tea.Cmd {
 		row := m.table.SelectedRow()
 		if len(row) == 0 {
@@ -169,6 +170,15 @@ func (m *model) buildActionsForRoot() []actionItem {
 		m.detailContent = m.buildDetailContent(row)
 		m.detailScroll = 0
 		m.activeModal = ModalDetailView
+		return nil
+	}})
+	items = append(items, actionItem{key: "ctrl+j", label: "Copy as JSON", cmd: func(m *model) tea.Cmd {
+		row := m.table.SelectedRow()
+		if len(row) == 0 {
+			return nil
+		}
+		content := m.buildDetailContent(row)
+		_ = clipboard.WriteAll(content)
 		return nil
 	}})
 

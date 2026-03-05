@@ -143,7 +143,8 @@ const (
 	ModalDetailView
 	ModalEnvironment
 	ModalTaskComplete
-	ModalFirstRun // home context selection on first run (or Ctrl+H to revisit)
+	ModalFirstRun   // home context selection on first run (or Ctrl+H to revisit)
+	ModalActionMenu // Ctrl+Space context-sensitive action menu
 )
 
 // taskCompleteFocusArea tracks keyboard focus within the task completion modal
@@ -400,7 +401,6 @@ type model struct {
 	sortPopupCursor int
 
 	// Actions menu state
-	showActionsMenu   bool
 	actionsMenuItems  []actionItem
 	actionsMenuCursor int
 

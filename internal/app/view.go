@@ -926,12 +926,6 @@ func (m model) View() string {
 		}
 	}
 
-	// If actions menu is active, overlay it
-	if m.showActionsMenu {
-		overlay := m.renderActionsMenu(m.lastWidth, m.lastHeight)
-		return overlayCenter(baseView, overlay)
-	}
-
 	// Ensure the main UI uses the full terminal area to avoid trailing space artifacts
 	w := m.lastWidth
 	h := m.lastHeight
@@ -1214,9 +1208,9 @@ func (m *model) renderEnvPopup(width, height int) string {
 	return content
 }
 
-// renderActionsMenu renders the context actions menu popup.
-func (m *model) renderActionsMenu(width, height int) string {
-
+// renderActionsMenuBody renders the inner content of the context actions menu.
+// Returns just the text body; the modal factory (ModalActionMenu) applies border and centering.
+func (m model) renderActionsMenuBody() string {
 	var b strings.Builder
 	root := m.currentRoot
 	row := m.table.SelectedRow()
@@ -1241,16 +1235,7 @@ func (m *model) renderActionsMenu(width, height int) string {
 		}
 		b.WriteString(fmt.Sprintf("%s[%s] %s\n", cursor, item.key, item.label))
 	}
-	b.WriteString("\nEsc: Close")
-
-	modalStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(col(m.skin, "borderFocus")).
-		Padding(0, 1).
-		Width(35)
-
-	modal := modalStyle.Render(b.String())
-	return overlayCenter(lipgloss.Place(width, height, lipgloss.Left, lipgloss.Top, ""), modal)
+	return b.String()
 }
 
 // renderTaskCompleteModal renders the full-screen task completion dialog.

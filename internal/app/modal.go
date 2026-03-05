@@ -154,6 +154,18 @@ func init() {
 			// Intentionally no Esc — selection is required (Story 1.5 AC2)
 		},
 	})
+
+	registerModal(ModalActionMenu, ModalConfig{
+		SizeHint: OverlayCenter,
+		BodyRenderer: func(m model) string {
+			return m.renderActionsMenuBody()
+		},
+		HintLine: []Hint{
+			{Key: "↑↓", Label: "nav", Priority: 1},
+			{Key: "Enter", Label: "run", Priority: 1},
+			{Key: "Esc", Label: "close", Priority: 2},
+		},
+	})
 }
 
 // renderModal is the factory entry point for all modal rendering.

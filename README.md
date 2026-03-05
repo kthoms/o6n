@@ -86,15 +86,16 @@ go build -o o8n .
 
 | Key | Action |
 |---|---|
-| `Ctrl+Space` | Open actions menu for selected row |
+| `Ctrl+Space` | Open actions menu (`ModalActionMenu`) for selected row |
 | `J` | View raw JSON detail |
+| `Ctrl+J` | Copy row as JSON to clipboard |
 | `e` | Edit value (on editable columns) |
 | `s` | Sort by column |
 | `Ctrl+D` | Delete/terminate (with confirmation) |
 
-Actions are resource-specific and defined in `o8n-cfg.yaml`. Press `Space` on any row to see available actions.
+Actions are resource-specific and defined in `o8n-cfg.yaml`. Press `Ctrl+Space` on any row to open the `ModalActionMenu` overlay.
 
-Mutation actions (HTTP verbs) are listed first, followed by view-style navigation actions that show a `→` suffix and are separated from the mutations; the help screen also surfaces these navigation actions under a **VIEWS** section for quick reference.
+Mutation actions (HTTP verbs) are listed first, followed by view-style navigation actions that show a `→` suffix and are separated from the mutations. `[J] View as JSON` and `[Ctrl+J] Copy as JSON` are always the last two items. The help screen surfaces navigation actions under a dedicated **VIEWS** section.
 
 ## Configuration
 

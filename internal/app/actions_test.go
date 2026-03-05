@@ -66,8 +66,8 @@ func TestActionsMenuOpensOnSpace(t *testing.T) {
 
 	m2, _ := sendKeyString(m, "ctrl+space")
 
-	if !m2.showActionsMenu {
-		t.Error("expected showActionsMenu to be true after Ctrl+Space")
+	if m2.activeModal != ModalActionMenu {
+		t.Error("expected activeModal to be ModalActionMenu after Ctrl+Space")
 	}
 	if len(m2.actionsMenuItems) == 0 {
 		t.Error("expected actions menu items to be populated")
@@ -204,32 +204,37 @@ func TestActionsDefaultViewAsJSON(t *testing.T) {
 
 	items := m.buildActionsForRoot()
 
-	// Should have at least View as JSON
-	if len(items) < 1 {
-		t.Error("expected at least 1 action (View as JSON)")
+	// Should have at least View as JSON and Copy as JSON
+	if len(items) < 2 {
+		t.Error("expected at least 2 actions (View as JSON + Copy as JSON)")
 	}
-	if items[len(items)-1].key != "J" {
-		t.Errorf("expected last action key to be 'J', got %q", items[len(items)-1].key)
+	last := items[len(items)-1]
+	secondLast := items[len(items)-2]
+	if secondLast.key != "J" {
+		t.Errorf("expected second-to-last action key to be 'J', got %q", secondLast.key)
+	}
+	if last.key != "ctrl+j" {
+		t.Errorf("expected last action key to be 'ctrl+j', got %q", last.key)
 	}
 }
 
 func TestActionsMenuEscCloses(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
-	m.showActionsMenu = true
+	m.activeModal = ModalActionMenu
 	m.actionsMenuItems = []actionItem{{key: "y", label: "Test"}}
 
 	m2, _ := sendKeyString(m, "esc")
 
-	if m2.showActionsMenu {
-		t.Error("expected showActionsMenu to be false after Esc")
+	if m2.activeModal == ModalActionMenu {
+		t.Error("expected activeModal to not be ModalActionMenu after Esc")
 	}
 }
 
 func TestActionsMenuKeyShortcut(t *testing.T) {
 	m := newTestModel(t)
 	m.splashActive = false
-	m.showActionsMenu = true
+	m.activeModal = ModalActionMenu
 	executed := false
 	m.actionsMenuItems = []actionItem{
 		{key: "t", label: "Test Action", cmd: func(m *model) tea.Cmd {
@@ -240,8 +245,8 @@ func TestActionsMenuKeyShortcut(t *testing.T) {
 
 	m2, _ := sendKeyString(m, "t")
 
-	if m2.showActionsMenu {
-		t.Error("expected showActionsMenu to be false after shortcut key")
+	if m2.activeModal == ModalActionMenu {
+		t.Error("expected activeModal to not be ModalActionMenu after shortcut key")
 	}
 	if !executed {
 		t.Error("expected action command to be executed")
@@ -256,8 +261,8 @@ func TestActionsMenuNoRowNoOpen(t *testing.T) {
 
 	m2, _ := sendKeyString(m, " ")
 
-	if m2.showActionsMenu {
-		t.Error("expected showActionsMenu to remain false with no rows")
+	if m2.activeModal == ModalActionMenu {
+		t.Error("expected activeModal to not be ModalActionMenu with no rows")
 	}
 }
 
@@ -277,5 +282,35 @@ func TestBuildDetailContent(t *testing.T) {
 	}
 	if !strings.Contains(content, "MyProcess") {
 		t.Error("expected content to contain 'MyProcess'")
+	}
+}
+
+func TestActionsMenuItemsIncludeCtrlJ(t *testing.T) {
+	m := newTestModel(t)
+	m.config = testConfigWithActions()
+	m.splashActive = false
+	m.currentRoot = "process-instance"
+	m.breadcrumb = []string{"process-instance"}
+
+	items := m.buildActionsForRoot()
+
+	// Both J and ctrl+j must be present and J must come before ctrl+j
+	jIdx, ctrlJIdx := -1, -1
+	for i, item := range items {
+		switch item.key {
+		case "J":
+			jIdx = i
+		case "ctrl+j":
+			ctrlJIdx = i
+		}
+	}
+	if jIdx < 0 {
+		t.Error("expected 'J' (View as JSON) in actions menu")
+	}
+	if ctrlJIdx < 0 {
+		t.Error("expected 'ctrl+j' (Copy as JSON) in actions menu")
+	}
+	if jIdx >= 0 && ctrlJIdx >= 0 && jIdx >= ctrlJIdx {
+		t.Errorf("expected J (idx=%d) to come before ctrl+j (idx=%d)", jIdx, ctrlJIdx)
 	}
 }

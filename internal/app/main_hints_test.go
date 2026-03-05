@@ -278,3 +278,23 @@ func TestCurrentViewHints_MainTableUnchanged(t *testing.T) {
 		t.Fatal("expected ↑↓ nav hint in main table view")
 	}
 }
+
+func TestCurrentViewHints_ModalActionMenuActive(t *testing.T) {
+	m := newTestModel(t)
+	m.activeModal = ModalActionMenu
+
+	hints := currentViewHints(m)
+
+	if _, ok := findHint(hints, "↑↓", "nav"); !ok {
+		t.Fatal("expected ↑↓ nav hint for ModalActionMenu")
+	}
+	if _, ok := findHint(hints, "Enter", "run"); !ok {
+		t.Fatal("expected Enter run hint for ModalActionMenu")
+	}
+	if _, ok := findHint(hints, "Esc", "close"); !ok {
+		t.Fatal("expected Esc close hint for ModalActionMenu")
+	}
+	if _, ok := findHint(hints, "?", "help"); ok {
+		t.Fatal("did not expect table help hint while ModalActionMenu is active")
+	}
+}

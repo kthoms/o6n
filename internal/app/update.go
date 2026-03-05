@@ -164,10 +164,10 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 		}
 
 		// Handle actions menu keys
-		if m.showActionsMenu {
+		if m.activeModal == ModalActionMenu {
 			switch s {
 			case "esc":
-				m.showActionsMenu = false
+				m.activeModal = ModalNone
 				return m, nil
 			case "up":
 				if m.actionsMenuCursor > 0 {
@@ -182,18 +182,18 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			case "enter":
 				if m.actionsMenuCursor >= 0 && m.actionsMenuCursor < len(m.actionsMenuItems) {
 					item := m.actionsMenuItems[m.actionsMenuCursor]
-					m.showActionsMenu = false
+					m.activeModal = ModalNone
 					if item.cmd != nil {
 						return m, item.cmd(&m)
 					}
 				}
-				m.showActionsMenu = false
+				m.activeModal = ModalNone
 				return m, nil
 			default:
 				// Check shortcut keys
 				for _, item := range m.actionsMenuItems {
 					if s == item.key {
-						m.showActionsMenu = false
+						m.activeModal = ModalNone
 						if item.cmd != nil {
 							return m, item.cmd(&m)
 						}
@@ -771,7 +771,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			return m, nil
 		case "ctrl+e":
 			// Open environment selection popup
-			if m.activeModal == ModalNone && !m.showActionsMenu {
+			if m.activeModal == ModalNone {
 				m.activeModal = ModalEnvironment
 				// Set cursor to current environment
 				m.envPopupCursor = 0
@@ -835,7 +835,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				m.footerStatusKind = kind
 				return m, cmd
 			}
-			if m.activeModal == ModalNone && !m.showActionsMenu {
+			if m.activeModal == ModalNone {
 				m.activeModal = ModalSort
 				m.sortPopupCursor = 0
 				if m.sortColumn >= 0 {
@@ -855,7 +855,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			}
 			m.actionsMenuItems = m.buildActionsForRoot()
 			if len(m.actionsMenuItems) > 0 {
-				m.showActionsMenu = true
+				m.activeModal = ModalActionMenu
 				m.actionsMenuCursor = 0
 			}
 			return m, nil
@@ -865,7 +865,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				m.popup.input += s
 				return m, nil
 			}
-			if m.activeModal == ModalNone && !m.showActionsMenu {
+			if m.activeModal == ModalNone {
 				row := m.table.SelectedRow()
 				if len(row) == 0 {
 					return m, nil
@@ -895,7 +895,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				return m, nil
 			}
 			// Task claim: only active on task table with no modal/menu open
-			if def := m.findTableDef(m.currentTableKey()); def != nil && def.Name == "task" && m.activeModal == ModalNone && !m.showActionsMenu {
+			if def := m.findTableDef(m.currentTableKey()); def != nil && def.Name == "task" && m.activeModal == ModalNone {
 				row := m.table.SelectedRow()
 				if len(row) == 0 {
 					return m, nil
@@ -928,7 +928,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 				return m, nil
 			}
 			// Task unclaim: only active on task table with no modal/menu open
-			if def := m.findTableDef(m.currentTableKey()); def != nil && def.Name == "task" && m.activeModal == ModalNone && !m.showActionsMenu {
+			if def := m.findTableDef(m.currentTableKey()); def != nil && def.Name == "task" && m.activeModal == ModalNone {
 				row := m.table.SelectedRow()
 				if len(row) == 0 {
 					return m, nil

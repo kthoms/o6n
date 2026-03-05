@@ -318,7 +318,7 @@ Columns with `hide_order` auto-hide on narrow terminals. Low-priority columns sh
 | Global UI | Single key | `?` help, `:` context switch, `/` search, `s` sort |
 | View toggles | Single key | `r` auto-refresh, `L` latency, `y` detail view |
 | Edit | `e` | Opens edit modal for selected row |
-| Actions menu | `Space` | Opens context-specific actions for selected row |
+| Actions menu | `Ctrl+Space` | Opens context-specific actions for selected row |
 
 ### Config-Driven Actions
 
@@ -333,9 +333,10 @@ Resource-specific action examples:
 - **Job**: r=Retry, x=Execute, s=Suspend, a=Activate, Ctrl+D=Delete
 - **Incident**: a=Set Annotation, Ctrl+D=Resolve
 
-### Actions Menu
+### Actions Menu (`ModalActionMenu`)
 
-`Space` opens a context-sensitive overlay menu for the selected row:
+`Ctrl+Space` opens `ModalActionMenu`, a factory-registered `OverlayCenter` modal listing all configured actions for the current resource. `Space` alone is reserved for future row selection and does not trigger the menu.
+
 ```
 +------------------------------------+
 |  Actions: process-instance         |
@@ -343,13 +344,20 @@ Resource-specific action examples:
 |                                    |
 |  > [s] Suspend                     |
 |    [r] Resume                      |
-|    [y] View as JSON                |
+|  ──────────────────────────────────|
+|    [h] View history →              |
+|    [J] View as JSON                |
+|    [ctrl+j] Copy as JSON           |
 |                                    |
-|  Esc: Close                        |
 +------------------------------------+
 ```
 
-"View as JSON" (`y`) is always appended as the last item.
+- Mutation actions (HTTP verbs) are listed first
+- A visual separator appears before the first `type: navigate` action
+- Navigate actions show a `→` suffix
+- `[J] View as JSON` and `[ctrl+j] Copy as JSON` are always the last two items
+- Single-character shortcuts dispatch immediately without cursor movement or Enter
+- `Up`/`Down` navigates the cursor; `Enter` dispatches the highlighted action; `Esc` closes
 
 ### Navigate Actions
 
@@ -381,9 +389,11 @@ All modals are **overlays** on top of the main UI — the background table remai
 | `ModalHelp` | `?` | `OverlayLarge` (scrollable, ~80% terminal) |
 | `ModalEdit` | `e` | `overlayCenter(baseView, modal)` |
 | `ModalSort` | `s` | `overlayCenter(baseView, modal)` |
-| `ModalDetailView` | `y` | `OverlayLarge` (scrollable, ~80% terminal) |
+| `ModalDetailView` | `J` | `OverlayLarge` (scrollable, ~80% terminal) |
 | `ModalEnvironment` | `Ctrl+E` | `overlayCenter(baseView, modal)` |
 | `ModalTaskComplete` | Task completion flow | `FullScreen` custom layout |
+| `ModalFirstRun` | First launch / `Ctrl+H` | `OverlayCenter` (context selection, no Esc) |
+| `ModalActionMenu` | `Ctrl+Space` | `OverlayCenter` (context-sensitive action list) |
 
 ### Edit Modal
 
