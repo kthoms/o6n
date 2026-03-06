@@ -1,4 +1,4 @@
-# o8n — Claude Code Context
+# o6n — Claude Code Context
 
 A k9s-inspired terminal UI for managing Operaton workflow engines, built in Go using the Charmbracelet TUI ecosystem (Bubble Tea, Bubbles, Lipgloss).
 
@@ -7,19 +7,19 @@ A k9s-inspired terminal UI for managing Operaton workflow engines, built in Go u
 ## ⚠️ CRITICAL - READ FIRST
 
 **NEVER delete or empty these files:**
-- **o8n-cfg.yaml** (760+ lines) - Table definitions, column specs, drilldown rules
-- **o8n-env.yaml** (~10 lines) - Local environment config with credentials
+- **o6n-cfg.yaml** (760+ lines) - Table definitions, column specs, drilldown rules
+- **o6n-env.yaml** (~10 lines) - Local environment config with credentials
 
 **BEFORE EACH COMMIT:**
 ```bash
-wc -l o8n-*.yaml  # Verify: ~760 cfg, ~10 env
-git diff o8n-*.yaml  # Should show NO deletions
+wc -l o6n-*.yaml  # Verify: ~760 cfg, ~10 env
+git diff o6n-*.yaml  # Should show NO deletions
 ```
 
 **IF ACCIDENTALLY DELETED:**
 ```bash
-git show HEAD~2:o8n-cfg.yaml > o8n-cfg.yaml
-# Then restore o8n-env.yaml with local settings
+git show HEAD~2:o6n-cfg.yaml > o6n-cfg.yaml
+# Then restore o6n-env.yaml with local settings
 ```
 
 See the critical section above for details.
@@ -31,13 +31,13 @@ See the critical section above for details.
 ```bash
 make test       # Clear test cache and run all tests
 make cover      # Generate HTML coverage report (cov.out)
-make build      # Build binary to execs/o8n
+make build      # Build binary to execs/o6n
 go test ./...   # Standard test run
 go vet ./...    # Static analysis
 gofmt -w .      # Format code
 
-./o8n --debug       # Run with debug logging → ./debug/access.log + ./debug/last-screen.txt
-./o8n --no-splash   # Skip splash screen and go directly to main view
+./o6n --debug       # Run with debug logging → ./debug/access.log + ./debug/last-screen.txt
+./o6n --no-splash   # Skip splash screen and go directly to main view
 ```
 
 ## Architecture
@@ -67,8 +67,8 @@ All async operations (API calls) return `tea.Cmd` and communicate results back v
 
 ### Configuration (Split Files)
 
-- **`o8n-env.yaml`** — credentials, URLs, ui_color per environment — git-ignored, 0600 perms
-- **`o8n-cfg.yaml`** — table definitions, column specs, drilldown rules — committable
+- **`o6n-env.yaml`** — credentials, URLs, ui_color per environment — git-ignored, 0600 perms
+- **`o6n-cfg.yaml`** — table definitions, column specs, drilldown rules — committable
 - `LoadSplitConfig()` merges both into a unified `Config` struct at runtime
 
 ### Navigation Model

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# o8n Nightfox Theme
+# o6n Nightfox Theme
 # Based on the Nightfox.nvim color scheme:
 # https://github.com/EdenEast/nightfox.nvim
 # -----------------------------------------------------------------------------
@@ -18,7 +18,7 @@ blue: &blue "#719cd6"
 red: &red "#c94f6d"
 
 # Skin...
-o8n:
+o6n:
   body:
     fgColor: *foreground
     bgColor: *background

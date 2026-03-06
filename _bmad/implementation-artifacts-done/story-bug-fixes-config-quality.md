@@ -6,11 +6,11 @@ Five targeted fixes identified by intensive quality review: remove an unconditio
 
 ## Motivation
 
-1. **DEBUG log always on** — `run.go:82` calls `log.Printf("DEBUG: skinName resolved to: %s", skinName)` unconditionally. Every startup writes noise to `debug/o8n.log` regardless of `--debug`. Violates the intent of the debug flag.
+1. **DEBUG log always on** — `run.go:82` calls `log.Printf("DEBUG: skinName resolved to: %s", skinName)` unconditionally. Every startup writes noise to `debug/o6n.log` regardless of `--debug`. Violates the intent of the debug flag.
 
-2. **Delegate Task fails silently** — `o8n-cfg.yaml:303` configures `body: '{}'` for `POST /task/{id}/delegate`. The Operaton REST API requires `{"userId": "..."}` in the body — an empty object returns HTTP 400/422. The claim action correctly uses `{"userId": "{currentUser}"}`. Delegate should do the same (delegate to current user, i.e. self-delegate which is the common reassignment pattern).
+2. **Delegate Task fails silently** — `o6n-cfg.yaml:303` configures `body: '{}'` for `POST /task/{id}/delegate`. The Operaton REST API requires `{"userId": "..."}` in the body — an empty object returns HTTP 400/422. The claim action correctly uses `{"userId": "{currentUser}"}`. Delegate should do the same (delegate to current user, i.e. self-delegate which is the common reassignment pattern).
 
-3. **Ctrl+A server search non-functional** — `update.go:1408-1417` and `commands.go` fully implement server-side search triggered by Ctrl+A when `def.SearchParam != ""`. But `search_param` is absent from every table in `o8n-cfg.yaml`. The feature shows a "no search param" message for every resource. Key tables need this wired up.
+3. **Ctrl+A server search non-functional** — `update.go:1408-1417` and `commands.go` fully implement server-side search triggered by Ctrl+A when `def.SearchParam != ""`. But `search_param` is absent from every table in `o6n-cfg.yaml`. The feature shows a "no search param" message for every resource. Key tables need this wired up.
 
 4. **variable-instance is permanently read-only** — The `variable-instance` table shows in task drilldowns and process-instance drilldowns. It has three columns (name, value, processInstanceId) and zero actions or edit_action. The `process-variables` table already has a working `edit_action` pattern. Variable instances need the same treatment via `PUT /variable-instance/{id}`.
 
@@ -24,12 +24,12 @@ Five targeted fixes identified by intensive quality review: remove an unconditio
 
 ### Fix 2: Delegate Task body
 
-- [x] **AC-2:** In `o8n-cfg.yaml`, the Delegate Task action for the `task` table changes from `body: '{}'` to `body: '{"userId": "{currentUser}"}'`. The `{currentUser}` placeholder is already resolved by the generic action executor (same path as `c`/claim).
+- [x] **AC-2:** In `o6n-cfg.yaml`, the Delegate Task action for the `task` table changes from `body: '{}'` to `body: '{"userId": "{currentUser}"}'`. The `{currentUser}` placeholder is already resolved by the generic action executor (same path as `c`/claim).
 - [x] **AC-3:** A test verifies that sending `d` on a task table row dispatches a generic action with a body containing the current username.
 
 ### Fix 3: search_param for key tables
 
-- [x] **AC-4:** `o8n-cfg.yaml` — the following tables gain a `search_param` entry:
+- [x] **AC-4:** `o6n-cfg.yaml` — the following tables gain a `search_param` entry:
   - `process-definition` → `search_param: nameLike`
   - `process-instance` → `search_param: businessKeyLike`
   - `task` → `search_param: nameLike`
@@ -42,7 +42,7 @@ Five targeted fixes identified by intensive quality review: remove an unconditio
 
 ### Fix 4: variable-instance edit_action
 
-- [x] **AC-7:** `o8n-cfg.yaml` — `variable-instance` table gains an `edit_action`:
+- [x] **AC-7:** `o6n-cfg.yaml` — `variable-instance` table gains an `edit_action`:
   ```yaml
   edit_action:
     method: PUT
@@ -61,9 +61,9 @@ Five targeted fixes identified by intensive quality review: remove an unconditio
 
 ## Tasks
 
-### Task 1: Config fixes (o8n-cfg.yaml)
+### Task 1: Config fixes (o6n-cfg.yaml)
 
-**Files:** `o8n-cfg.yaml`
+**Files:** `o6n-cfg.yaml`
 
 1. Fix Delegate Task body: `body: '{}'` → `body: '{"userId": "{currentUser}"}'`
 2. Add `search_param` to: `process-definition`, `process-instance`, `task`, `user`, `group`, `deployment`, `incident`
@@ -102,7 +102,7 @@ Five targeted fixes identified by intensive quality review: remove an unconditio
 
 ## File List
 
-- `o8n-cfg.yaml` — delegate body fix, search_param additions, variable-instance edit_action
+- `o6n-cfg.yaml` — delegate body fix, search_param additions, variable-instance edit_action
 - `internal/app/run.go` — gate DEBUG log
 - `internal/app/transition.go` — clear searchMode
 - `internal/app/config_quality_test.go` (new) — tests for AC-3, AC-10, AC-12
@@ -110,7 +110,7 @@ Five targeted fixes identified by intensive quality review: remove an unconditio
 
 ## Dev Agent Record
 
-- Implementation: Implemented AC-1..AC-12: updated o8n-cfg.yaml, added search_param entries and variable-instance edit_action; gated debug log in `internal/app/run.go`; cleared searchMode in `internal/app/transition.go`; omitted File-type variables when completing tasks in `internal/app/update.go` to avoid server 500; added tests in `internal/app/config_quality_test.go`.
+- Implementation: Implemented AC-1..AC-12: updated o6n-cfg.yaml, added search_param entries and variable-instance edit_action; gated debug log in `internal/app/run.go`; cleared searchMode in `internal/app/transition.go`; omitted File-type variables when completing tasks in `internal/app/update.go` to avoid server 500; added tests in `internal/app/config_quality_test.go`.
 - Tests: Added unit tests and ran `go test ./...` — internal/app tests pass locally.
 - Files changed: listed above.
 

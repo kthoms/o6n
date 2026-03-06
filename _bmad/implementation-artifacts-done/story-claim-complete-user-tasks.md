@@ -6,7 +6,7 @@ Enable users to claim user tasks, fill in output variables via a structured comp
 
 ## Motivation
 
-The task table currently supports completing tasks with a single keypress that sends an empty body — no variables, no context. Real Operaton user tasks have form variables (output) and process variables (input context). Without a proper completion dialog, users must use the REST API or Operaton Cockpit to actually fill in task data. This feature closes that gap and makes o8n a first-class tool for human task work.
+The task table currently supports completing tasks with a single keypress that sends an empty body — no variables, no context. Real Operaton user tasks have form variables (output) and process variables (input context). Without a proper completion dialog, users must use the REST API or Operaton Cockpit to actually fill in task data. This feature closes that gap and makes o6n a first-class tool for human task work.
 
 ## Acceptance Criteria
 
@@ -73,9 +73,9 @@ The task table currently supports completing tasks with a single keypress that s
 
 ### Task 1: Config and body template changes
 
-**Files:** `o8n-cfg.yaml`, `internal/app/commands.go` (or wherever body template resolution lives)
+**Files:** `o6n-cfg.yaml`, `internal/app/commands.go` (or wherever body template resolution lives)
 
-1. In `o8n-cfg.yaml` task table: rename claim action key from `k` → `c`; update body to `{"userId": "{currentUser}"}`
+1. In `o6n-cfg.yaml` task table: rename claim action key from `k` → `c`; update body to `{"userId": "{currentUser}"}`
 2. Remove the `c` (Complete Task, `POST /task/{id}/complete body:'{}'`) action — it is replaced by the dialog flow
 3. Add `{currentUser}` as a supported placeholder in body template resolution, resolved from `m.config.Environments[m.currentEnv].Username`
 
@@ -180,7 +180,7 @@ The task table currently supports completing tasks with a single keypress that s
 - **Ordering:** `map[string]VariableValueDto` is unordered; sort both input variables and output fields alphabetically by name for deterministic display.
 - **Multiple `textinput.Model` instances:** Unlike the edit modal (one `editInput`), the completion dialog needs one `textinput.Model` per form variable field. Initialize all at dialog open; focus the first one. Only the currently focused field receives key events.
 - **Enter on task table:** Intercept before the drilldown logic in `update.go`. Condition: `m.currentRoot == "task" || m.currentTableKey() == "task"`. The task table's two drilldowns (`variable-instance`, `history-detail`) remain accessible via `→` / right arrow.
-- **`o8n-cfg.yaml` task action cleanup:** The old bare `c: POST /task/{id}/complete body:'{}'` must be removed. Leaving it would conflict with the new claim binding and bypass the dialog.
+- **`o6n-cfg.yaml` task action cleanup:** The old bare `c: POST /task/{id}/complete body:'{}'` must be removed. Leaving it would conflict with the new claim binding and bypass the dialog.
 
 ### API Endpoints Used
 
@@ -234,7 +234,7 @@ All 38 ACs implemented and verified. All existing tests pass. 26 new tests cover
 
 ## File List
 
-- `o8n-cfg.yaml` — removed `c: Complete Task`, renamed `k: Claim Task` → `c: Claim Task` with `{currentUser}` body
+- `o6n-cfg.yaml` — removed `c: Complete Task`, renamed `k: Claim Task` → `c: Claim Task` with `{currentUser}` body
 - `internal/app/model.go` — added `ModalTaskComplete`, `taskCompleteFocusArea`, `taskCompleteField`, `variableValue`, `taskVariablesLoadedMsg`, `closeTaskDialog` field on `actionExecutedMsg`, task complete model fields
 - `internal/app/commands.go` — added `operaton` import, `{currentUser}` resolution in `executeActionCmd`, `fetchTaskVariablesCmd`, `claimTaskCmd`, `unclaimTaskCmd`, `completeTaskCmd`, `getVarTypeName`
 - `internal/client/client.go` — added `OperatonAPI()` and `AuthContext()` accessor methods

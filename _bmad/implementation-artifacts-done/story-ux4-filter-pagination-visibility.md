@@ -33,7 +33,7 @@ pageIndicator = m.styles.PageCounter.Render(paginationStr) + " "
 rightPart := pageIndicator + rpStyle.Render(remoteSymbol+latencyStr)
 ```
 
-The page indicator is in the rightmost cluster of the footer. The user's eye tracks left-to-right; the far right is scanned last. k9s places resource count inline in the title bar. The o8n box title already shows total count (`— 42 items`) — adding the page position there gives it higher visibility.
+The page indicator is in the rightmost cluster of the footer. The user's eye tracks left-to-right; the far right is scanned last. k9s places resource count inline in the title bar. The o6n box title already shows total count (`— 42 items`) — adding the page position there gives it higher visibility.
 
 Desired behaviour: when on page N of M, the box title should include the page position:
 ```

@@ -14,8 +14,8 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/kthoms/o8n/internal/config"
-	"github.com/kthoms/o8n/internal/dao"
+	"github.com/kthoms/o6n/internal/config"
+	"github.com/kthoms/o6n/internal/dao"
 )
 
 // buildColumnsFor builds table.Column slice for a named table using the config definitions

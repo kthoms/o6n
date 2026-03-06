@@ -6,7 +6,7 @@ Improve accessibility by documenting and verifying color-blind safe behavior, an
 
 ## Motivation
 
-1. **Accessibility:** o8n uses color-coded status indicators (`green circle`=operational, `red X`=unreachable, `yellow circle`=unknown). The shape/symbol differentiation already works for color-blind users, but this is accidental — not verified or documented. High-contrast skins exist but aren't labeled as accessible.
+1. **Accessibility:** o6n uses color-coded status indicators (`green circle`=operational, `red X`=unreachable, `yellow circle`=unknown). The shape/symbol differentiation already works for color-blind users, but this is accidental — not verified or documented. High-contrast skins exist but aren't labeled as accessible.
 
 2. **Empty states:** When a table has no rows (e.g., no process instances for a definition), the content box shows blank space. Great TUIs show contextual hints in empty states (k9s: "No resources found", lazygit: contextual tips).
 

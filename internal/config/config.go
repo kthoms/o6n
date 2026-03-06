@@ -1,4 +1,4 @@
-// Package config provides configuration management for o8n
+// Package config provides configuration management for o6n
 package config
 
 import (
@@ -178,14 +178,14 @@ type TableDef struct {
 	EditAction  *EditActionDef `yaml:"edit_action,omitempty"` // generic save config for editable columns
 }
 
-// EnvConfig holds environment-specific configuration (moved to o8n-env.yaml)
+// EnvConfig holds environment-specific configuration (moved to o6n-env.yaml)
 type EnvConfig struct {
 	Environments map[string]Environment `yaml:"environments"`
 	Active       string                 `yaml:"active,omitempty"`
 	Skin         string                 `yaml:"skin,omitempty"`
 }
 
-// AppConfig holds application-level configuration (moved to o8n-cfg.yaml)
+// AppConfig holds application-level configuration (moved to o6n-cfg.yaml)
 type AppConfig struct {
 	Tables  []TableDef `yaml:"tables,omitempty"`
 	UI      *UIConfig  `yaml:"ui,omitempty"`
@@ -236,8 +236,8 @@ type NavState struct {
 	GenericParams         map[string]string `yaml:"generic_params,omitempty"`
 }
 
-// AppState holds mutable runtime state persisted to o8n-stat.yml.
-// This keeps o8n-env.yaml stable (credentials only) and separates user preferences.
+// AppState holds mutable runtime state persisted to o6n-stat.yml.
+// This keeps o6n-env.yaml stable (credentials only) and separates user preferences.
 type AppState struct {
 	ActiveEnv   string   `yaml:"active_env,omitempty"`
 	Skin        string   `yaml:"skin,omitempty"`
@@ -245,7 +245,7 @@ type AppState struct {
 	Navigation  NavState `yaml:"navigation,omitempty"`
 }
 
-// LoadAppState loads runtime state from the given path (o8n-stat.yml).
+// LoadAppState loads runtime state from the given path (o6n-stat.yml).
 // Returns an empty state (not an error) if the file does not exist yet.
 func LoadAppState(path string) (*AppState, error) {
 	data, err := os.ReadFile(path)
@@ -298,7 +298,7 @@ func SaveEnvConfig(path string, cfg *EnvConfig) error {
 	return nil
 }
 
-// LoadAppConfig loads application config (o8n-cfg.yaml)
+// LoadAppConfig loads application config (o6n-cfg.yaml)
 func LoadAppConfig(path string) (*AppConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -323,10 +323,10 @@ func SaveAppConfig(path string, cfg *AppConfig) error {
 	return nil
 }
 
-// LoadSplitConfig loads configuration from the split files o8n-env.yaml and o8n-cfg.yaml
+// LoadSplitConfig loads configuration from the split files o6n-env.yaml and o6n-cfg.yaml
 func LoadSplitConfig() (*Config, error) {
-	envCfg, envErr := LoadEnvConfig("o8n-env.yaml")
-	appCfg, appErr := LoadAppConfig("o8n-cfg.yaml")
+	envCfg, envErr := LoadEnvConfig("o6n-env.yaml")
+	appCfg, appErr := LoadAppConfig("o6n-cfg.yaml")
 	if envErr != nil || appErr != nil {
 		return nil, fmt.Errorf("failed to load split configs (env: %v, app: %v)", envErr, appErr)
 	}
@@ -351,14 +351,14 @@ func LoadConfig(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// SaveConfig persists the env.Active and env.Skin fields back to o8n-env.yaml (best-effort).
+// SaveConfig persists the env.Active and env.Skin fields back to o6n-env.yaml (best-effort).
 // WARNING: This only saves environment configuration, NOT table definitions.
-// Table definitions in o8n-cfg.yaml are static and should never be programmatically overwritten.
+// Table definitions in o6n-cfg.yaml are static and should never be programmatically overwritten.
 func SaveConfig(path string, cfg *Config) error {
 	// Only persist environment settings (which environment is active)
-	// NEVER touch o8n-cfg.yaml (table definitions) - it is a static configuration file
+	// NEVER touch o6n-cfg.yaml (table definitions) - it is a static configuration file
 	envCfg := &EnvConfig{Environments: cfg.Environments, Active: cfg.Active, Skin: cfg.Skin}
-	if err := SaveEnvConfig("o8n-env.yaml", envCfg); err != nil {
+	if err := SaveEnvConfig("o6n-env.yaml", envCfg); err != nil {
 		return err
 	}
 	return nil

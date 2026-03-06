@@ -130,8 +130,8 @@ func TestModalSizeHint_OverlayLargeHelp(t *testing.T) {
 		t.Error("expected non-empty output for ModalHelp")
 	}
 	// Should contain help content
-	if !strings.Contains(output, "o8n Help") {
-		t.Error("expected 'o8n Help' in ModalHelp output")
+	if !strings.Contains(output, "o6n Help") {
+		t.Error("expected 'o6n Help' in ModalHelp output")
 	}
 	// OverlayLarge output should contain the hint line rendered from HintLine
 	if !strings.Contains(output, "scroll") {

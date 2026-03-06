@@ -12,7 +12,7 @@ So that I can discover and execute any available action without memorising every
 
 1. **Given** `ModalActionMenu` is registered as a factory modal type using `ModalConfig` with `sizeHint: OverlayCenter`
    **When** the operator presses `Ctrl+Space` on a table row
-   **Then** `ModalActionMenu` opens as a centered overlay listing all configured actions for the current resource type from `o8n-cfg.yaml`
+   **Then** `ModalActionMenu` opens as a centered overlay listing all configured actions for the current resource type from `o6n-cfg.yaml`
    **And** mutation actions (HTTP verbs) are listed first
    **And** a visual separator appears before the first `type: navigate` action
    **And** navigate actions display a `→` suffix

@@ -254,7 +254,7 @@ func TestEditValidation_IntegerRejectsText(t *testing.T) {
 - `internal/app/transition.go` — complete from Story 1.2
 - `internal/app/nav.go` — complete from Stories 1.2/1.3
 - `internal/operaton/` — never modify
-- `o8n-cfg.yaml` / `o8n-env.yaml` — no changes
+- `o6n-cfg.yaml` / `o6n-env.yaml` — no changes
 
 ### Specification Update Obligation
 

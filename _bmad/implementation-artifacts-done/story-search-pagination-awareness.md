@@ -42,4 +42,4 @@ Currently, `/` search filters rows client-side within the current page only. On 
 - Operaton REST API supports various filter parameters per resource (e.g., `processDefinitionKeyLike`, `nameLike`)
 - Not all resources support text filtering — this needs a per-table config flag (e.g., `search_param: nameLike`)
 - **Key conflict resolved:** `Ctrl+F` stays as page-forward (consistent with vim/k9s convention). Server-side search uses `Ctrl+A` (search-All) — only active after a search filter is locked via `Enter`. This avoids any context-dependent key remapping and keeps the interaction flow clear: `/term` -> `Enter` (lock) -> `Ctrl+A` (widen to all pages)
-- `Ctrl+A` is currently unbound in o8n, so no conflict
+- `Ctrl+A` is currently unbound in o6n, so no conflict

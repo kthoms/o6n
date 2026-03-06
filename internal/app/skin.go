@@ -40,7 +40,7 @@ type Colors struct {
 
 // Skin is the top-level skin definition loaded from a YAML file.
 // The new schema uses a flat colors: section. For backward compatibility,
-// the old nested o8n: structure is also read and used to fill missing roles.
+// the old nested o6n: structure is also read and used to fill missing roles.
 type Skin struct {
 	Colors Colors `yaml:"colors"`
 	// Legacy nested structure for backward-compat reading
@@ -95,7 +95,7 @@ type Skin struct {
 				ValueColor string `yaml:"valueColor"`
 			} `yaml:"yaml"`
 		} `yaml:"views"`
-	} `yaml:"o8n"`
+	} `yaml:"o6n"`
 }
 
 // Color returns the color string for the given semantic role.
@@ -160,7 +160,7 @@ func (s *Skin) Color(role string) string {
 	return ""
 }
 
-// migrateFromLegacy fills missing Colors roles from the old nested o8n.* structure.
+// migrateFromLegacy fills missing Colors roles from the old nested o6n.* structure.
 func (s *Skin) migrateFromLegacy() {
 	c := &s.Colors
 	o := s.O8n

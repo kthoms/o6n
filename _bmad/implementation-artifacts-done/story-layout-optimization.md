@@ -6,9 +6,9 @@ Remove the ghost left pane allocation that wastes 25% of terminal width, elimina
 
 ## Motivation
 
-The current layout has a `leftW = width / 4` allocation in the resize handler that sizes a `list.Model` which is never rendered. At a 120-char terminal, this steals 30 characters from the content table — a 36% width loss. Combined with 1-2 wasted spacer rows in the header, o8n shows significantly less data than it could.
+The current layout has a `leftW = width / 4` allocation in the resize handler that sizes a `list.Model` which is never rendered. At a 120-char terminal, this steals 30 characters from the content table — a 36% width loss. Combined with 1-2 wasted spacer rows in the header, o6n shows significantly less data than it could.
 
-After these fixes, o8n matches k9s's layout efficiency: 5 fixed overhead rows, full terminal width for content.
+After these fixes, o6n matches k9s's layout efficiency: 5 fixed overhead rows, full terminal width for content.
 
 ## Acceptance Criteria
 

@@ -5,13 +5,13 @@ inputDocuments:
   - "_bmad/planning-artifacts/architecture.md"
   - "_bmad/planning-artifacts/epics.md"
 date: '2026-03-03'
-project: 'o8n'
+project: 'o6n'
 ---
 
 # Implementation Readiness Assessment Report
 
 **Date:** 2026-03-03
-**Project:** o8n
+**Project:** o6n
 
 ## Document Inventory
 
@@ -25,4 +25,4 @@ project: 'o8n'
 - `_bmad/planning-artifacts/epics.md` — whole document, status: complete (all 4 steps, 5 epics / 25 stories)
 
 ### UX Design Documents
-- Not applicable — o8n is a CLI/TUI tool; no UX design document required or expected
+- Not applicable — o6n is a CLI/TUI tool; no UX design document required or expected

@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	operaton "github.com/kthoms/o8n/internal/operaton"
+	operaton "github.com/kthoms/o6n/internal/operaton"
 )
 
 func TestFetchInstancesWithParams_Fallback(t *testing.T) {

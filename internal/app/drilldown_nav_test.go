@@ -7,15 +7,15 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kthoms/o8n/internal/config"
+	"github.com/kthoms/o6n/internal/config"
 )
 
 func TestUserRowsNoDrillPrefix(t *testing.T) {
-	envCfg, err := config.LoadEnvConfig("o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("o6n-env.yaml")
 	if err != nil {
 		t.Fatalf("load env config: %v", err)
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("load app config: %v", err)
 	}
@@ -41,11 +41,11 @@ func TestUserRowsNoDrillPrefix(t *testing.T) {
 }
 
 func TestEnterNoopOnUser(t *testing.T) {
-	envCfg, err := config.LoadEnvConfig("o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("o6n-env.yaml")
 	if err != nil {
 		t.Fatalf("load env config: %v", err)
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("load app config: %v", err)
 	}
@@ -68,11 +68,11 @@ func TestEnterNoopOnUser(t *testing.T) {
 }
 
 func TestUserNavigateActionH(t *testing.T) {
-	envCfg, err := config.LoadEnvConfig("o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("o6n-env.yaml")
 	if err != nil {
 		t.Fatalf("load env config: %v", err)
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("load app config: %v", err)
 	}
@@ -109,11 +109,11 @@ func TestUserNavigateActionH(t *testing.T) {
 }
 
 func TestBuildActionsForRootIncludesNavigateLabel(t *testing.T) {
-	envCfg, err := config.LoadEnvConfig("o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("o6n-env.yaml")
 	if err != nil {
 		t.Fatalf("load env config: %v", err)
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("load app config: %v", err)
 	}

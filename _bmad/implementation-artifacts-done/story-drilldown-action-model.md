@@ -90,7 +90,7 @@ Everything else that leads to a related resource is a **navigation action**: a S
   - `Column string \`yaml:"column,omitempty"\`` — source column for the ID value (default `"id"` if empty)
 - **AC-3c:** The existing `Method`, `Path`, `Body`, `Confirm`, `IDColumn` fields on `ActionDef` are unused (and may be absent) for `type: navigate` actions. The config loader does not error on their absence.
 
-### AC-4: `o8n-cfg.yaml` updated
+### AC-4: `o6n-cfg.yaml` updated
 
 - **AC-4a:** All 12 resources listed in the drilldown inventory have their `drilldown:` entries updated to the single canonical entry (or removed entirely).
 - **AC-4b:** All 15 navigate actions from the table above are added to their respective resources.
@@ -149,9 +149,9 @@ Everything else that leads to a related resource is a **navigation action**: a S
 
 ---
 
-### Task 2: Update `o8n-cfg.yaml`
+### Task 2: Update `o6n-cfg.yaml`
 
-**File:** `o8n-cfg.yaml`
+**File:** `o6n-cfg.yaml`
 
 1. For every resource, convert `drilldown:` from a YAML sequence to an inline mapping. Change:
    ```yaml
@@ -385,7 +385,7 @@ hasDrilldownPrefix := def.Drilldown != nil
 | `internal/app/nav.go` | `buildActionsForRoot()` handles `type: navigate` |
 | `internal/app/view.go` | Menu separator; help screen drill-down condition; help Views section |
 | `internal/app/table.go` | `hasDrilldownPrefix` pointer check |
-| `o8n-cfg.yaml` | All drilldown format changes + 15 new navigate actions |
+| `o6n-cfg.yaml` | All drilldown format changes + 15 new navigate actions |
 | `internal/app/drilldown_nav_test.go` | New test file for AC-9a through AC-9d |
 
 ---

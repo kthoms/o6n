@@ -1,4 +1,4 @@
-name: o8n Test
+name: o6n Test
 
 on:
   workflow_dispatch:

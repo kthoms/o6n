@@ -33,7 +33,7 @@ so that I can process my task queue efficiently without switching to Operaton Co
 
 - [ ] **Implement Claim/Unclaim logic (AC: 1, 2)**
   - [ ] Add `claimTaskCmd` and `unclaimTaskCmd` to `internal/app/commands.go` using established `client.NewClient` pattern.
-  - [ ] Map actions in `o8n-cfg.yaml` for `task` resource to these commands.
+  - [ ] Map actions in `o6n-cfg.yaml` for `task` resource to these commands.
   - [ ] Dispatch `actionExecutedMsg` on success to trigger footer feedback and automated refresh.
 - [ ] **Initialize Task Completion State (AC: 3, 4)**
   - [ ] Add `taskCompleteFields []taskCompleteField` and `taskInputVars map[string]interface{}` to `model.go`.

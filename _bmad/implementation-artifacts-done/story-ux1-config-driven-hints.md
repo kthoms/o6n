@@ -21,7 +21,7 @@ if m.viewMode == "process-definition" {
 // else: zero context hints for every other table
 ```
 
-A user navigating to the `job` table sees only `? help  : switch  PgDn/PgUp page`. There is no hint for Enter (drilldown to `job-instance`), no hint for `e` (editable columns), and no hint for Esc (back). The 35+ config-driven tables defined in `o8n-cfg.yaml` are completely invisible to the hint system.
+A user navigating to the `job` table sees only `? help  : switch  PgDn/PgUp page`. There is no hint for Enter (drilldown to `job-instance`), no hint for `e` (editable columns), and no hint for Esc (back). The 35+ config-driven tables defined in `o6n-cfg.yaml` are completely invisible to the hint system.
 
 ### Bug H-3: `↑↓ nav` is context-gated; `PgDn/PgUp page` is always shown
 
@@ -57,7 +57,7 @@ A user navigating to the `job` table sees only `? help  : switch  PgDn/PgUp page
 **File:** `internal/app/hint_system_test.go` (new)
 
 1. **AC-6** — Custom table hint generation: build a config with `job` table + drilldown + editable column, set `navigationStack` non-empty, assert all four context hints present.
-2. **AC-7** — `process-definition` regression: use real `o8n-cfg.yaml`, assert Enter/Esc/edit hints still appear.
+2. **AC-7** — `process-definition` regression: use real `o6n-cfg.yaml`, assert Enter/Esc/edit hints still appear.
 3. **AC-8** — `↑↓ nav` always present: test a minimal model with no drilldown, assert `↑↓ nav` in hints.
 
 ## Dev Notes

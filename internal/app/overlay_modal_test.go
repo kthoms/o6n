@@ -24,8 +24,8 @@ func TestT1_HelpModalIsOverlay(t *testing.T) {
 
 	output := m.View()
 
-	if !strings.Contains(output, "o8n Help") {
-		t.Error("expected help modal content 'o8n Help' in output")
+	if !strings.Contains(output, "o6n Help") {
+		t.Error("expected help modal content 'o6n Help' in output")
 	}
 	// Base view footer always contains " | " separators — proves bg is rendered
 	if !strings.Contains(output, baseViewMarker(m)) {

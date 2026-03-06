@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kthoms/o8n/internal/config"
-	"github.com/kthoms/o8n/internal/dao"
+	"github.com/kthoms/o6n/internal/config"
+	"github.com/kthoms/o6n/internal/dao"
 )
 
 // Test that the cursor (selected row index) is preserved across page down/up

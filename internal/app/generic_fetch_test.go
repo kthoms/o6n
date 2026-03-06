@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kthoms/o8n/internal/config"
+	"github.com/kthoms/o6n/internal/config"
 )
 
 func TestGenericFetchUsesTableDefAndCount(t *testing.T) {

@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/kthoms/o8n/internal/config"
+	"github.com/kthoms/o6n/internal/config"
 )
 
 func TestDelegateActionBodyContainsCurrentUser(t *testing.T) {
-	envCfg, err := config.LoadEnvConfig("o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("o6n-env.yaml")
 	if err != nil {
 		t.Fatalf("failed to load env config: %v", err)
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("failed to load app config: %v", err)
 	}
@@ -31,11 +31,11 @@ func TestDelegateActionBodyContainsCurrentUser(t *testing.T) {
 }
 
 func TestVariableInstanceEditOpensModal(t *testing.T) {
-	envCfg, err := config.LoadEnvConfig("o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("o6n-env.yaml")
 	if err != nil {
 		t.Fatalf("load env config: %v", err)
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("load app config: %v", err)
 	}
@@ -52,11 +52,11 @@ func TestVariableInstanceEditOpensModal(t *testing.T) {
 }
 
 func TestSearchModeClearedOnDrilldown(t *testing.T) {
-	envCfg, err := config.LoadEnvConfig("o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("o6n-env.yaml")
 	if err != nil {
 		t.Fatalf("load env config: %v", err)
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("load app config: %v", err)
 	}

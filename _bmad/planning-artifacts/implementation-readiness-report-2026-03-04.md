@@ -6,14 +6,14 @@ inputDocuments:
   - "_bmad/planning-artifacts/ux-design-specification.md"
   - "_bmad/planning-artifacts/epics.md"
 date: '2026-03-04'
-project: 'o8n'
+project: 'o6n'
 runNumber: 2
 ---
 
 # Implementation Readiness Assessment Report
 
 **Date:** 2026-03-04 (Run 2 — re-run after UX design completion)
-**Project:** o8n
+**Project:** o6n
 
 ---
 
@@ -43,7 +43,7 @@ runNumber: 2
 
 FR1: Operator can navigate to any of the 35 configured resource types using the context switcher (`:` key)
 FR2: Operator can browse a paginated table of resources in the current context
-FR3: Operator can drill down from a parent resource to related child resources as configured in `o8n-cfg.yaml`
+FR3: Operator can drill down from a parent resource to related child resources as configured in `o6n-cfg.yaml`
 FR4: Operator can navigate back through the drill-down history level by level using Escape
 FR5: Operator can jump directly to a specific level in the breadcrumb trail
 FR6: Operator can execute any action configured for the current resource type on the selected row
@@ -67,8 +67,8 @@ FR23: Operator can unclaim a task
 FR24: Operator can complete a claimed task via a dialog that displays input variables read-only and allows editing output (form) variables
 FR25: Task completion dialog supports variable types: string, integer, boolean
 FR26: Operator can configure 2 or more named environments with distinct API URLs, credentials, and accent colors
-FR27: Application reads resource types, columns, actions, and drilldown rules from `o8n-cfg.yaml` at startup
-FR28: Contributor can add a new standard resource type by editing `o8n-cfg.yaml` without modifying Go source code
+FR27: Application reads resource types, columns, actions, and drilldown rules from `o6n-cfg.yaml` at startup
+FR28: Contributor can add a new standard resource type by editing `o6n-cfg.yaml` without modifying Go source code
 FR29: Operator can inspect process variables associated with a process instance
 FR30: Operator can edit a process variable value inline with type validation
 FR31: Operator can copy the selected resource row **as YAML** to the system clipboard ⚠️
@@ -281,7 +281,7 @@ UX spec requires a `FirstRunModal` that prompts the operator to select their hom
 
 **Required fix:** Replace the "sensible default" AC with:
 - First-run: `FirstRunModal` (OverlayCenter) opens, prompting operator to select home context from the configured resource types
-- On selection: home context is persisted to `o8n-stat.yaml`; app navigates to it
+- On selection: home context is persisted to `o6n-stat.yaml`; app navigates to it
 - `Ctrl+H`: re-opens the `FirstRunModal` to allow home context change at any time
 
 #### 🟡 Minor Concerns

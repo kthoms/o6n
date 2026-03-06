@@ -9,11 +9,11 @@ inputDocuments:
   - "_bmad/planning-artifacts/implementation-readiness-report-2026-03-04.md"
 ---
 
-# o8n - Epic Breakdown
+# o6n - Epic Breakdown
 
 ## Overview
 
-This document provides the complete epic and story breakdown for o8n, decomposing the requirements from the PRD, UX Design, and Architecture into implementable stories.
+This document provides the complete epic and story breakdown for o6n, decomposing the requirements from the PRD, UX Design, and Architecture into implementable stories.
 
 ## Requirements Inventory
 
@@ -21,7 +21,7 @@ This document provides the complete epic and story breakdown for o8n, decomposin
 
 FR1: Operator can navigate to any of the 35 configured resource types using the context switcher (`:` key)
 FR2: Operator can browse a paginated table of resources in the current context
-FR3: Operator can drill down from a parent resource to related child resources as configured in `o8n-cfg.yaml`
+FR3: Operator can drill down from a parent resource to related child resources as configured in `o6n-cfg.yaml`
 FR4: Operator can navigate back through the drill-down history level by level using Escape
 FR5: Operator can jump directly to a specific level in the breadcrumb trail
 FR6: Operator can execute any action configured for the current resource type on the selected row
@@ -45,8 +45,8 @@ FR23: Operator can unclaim a task
 FR24: Operator can complete a claimed task via a dialog that displays input variables read-only and allows editing output (form) variables
 FR25: Task completion dialog supports variable types: string, integer, boolean
 FR26: Operator can configure 2 or more named environments with distinct API URLs, credentials, and accent colors
-FR27: Application reads resource types, columns, actions, and drilldown rules from `o8n-cfg.yaml` at startup
-FR28: Contributor can add a new standard resource type by editing `o8n-cfg.yaml` without modifying Go source code
+FR27: Application reads resource types, columns, actions, and drilldown rules from `o6n-cfg.yaml` at startup
+FR28: Contributor can add a new standard resource type by editing `o6n-cfg.yaml` without modifying Go source code
 FR29: Operator can inspect process variables associated with a process instance
 FR30: Operator can edit a process variable value inline with type validation
 FR31: Operator can copy the selected resource row as JSON to the system clipboard (`J` opens JSON viewer; `Ctrl+J` copies directly)
@@ -69,11 +69,11 @@ NFR5: All API errors surface as user-visible footer messages — no silent failu
 NFR6: After a network timeout or connection failure, the application continues to accept user input and displays an error in the footer — no restart required
 NFR7: Footer error and success messages auto-clear after 5 seconds and do not block further interaction
 NFR8: Credentials (username, password) must never appear in log files, debug output, or clipboard operations
-NFR9: `o8n-env.yaml` must be git-ignored and maintained at `chmod 600` file permissions at all times
+NFR9: `o6n-env.yaml` must be git-ignored and maintained at `chmod 600` file permissions at all times
 NFR10: Application renders at 120×20 in VSCode integrated terminal and IntelliJ IDEA terminal without layout corruption, text overflow, or missing primary content
 NFR11: Application operates in standard POSIX terminals (xterm, iTerm2, Alacritty) without modification — no missing key bindings, rendering artifacts, or color failures
 NFR12: Application handles terminal resize events without corrupting the rendered layout
-NFR13: Adding a standard resource type (table + columns + actions + drilldowns) requires only edits to `o8n-cfg.yaml` — no Go source changes
+NFR13: Adding a standard resource type (table + columns + actions + drilldowns) requires only edits to `o6n-cfg.yaml` — no Go source changes
 NFR14: The OpenAPI client in `internal/operaton/` remains auto-generated — no manual edits permitted; regenerated via `.devenv/scripts/generate-api-client.sh`
 NFR15: The modal system is config-driven — new modal types are supported through the modal factory without hardcoded per-type Go logic
 
@@ -84,13 +84,13 @@ NFR15: The modal system is config-driven — new modal types are supported throu
 - **Footer Hint Push Model (arch-critical):** `Hint{Key, Label, MinWidth, Priority}` struct + per-view hint functions extracted into `internal/app/hints.go` (new file). Footer renderer is stateless.
 - **ModalActionMenu:** `Ctrl+Space` action dialog implemented as a factory-registered modal type (`ModalActionMenu`) — reads config actions at render time, single-char shortcuts dispatch actions, visual separator before navigate actions. Last item always: `[J] View as JSON` / `[Ctrl+J] Copy JSON`. `Space` (without Ctrl) reserved for future row selection.
 - **ModalJSONView (NEW):** `OverlayLarge` modal. Title = resource type + ID. `J` opens it; `Ctrl+J` copies JSON directly to clipboard without opening. Hint line: `Ctrl+J Copy  Esc Close`. Replaces the `y` copy-as-YAML pattern throughout.
-- **FirstRunModal (NEW):** `OverlayCenter` modal. On fresh start (no `o8n-stat.yaml`), prompts operator to select their home context from configured resource types. Selection persisted to `o8n-stat.yaml`. `Ctrl+H` opens it in subsequent sessions to revisit the home context choice.
-- **env_name semantic color role (NEW):** Added to skin contract. Governs the environment label color in the fixed top-right header position — the primary environment identity signal. Set per-skin; configured in `o8n-env.yaml` per environment. `ui_color` is demoted to border accent only (secondary accent).
+- **FirstRunModal (NEW):** `OverlayCenter` modal. On fresh start (no `o6n-stat.yaml`), prompts operator to select their home context from configured resource types. Selection persisted to `o6n-stat.yaml`. `Ctrl+H` opens it in subsequent sessions to revisit the home context choice.
+- **env_name semantic color role (NEW):** Added to skin contract. Governs the environment label color in the fixed top-right header position — the primary environment identity signal. Set per-skin; configured in `o6n-env.yaml` per environment. `ui_color` is demoted to border accent only (secondary accent).
 - **Brownfield — no starter bootstrap required:** Existing codebase is the foundation. No template scaffolding needed.
 - **`specification.md` update obligation:** Post-sprint, `specification.md` MUST be updated to document the modal factory, hint push model, `TransitionType` enum, `ModalActionMenu`, and `ModalJSONView`. This is part of the definition of done for each sprint task.
 - **Async contract:** All API calls via `tea.Cmd` — no goroutines writing to model directly. No blocking of Bubble Tea event loop.
 - **Generated client:** `internal/operaton/` is auto-generated and must never be edited manually. Regenerated via `.devenv/scripts/generate-api-client.sh`.
-- **Credential isolation:** `o8n-env.yaml` git-ignored, `chmod 600`. Credentials must never appear in logs, debug output (`./debug/`), or clipboard operations.
+- **Credential isolation:** `o6n-env.yaml` git-ignored, `chmod 600`. Credentials must never appear in logs, debug output (`./debug/`), or clipboard operations.
 - **Test coverage target:** 80%+ line coverage on new sprint files (`modal.go`, `hints.go`). Verify with `make cover`.
 
 ### FR Coverage Map
@@ -121,8 +121,8 @@ FR23: Epic 3 — Unclaim a task
 FR24: Epic 3 — Complete task via dialog (input read-only, output editable)
 FR25: Epic 3 — Task completion dialog supports string, integer, boolean variable types
 FR26: Epic 5 — Configure 2+ named environments with distinct URLs, credentials, accent colors
-FR27: Epic 5 — Read resource types, columns, actions, drilldowns from `o8n-cfg.yaml` at startup
-FR28: Epic 5 — Add standard resource type via `o8n-cfg.yaml` only (no Go changes)
+FR27: Epic 5 — Read resource types, columns, actions, drilldowns from `o6n-cfg.yaml` at startup
+FR28: Epic 5 — Add standard resource type via `o6n-cfg.yaml` only (no Go changes)
 FR29: Epic 3 — Inspect process variables associated with a process instance
 FR30: Epic 3 — Edit process variable value inline with type validation
 FR31: Epic 3 — Copy selected resource row as JSON to system clipboard (`J` viewer / `Ctrl+J` direct copy)
@@ -143,11 +143,11 @@ NFR5: Epic 3 — All API errors surface as footer messages
 NFR6: Epic 3 — Application continues after network failure, no restart required
 NFR7: Epic 3 — Footer messages auto-clear after 5 seconds
 NFR8: Epic 5 — Credentials never appear in logs, debug output, or clipboard
-NFR9: Epic 5 — `o8n-env.yaml` git-ignored, `chmod 600` at all times
+NFR9: Epic 5 — `o6n-env.yaml` git-ignored, `chmod 600` at all times
 NFR10: Epic 4 — Renders at 120×20 in VSCode and IntelliJ IDEA without corruption
 NFR11: Epic 4 — Operates in standard POSIX terminals without modification
 NFR12: Epic 4 — Handles terminal resize without layout corruption
-NFR13: Epic 5 — Standard resource type addition requires only `o8n-cfg.yaml` edits
+NFR13: Epic 5 — Standard resource type addition requires only `o6n-cfg.yaml` edits
 NFR14: Epic 5 — `internal/operaton/` remains auto-generated, never manually edited
 NFR15: Epic 1 — Modal system is config-driven via factory, no per-type hardcoded logic
 
@@ -177,7 +177,7 @@ The application renders correctly at 120×20 in VSCode and IntelliJ IDEA termina
 **Architecture deliverables:** `env_name` semantic color role in skin system
 
 ### Epic 5: Configuration, Security & Documentation
-Operators can configure 2+ named environments with distinct credentials, accent colors, and `env_name` identity colors; contributors can add standard resource types via `o8n-cfg.yaml` alone. Credentials are never exposed in logs, debug output, or clipboard operations (JSON copy via `J`/`Ctrl+J` verified credential-free). `specification.md` accurately reflects post-sprint behavior.
+Operators can configure 2+ named environments with distinct credentials, accent colors, and `env_name` identity colors; contributors can add standard resource types via `o6n-cfg.yaml` alone. Credentials are never exposed in logs, debug output, or clipboard operations (JSON copy via `J`/`Ctrl+J` verified credential-free). `specification.md` accurately reflects post-sprint behavior.
 **FRs covered:** FR26, FR27, FR28
 **NFRs covered:** NFR8, NFR9, NFR13, NFR14
 **Additional:** `specification.md` update is part of the definition of done for all sprint tasks
@@ -190,7 +190,7 @@ Operators can interact with any modal type — confirm, delete, help, edit, sort
 
 ### Story 1.1: Modal Factory Foundation
 
-As a **developer contributing to o8n**,
+As a **developer contributing to o6n**,
 I want a `ModalConfig` struct and `renderModal()` factory function in `internal/app/modal.go`,
 So that all modal types are rendered from a single, consistent code path with no per-type layout logic in the view render path.
 
@@ -222,7 +222,7 @@ So that all modal types are rendered from a single, consistent code path with no
 
 ### Story 1.2: State Transition Contract
 
-As a **developer contributing to o8n**,
+As a **developer contributing to o6n**,
 I want a `TransitionType` enum and `prepareStateTransition(t TransitionType)` function enforced across all navigation paths in `internal/app/nav.go`,
 So that every navigation action uses a single, auditable gate that eliminates state leakage bugs.
 
@@ -284,21 +284,21 @@ So that each session starts where I left off (or with a useful default I chose),
 
 **Acceptance Criteria:**
 
-**Given** `o8n-stat.yaml` contains the last active context and environment from a previous session
+**Given** `o6n-stat.yaml` contains the last active context and environment from a previous session
 **When** the application starts
 **Then** it navigates directly to the last active context in the last active environment and loads data automatically
 
 **Given** no previous state file exists (first run)
 **When** the application starts
 **Then** `FirstRunModal` opens as an `OverlayCenter` modal prompting the operator to select their home context from the list of configured resource types
-**And** the modal displays a searchable list of all resource types defined in `o8n-cfg.yaml`
-**And** on selection, the chosen context is persisted to `o8n-stat.yaml` as the home context and the application navigates to it
+**And** the modal displays a searchable list of all resource types defined in `o6n-cfg.yaml`
+**And** on selection, the chosen context is persisted to `o6n-stat.yaml` as the home context and the application navigates to it
 **And** the modal cannot be dismissed with Esc — a home context selection is required to proceed
 
 **Given** the application is running (any session)
 **When** the operator presses `Ctrl+H`
 **Then** `FirstRunModal` opens, allowing the operator to change their home context
-**And** on selection, the new home context is persisted to `o8n-stat.yaml`
+**And** on selection, the new home context is persisted to `o6n-stat.yaml`
 **And** the application navigates to the newly selected context
 
 **Given** the API returns a malformed, partial, or empty JSON response for any resource type
@@ -359,7 +359,7 @@ So that I can discover and execute any available action without memorising every
 
 **Given** `ModalActionMenu` is registered as a factory modal type using `ModalConfig` with `sizeHint: OverlayCenter`
 **When** the operator presses `Ctrl+Space` on a table row
-**Then** `ModalActionMenu` opens as a centered overlay listing all configured actions for the current resource type from `o8n-cfg.yaml`
+**Then** `ModalActionMenu` opens as a centered overlay listing all configured actions for the current resource type from `o6n-cfg.yaml`
 **And** mutation actions (HTTP verbs) are listed first
 **And** a visual separator appears before the first `type: navigate` action
 **And** navigate actions display a `→` suffix
@@ -406,7 +406,7 @@ So that I can reach any operational view in seconds from anywhere in the applica
 
 **Acceptance Criteria:**
 
-**Given** 35 resource types are defined in `o8n-cfg.yaml`
+**Given** 35 resource types are defined in `o6n-cfg.yaml`
 **When** the operator presses `:` to open the context switcher
 **Then** a searchable list of all configured resource types is displayed
 
@@ -417,7 +417,7 @@ So that I can reach any operational view in seconds from anywhere in the applica
 
 **Given** the selected resource type returns data from the API
 **When** the table loads
-**Then** the correct columns for that resource type (as defined in `o8n-cfg.yaml`) are displayed and the first row is selected
+**Then** the correct columns for that resource type (as defined in `o6n-cfg.yaml`) are displayed and the first row is selected
 
 ### Story 3.2: Drill-Down Navigation & Breadcrumb
 
@@ -427,7 +427,7 @@ So that I can traverse resource hierarchies (e.g., process definition → instan
 
 **Acceptance Criteria:**
 
-**Given** the current resource type has drilldown rules configured in `o8n-cfg.yaml`
+**Given** the current resource type has drilldown rules configured in `o6n-cfg.yaml`
 **When** the operator presses Enter on a row
 **Then** `prepareStateTransition(TransitionDrillDown)` is called, the current view is pushed onto the navigation stack, and the child resource type loads filtered to the selected parent
 
@@ -579,7 +579,7 @@ The application renders correctly at 120×20 in VSCode and IntelliJ IDEA termina
 
 As an **operator**,
 I want the application to render without overflow or truncation of critical information at the 120×20 minimum viewport,
-So that o8n is fully usable in VSCode's integrated terminal and IntelliJ IDEA without manual resizing.
+So that o6n is fully usable in VSCode's integrated terminal and IntelliJ IDEA without manual resizing.
 
 **Acceptance Criteria:**
 
@@ -603,7 +603,7 @@ So that the most important information remains visible even in constrained termi
 
 **Given** the terminal is narrower than 120 columns
 **When** the table renders
-**Then** columns are hidden in `hide_order` sequence (lowest-priority columns hidden first, as defined in `o8n-cfg.yaml`)
+**Then** columns are hidden in `hide_order` sequence (lowest-priority columns hidden first, as defined in `o6n-cfg.yaml`)
 **And** the table never renders with truncated column headers or overflowing cell content
 
 **Given** the terminal is narrower than a hint's `MinWidth` threshold
@@ -645,14 +645,14 @@ So that I can customise the visual experience and use color as an environment id
 **When** the operator switches skins using the skin selection key
 **Then** the active skin is applied immediately without a restart
 **And** all UI elements use semantic color roles from the new skin — no hardcoded colors remain
-**And** the active skin name is persisted to `o8n-stat.yaml` and restored on next startup
+**And** the active skin name is persisted to `o6n-stat.yaml` and restored on next startup
 
 **Given** a skin is active and the operator is viewing any resource table
 **When** the header renders
 **Then** the environment name label is displayed in the fixed top-right header position using the `env_name` semantic color role from the active skin
 **And** the environment label is always visible regardless of terminal width
 
-**Given** `ui_color` is set in `o8n-env.yaml` for the active environment
+**Given** `ui_color` is set in `o6n-env.yaml` for the active environment
 **When** the skin is applied
 **Then** `ui_color` overrides the border accent color — it does not affect the `env_name` label color or any text content color
 
@@ -682,7 +682,7 @@ So that keyboard-native operators can use familiar `j`/`k`/`g`/`G` navigation al
 
 ## Epic 5: Configuration, Security & Documentation
 
-Operators can configure 2+ named environments with distinct credentials, accent colors, and `env_name` identity colors; contributors can add standard resource types via `o8n-cfg.yaml` alone. Credentials are never exposed in logs, debug output, or clipboard operations (JSON copy via `J`/`Ctrl+J` verified credential-free). `specification.md` accurately reflects post-sprint behavior.
+Operators can configure 2+ named environments with distinct credentials, accent colors, and `env_name` identity colors; contributors can add standard resource types via `o6n-cfg.yaml` alone. Credentials are never exposed in logs, debug output, or clipboard operations (JSON copy via `J`/`Ctrl+J` verified credential-free). `specification.md` accurately reflects post-sprint behavior.
 
 ### Story 5.1: Multi-Environment Configuration
 
@@ -692,7 +692,7 @@ So that I can operate across local, staging, and production without editing conf
 
 **Acceptance Criteria:**
 
-**Given** `o8n-env.yaml` contains 2 or more named environment entries, each with `name`, `api_url`, `username`, `password`, and `ui_color`
+**Given** `o6n-env.yaml` contains 2 or more named environment entries, each with `name`, `api_url`, `username`, `password`, and `ui_color`
 **When** the application starts
 **Then** all configured environments are available in the environment switcher
 **And** the active environment's `ui_color` is applied to the border accent color
@@ -714,17 +714,17 @@ So that sensitive API credentials cannot leak into version control or observabil
 
 **Acceptance Criteria:**
 
-**Given** `o8n-env.yaml` contains credentials
+**Given** `o6n-env.yaml` contains credentials
 **When** the file is checked
 **Then** it is listed in `.gitignore` and carries `chmod 600` file permissions
 
 **Given** the application is running with `--debug` flag
-**When** debug output is written to `./debug/o8n.log` and `./debug/last-screen.txt`
+**When** debug output is written to `./debug/o6n.log` and `./debug/last-screen.txt`
 **Then** no credentials (username, password, API URL with embedded auth) appear in any debug file
 
 **Given** the operator presses `J` to open the JSON viewer or `Ctrl+J` to copy a row as JSON to the clipboard
 **When** the clipboard content is inspected
-**Then** no credential fields from `o8n-env.yaml` are present in the clipboard content
+**Then** no credential fields from `o6n-env.yaml` are present in the clipboard content
 
 **Given** any API error is displayed in the footer
 **When** the error message is rendered
@@ -733,12 +733,12 @@ So that sensitive API credentials cannot leak into version control or observabil
 ### Story 5.3: Config-Driven Resource Extensibility
 
 As a **contributor** (Marco persona),
-I want to add a new standard resource type by editing only `o8n-cfg.yaml`,
-So that the community can extend o8n's resource coverage without Go source code changes.
+I want to add a new standard resource type by editing only `o6n-cfg.yaml`,
+So that the community can extend o6n's resource coverage without Go source code changes.
 
 **Acceptance Criteria:**
 
-**Given** a contributor adds a new table entry to `o8n-cfg.yaml` with columns, actions, and drilldown rules
+**Given** a contributor adds a new table entry to `o6n-cfg.yaml` with columns, actions, and drilldown rules
 **When** the application is built and started
 **Then** the new resource type appears in the context switcher (`:`)
 **And** the table loads with the defined columns

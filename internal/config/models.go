@@ -1,4 +1,4 @@
-// Package config provides configuration management for o8n
+// Package config provides configuration management for o6n
 package config
 
 // ProcessDefinition represents a BPMN process definition from the Operaton REST API

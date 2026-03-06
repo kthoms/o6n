@@ -15,8 +15,8 @@ pink: &pink "#d699b6"
 orange: &orange "#e69875"
 
 # Skin...
-o8n:
-  # General o8n styles
+o6n:
+  # General o6n styles
   body:
     fgColor: *text
     bgColor: *base

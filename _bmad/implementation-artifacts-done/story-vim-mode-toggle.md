@@ -11,7 +11,7 @@ Currently, vim keybindings (`gg`, `G`, `Ctrl+U`, `Ctrl+D` for scrolling) are alw
 1. **Accidental triggers:** Non-vim users typing `g` twice in quick succession jump to the top of the table unexpectedly
 2. **`Ctrl+D` ambiguity:** In default mode `Ctrl+D` means half-page scroll OR delete depending on context — users can't predict which will happen
 3. **Discoverability:** `Ctrl+U`/`Ctrl+D` for half-page scroll is a vim convention unknown to most users
-4. **Convention alignment:** k9s requires explicit vim mode; o8n should follow the same pattern
+4. **Convention alignment:** k9s requires explicit vim mode; o6n should follow the same pattern
 
 ## Acceptance Criteria
 
@@ -40,7 +40,7 @@ Currently, vim keybindings (`gg`, `G`, `Ctrl+U`, `Ctrl+D` for scrolling) are alw
 ### Activation
 
 - [x] **AC-17:** `--vim` CLI flag enables vim mode for the session
-- [x] **AC-18:** `vim_mode: true` in `o8n-cfg.yaml` enables vim mode persistently
+- [x] **AC-18:** `vim_mode: true` in `o6n-cfg.yaml` enables vim mode persistently
 - [x] **AC-19:** CLI flag overrides config file setting
 - [x] **AC-20:** Vim mode state is accessible in the model as `m.vimMode bool`
 
@@ -59,7 +59,7 @@ Currently, vim keybindings (`gg`, `G`, `Ctrl+U`, `Ctrl+D` for scrolling) are alw
 ### Task 1: Add vim mode flag and config
 
 1. Add `--vim` to CLI flag parsing (alongside `--debug`, `--no-splash`, `--skin`)
-2. Add `vim_mode: bool` field to `AppConfig` struct, loaded from `o8n-cfg.yaml`
+2. Add `vim_mode: bool` field to `AppConfig` struct, loaded from `o6n-cfg.yaml`
 3. Store resolved value in model: `m.vimMode = cliFlag || config.VimMode`
 4. CLI flag takes priority over config
 

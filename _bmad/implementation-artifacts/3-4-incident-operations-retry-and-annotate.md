@@ -35,7 +35,7 @@ so that I can resolve incidents without switching to a browser or writing curl c
 
 ## Tasks / Subtasks
 
-- [ ] Update `o8n-cfg.yaml` for the `incident` table (AC: 1, 2, 3)
+- [ ] Update `o6n-cfg.yaml` for the `incident` table (AC: 1, 2, 3)
   - [ ] Add `jobId` column definition (`visible: false`).
   - [ ] Add `annotation` column definition (`editable: true`).
   - [ ] Add `edit_action` for the table:
@@ -65,18 +65,18 @@ so that I can resolve incidents without switching to a browser or writing curl c
 ## Dev Notes
 
 - **Hidden Column Resolution**: The `jobId` is required for the retry action but shouldn't clutter the main table. Using `rowData` lookup in `resolveActionID` is critical.
-- **Edit Action Pattern**: Camunda's annotation endpoint is non-standard for PUT (it takes a single JSON field). The `edit_action` pattern in `o8n-cfg.yaml` is designed for this.
+- **Edit Action Pattern**: Camunda's annotation endpoint is non-standard for PUT (it takes a single JSON field). The `edit_action` pattern in `o6n-cfg.yaml` is designed for this.
 - **Success Feedback**: Story 3.3 established the `actionExecutedMsg` pattern. Use it to trigger the refresh and success message.
 
 ### Project Structure Notes
 
-- All implementation remains within `internal/app/` and `o8n-cfg.yaml`.
+- All implementation remains within `internal/app/` and `o6n-cfg.yaml`.
 - Respect `prepareStateTransition` for the drilldown path.
 
 ### References
 
 - [Source: `_bmad/planning-artifacts/epics.md#Story 3.4`]
-- [Source: `o8n-cfg.yaml`] — `incident` table section
+- [Source: `o6n-cfg.yaml`] — `incident` table section
 - [Source: `internal/app/nav.go`] — `resolveActionID` and `executeDrilldown`
 - [Source: `internal/app/hints.go`] — `tableViewHints`
 

@@ -14,8 +14,8 @@ iris: &iris "#c4a7e7"
 love: &love "#eb6f92"
 
 # Skin...
-o8n:
-  # General o8n styles
+o6n:
+  # General o6n styles
   body:
     fgColor: *text
     bgColor: *base

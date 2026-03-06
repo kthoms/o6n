@@ -6,13 +6,13 @@ done
 
 ## Summary
 
-Four targeted bug fixes: (1) drilldown from `process-definition` opens the wrong table because the `target:` field is missing from every `drilldown:` block in `o8n-cfg.yaml`, causing `findTableDef("")` to match the first config table (`external-task`) and producing a blank or incorrect view; (2) REST calls are not logged in debug mode because `fetchGenericCmd` builds the URL inside a goroutine without emitting a log line; (3) screen captures in `debug/` are unreadable because ANSI escape sequences are written verbatim instead of being stripped; (4) context-switching to a table with a different column count panics because `SetColumns` is called while stale rows remain, causing `renderRow` to access an out-of-bounds index.
+Four targeted bug fixes: (1) drilldown from `process-definition` opens the wrong table because the `target:` field is missing from every `drilldown:` block in `o6n-cfg.yaml`, causing `findTableDef("")` to match the first config table (`external-task`) and producing a blank or incorrect view; (2) REST calls are not logged in debug mode because `fetchGenericCmd` builds the URL inside a goroutine without emitting a log line; (3) screen captures in `debug/` are unreadable because ANSI escape sequences are written verbatim instead of being stripped; (4) context-switching to a table with a different column count panics because `SetColumns` is called while stale rows remain, causing `renderRow` to access an out-of-bounds index.
 
 ## Motivation
 
 ### Bug 1: Wrong table shown after drilldown from process-definition
 
-`nav.go:executeDrilldown` uses `d.Target` as the key for both `findTableDef` and `fetchGenericCmd`. Every `drilldown:` block in `o8n-cfg.yaml` is missing the `target:` YAML field:
+`nav.go:executeDrilldown` uses `d.Target` as the key for both `findTableDef` and `fetchGenericCmd`. Every `drilldown:` block in `o6n-cfg.yaml` is missing the `target:` YAML field:
 
 - `process-definition` drilldown → should `target: process-instance`
 - `process-instance` drilldown → should `target: process-variables`
@@ -41,10 +41,10 @@ The correct fix is a three-step sequence: (1) `SetRows([]table.Row{})` clears ro
 
 ### Fix 1: Drilldown target fields
 
-- [x] **AC-1:** `o8n-cfg.yaml` — `process-definition` drilldown gains `target: process-instance`. Pressing Enter on a process-definition row navigates to and fetches the process-instance table filtered by `processDefinitionId`.
-- [x] **AC-2:** `o8n-cfg.yaml` — `process-instance` drilldown gains `target: process-variables`. Pressing Enter on a process-instance row navigates to and fetches the `process-variables` table filtered by `processInstanceId`.
-- [x] **AC-3:** `o8n-cfg.yaml` — `job-definition` drilldown gains `target: job`. Pressing Enter on a job-definition row navigates to the job table filtered by `jobDefinitionId`.
-- [x] **AC-4:** `o8n-cfg.yaml` — `deployment` drilldown gains `target: process-definition`. Pressing Enter on a deployment row navigates to the process-definition table filtered by `deploymentId`.
+- [x] **AC-1:** `o6n-cfg.yaml` — `process-definition` drilldown gains `target: process-instance`. Pressing Enter on a process-definition row navigates to and fetches the process-instance table filtered by `processDefinitionId`.
+- [x] **AC-2:** `o6n-cfg.yaml` — `process-instance` drilldown gains `target: process-variables`. Pressing Enter on a process-instance row navigates to and fetches the `process-variables` table filtered by `processInstanceId`.
+- [x] **AC-3:** `o6n-cfg.yaml` — `job-definition` drilldown gains `target: job`. Pressing Enter on a job-definition row navigates to the job table filtered by `jobDefinitionId`.
+- [x] **AC-4:** `o6n-cfg.yaml` — `deployment` drilldown gains `target: process-definition`. Pressing Enter on a deployment row navigates to the process-definition table filtered by `deploymentId`.
 - [x] **AC-5:** A test verifies that after dispatching Enter on a `process-definition` table, the model's `currentRoot` is `"process-instance"` and `genericParams` contains the expected `processDefinitionId` key.
 - [x] **AC-6:** A test verifies that after dispatching Enter on a `process-instance` table, the model's `currentRoot` is `"process-variables"` and `genericParams` contains the expected `processInstanceId` key.
 
@@ -70,14 +70,14 @@ The correct fix is a three-step sequence: (1) `SetRows([]table.Row{})` clears ro
 
 ### Task 1: Add missing drilldown `target:` fields in config
 
-**Files:** `o8n-cfg.yaml`
+**Files:** `o6n-cfg.yaml`
 
 1. `process-definition` drilldown block: add `target: process-instance`
 2. `process-instance` drilldown block: add `target: process-variables`
 3. `job-definition` drilldown block: add `target: job`
 4. `deployment` drilldown block: add `target: process-definition`
 
-Run `wc -l o8n-cfg.yaml` before and after — line count may increase by 4. Verify no deletions with `git diff o8n-cfg.yaml`.
+Run `wc -l o6n-cfg.yaml` before and after — line count may increase by 4. Verify no deletions with `git diff o6n-cfg.yaml`.
 
 ### Task 2: HTTP debug logging in fetchGenericCmd
 
@@ -136,7 +136,7 @@ This replaces the original two-step code (SetColumns then SetRows) plus removes 
 
 ## File List
 
-- `o8n-cfg.yaml` — added `target:` to four drilldown blocks
+- `o6n-cfg.yaml` — added `target:` to four drilldown blocks
 - `internal/app/commands.go` — added HTTP debug log lines
 - `internal/app/view.go` — strip ANSI from last-screen.txt write
 - `internal/app/update.go` — strip ANSI from panic/error screen writes; fix SetColumns/SetRows order with clear-first pattern

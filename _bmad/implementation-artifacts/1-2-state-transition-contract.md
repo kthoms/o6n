@@ -6,7 +6,7 @@ Status: done
 
 ## Story
 
-As a **developer contributing to o8n**,
+As a **developer contributing to o6n**,
 I want a `TransitionType` enum and `prepareStateTransition(t TransitionType)` function enforced across all navigation paths in `internal/app/nav.go` and `internal/app/update.go`,
 So that every navigation action uses a single, auditable gate that eliminates state leakage bugs.
 
@@ -73,7 +73,7 @@ So that every navigation action uses a single, auditable gate that eliminates st
 
 ### Context: Why This Story Exists
 
-State leakage between navigation transitions is the primary defect category in o8n. The current `prepareStateTransition` in `transition.go` uses an unexported `transitionScope` enum with 5 constants (`transitionEnvSwitch`, `transitionContextSwitch`, `transitionDrilldown`, `transitionBack`, `transitionBreadcrumb`) and mixes two concerns: it clears some fields but leaves other cleanup (navStack push/pop) to callers. This split responsibility makes it hard to audit whether a nav path is fully correct.
+State leakage between navigation transitions is the primary defect category in o6n. The current `prepareStateTransition` in `transition.go` uses an unexported `transitionScope` enum with 5 constants (`transitionEnvSwitch`, `transitionContextSwitch`, `transitionDrilldown`, `transitionBack`, `transitionBreadcrumb`) and mixes two concerns: it clears some fields but leaves other cleanup (navStack push/pop) to callers. This split responsibility makes it hard to audit whether a nav path is fully correct.
 
 Additionally, the function does NOT currently clear `activeModal` or `footerError` on any transition — meaning if a modal is open and the user triggers a navigation, the modal stays visible with stale context.
 
@@ -396,7 +396,7 @@ Use `newTestModel(t)` from `main_test.go` as the model factory — same pattern 
 **New file:**
 - `internal/app/main_transition_test.go` — test file for transition contract
 
-**Off-limits:** `internal/operaton/` — never modify. `o8n-cfg.yaml` / `o8n-env.yaml` — no changes needed.
+**Off-limits:** `internal/operaton/` — never modify. `o6n-cfg.yaml` / `o6n-env.yaml` — no changes needed.
 
 ### Async / Bubble Tea Constraints
 

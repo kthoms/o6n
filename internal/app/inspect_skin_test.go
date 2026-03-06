@@ -1,24 +1,24 @@
 package app
 
 import (
-	"github.com/kthoms/o8n/internal/config"
+	"github.com/kthoms/o6n/internal/config"
 	"testing"
 )
 
 func TestInspectSkin(t *testing.T) {
-	envCfg, err := config.LoadEnvConfig("../..//o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("../..//o6n-env.yaml")
 	if err != nil {
 		// Try root path
-		envCfg, err = config.LoadEnvConfig("o8n-env.yaml")
+		envCfg, err = config.LoadEnvConfig("o6n-env.yaml")
 		if err != nil {
 			t.Fatalf("failed to load env config: %v", err)
 		}
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("failed to load app config: %v", err)
 	}
-	state, err := config.LoadAppState("o8n-stat.yml")
+	state, err := config.LoadAppState("o6n-stat.yml")
 	if err != nil {
 		t.Fatalf("failed to load app state: %v", err)
 	}
@@ -34,11 +34,11 @@ func TestInspectSkin(t *testing.T) {
 
 func TestInspectNarsingh(t *testing.T) {
 	// Ensure narsingh skin file loads and produces colors
-	envCfg, err := config.LoadEnvConfig("o8n-env.yaml")
+	envCfg, err := config.LoadEnvConfig("o6n-env.yaml")
 	if err != nil {
 		t.Fatalf("failed to load env config: %v", err)
 	}
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
 		t.Fatalf("failed to load app config: %v", err)
 	}

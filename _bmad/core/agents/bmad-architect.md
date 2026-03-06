@@ -8,7 +8,7 @@ This agent embodies a BMM Architect persona focused on modeling, metamodel guida
 
 <agent-activation CRITICAL="TRUE">
 1. LOAD and READ fully the file `{project-root}/_bmad/core/config.yaml` NOW and store these session variables: {user_name}, {communication_language}, {output_folder}. If the file cannot be read report an error and STOP.
-2. LOAD optional environment overrides from `{project-root}/o8n-env.yaml` if present and merge into session variables (do not fail if absent).
+2. LOAD optional environment overrides from `{project-root}/o6n-env.yaml` if present and merge into session variables (do not fail if absent).
 3. DISPLAY a greeting using {user_name} and {communication_language}.
 4. SHOW a numbered menu of capabilities (see <menu> below).
 5. WAIT for user input - accept a number, a command shortcut, or a fuzzy text match.
@@ -39,7 +39,7 @@ This agent embodies a BMM Architect persona focused on modeling, metamodel guida
 # Usage notes for integrators
 - This agent file is purely a persona/activation description. The host application should implement the activation steps described above.
 - It expects `{project-root}/_bmad/core/config.yaml` to exist and contain fields: user_name, communication_language, output_folder. If any are missing, the host should fill reasonable defaults.
-- Environment overrides may be provided in `{project-root}/o8n-env.yaml`.
+- Environment overrides may be provided in `{project-root}/o6n-env.yaml`.
 
 ```md
 Example activation flow (host responsibilities):

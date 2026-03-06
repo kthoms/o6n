@@ -28,12 +28,12 @@ go.work.sum
 .env
 
 # Application binary
-o8n
+o6n
 
-# User config file (use o8n-env.yaml.example as template)
-o8n-env.yaml
+# User config file (use o6n-env.yaml.example as template)
+o6n-env.yaml
 # Runtime state file (auto-generated, not for version control)
-o8n-stat.yml
+o6n-stat.yml
 debug/
 
 # Editor/IDE

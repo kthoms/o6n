@@ -8,8 +8,8 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/kthoms/o8n/internal/contentassist"
-	"github.com/kthoms/o8n/internal/validation"
+	"github.com/kthoms/o6n/internal/contentassist"
+	"github.com/kthoms/o6n/internal/validation"
 )
 
 // lastRenderedView holds the most recently rendered frame, used for screen dumps on errors.
@@ -46,7 +46,7 @@ func (m *model) renderCompactHeader(width int) string {
 	statusStyle := lipgloss.NewStyle().Foreground(statusColor)
 	envInfo := fmt.Sprintf("%s %s", m.currentEnv, statusStyle.Render(statusSymbol))
 
-	row1 := fmt.Sprintf("o8n %s │ %s", m.version, envInfo)
+	row1 := fmt.Sprintf("o6n %s │ %s", m.version, envInfo)
 	if m.autoRefresh {
 		badge := m.styles.Accent.Render("↺")
 		row1 = row1 + " " + badge
@@ -136,13 +136,13 @@ func (m *model) renderConfirmQuitModal(_, _ int) string {
 	buttons := confirmBtn + "  " + cancelBtn
 	hint := m.styles.FgMuted.Render("Tab: switch  Enter: activate  Ctrl+c: quit  Esc: cancel")
 
-	modalContent := "Quit o8n?\n\n" + buttons + "\n" + hint
+	modalContent := "Quit o6n?\n\n" + buttons + "\n" + hint
 	return modalContent
 }
 
 // renderHelpContentForLineCount returns the static help text for line-count purposes (scroll bound computation).
 func renderHelpContentForLineCount(viewMode, currentEnv string) string {
-	return `o8n Help
+	return `o6n Help
 
 NAVIGATION               │  ACTIONS                │  GLOBAL
 ──────────────────────   │  ────────────────────   │  ──────────────────
@@ -224,7 +224,7 @@ Ctrl+d   Half-page dn`
 		breadcrumbLine = fmt.Sprintf("1–%d      Jump to level  │                         │", n)
 	}
 
-	helpContent := fmt.Sprintf(`o8n Help
+	helpContent := fmt.Sprintf(`o6n Help
 
 NAVIGATION               │  ACTIONS                │  GLOBAL
 ─────────────────────   │  ────────────────────   │  ──────────────────
@@ -356,7 +356,7 @@ Ctrl+d   Half-page dn`
 		breadcrumbLine = fmt.Sprintf("1–%d      Jump to level  │                         │", n)
 	}
 
-	helpContent := fmt.Sprintf(`o8n Help
+	helpContent := fmt.Sprintf(`o6n Help
 
 NAVIGATION               │  ACTIONS                │  GLOBAL
 ─────────────────────   │  ────────────────────   │  ──────────────────
@@ -569,7 +569,7 @@ func (m *model) renderEditModal(width, height int) string {
 }
 
 func (m model) asciiArt() string {
-	return "   ____\n____  ( __ )\n / __ \\/ __  / __ \\\n/ /_/ / /_/ / / / /\n\\____/\\____/_/ /_/\n" + "o8n"
+	return "   ____    ____    ____ \n  / __ \\  / ___/  / __ \\\n / /_/ / / /___  / / / /\n/ /_/ / / /_/ / / / / / \n\\____/  \\____/ /_/ /_/  \n"
 }
 
 func (m model) View() string {

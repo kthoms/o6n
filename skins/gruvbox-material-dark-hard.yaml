@@ -1,5 +1,5 @@
 # ----------------------------------------
-# Gruvbox Material Dark Hard Theme for o8n
+# Gruvbox Material Dark Hard Theme for o6n
 # ----------------------------------------
 foreground: &foreground "#d4be98"
 background: &background "#1d2021"
@@ -13,7 +13,7 @@ magenta: &magenta "#d3869b"
 blue: &blue "#7daea3"
 red: &red "#ea6962"
 
-o8n:
+o6n:
   body:
     fgColor: *foreground
     bgColor: *background

@@ -1,5 +1,5 @@
 # ----------------------------------------
-# Grvbox Material Light Soft Theme for o8n
+# Grvbox Material Light Soft Theme for o6n
 # ----------------------------------------
 foreground: &foreground "#654735"
 background: &background "#f2e5bc"
@@ -13,7 +13,7 @@ magenta: &magenta "#b16286"
 blue: &blue "#458588"
 red: &red "#cc241d"
 
-o8n:
+o6n:
   body:
     fgColor: *foreground
     bgColor: *background

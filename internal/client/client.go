@@ -17,9 +17,9 @@ import (
 	"sync"
 	"time"
 
-	cfgpkg "github.com/kthoms/o8n/internal/config"
+	cfgpkg "github.com/kthoms/o6n/internal/config"
 
-	operaton "github.com/kthoms/o8n/internal/operaton"
+	operaton "github.com/kthoms/o6n/internal/operaton"
 )
 
 var (
@@ -30,7 +30,7 @@ var (
 
 func getDebugWriter() io.Writer {
 	dbgOnce.Do(func() {
-		if os.Getenv("O8N_DEBUG") == "1" {
+		if os.Getenv("O6N_DEBUG") == "1" {
 			_ = os.MkdirAll("./debug", 0o755)
 			fpath := filepath.Join(".", "debug", "access.log")
 			f, err := os.OpenFile(fpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
@@ -436,7 +436,7 @@ func (t *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// Always write to o8n.log via the standard logger writer.
+	// Always write to o6n.log via the standard logger writer.
 	logW := log.Writer()
 	fmt.Fprintf(logW, "[http] %s %s", req.Method, req.URL)
 	if len(reqBody) > 0 {
@@ -493,7 +493,7 @@ func (c *CompatClient) AuthContext() context.Context {
 }
 
 // NewClient creates a CompatClient from the environment config.
-// All HTTP requests are always logged (method, URL, body, status, response) to debug/o8n.log.
+// All HTTP requests are always logged (method, URL, body, status, response) to debug/o6n.log.
 // When debug is true, requests are additionally logged to debug/access.log.
 func NewClient(env cfgpkg.Environment, debug bool) *CompatClient {
 	httpClient := &http.Client{Timeout: 10 * time.Second}

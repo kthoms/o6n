@@ -1,4 +1,4 @@
-# o8n
+# o6n
 
 A terminal UI for Operaton
 
@@ -10,7 +10,7 @@ A terminal UI for Operaton
 \____/\____/_/ /_/
 ```
 
-**o8n** is a keyboard-first terminal UI for managing [Operaton](https://operaton.org) workflow engines, inspired by [k9s](https://k9scli.io). Browse 35 resource types, drill into process instances, edit variables, execute actions — all without leaving your terminal.
+**o6n** is a keyboard-first terminal UI for managing [Operaton](https://operaton.org) workflow engines, inspired by [k9s](https://k9scli.io). Browse 35 resource types, drill into process instances, edit variables, execute actions — all without leaving your terminal.
 
 ## Features
 
@@ -32,7 +32,7 @@ A terminal UI for Operaton
 ### 1. Configure
 
 ```bash
-cp o8n-env.yaml.example o8n-env.yaml
+cp o6n-env.yaml.example o6n-env.yaml
 # Edit with your Operaton environment(s)
 ```
 
@@ -49,8 +49,8 @@ environments:
 ### 2. Build & Run
 
 ```bash
-go build -o o8n .
-./o8n
+go build -o o6n .
+./o6n
 ```
 
 ## Keyboard Shortcuts
@@ -93,7 +93,7 @@ go build -o o8n .
 | `s` | Sort by column |
 | `Ctrl+D` | Delete/terminate (with confirmation) |
 
-Actions are resource-specific and defined in `o8n-cfg.yaml`. Press `Ctrl+Space` on any row to open the `ModalActionMenu` overlay.
+Actions are resource-specific and defined in `o6n-cfg.yaml`. Press `Ctrl+Space` on any row to open the `ModalActionMenu` overlay.
 
 Mutation actions (HTTP verbs) are listed first, followed by view-style navigation actions that show a `→` suffix and are separated from the mutations. `[J] View as JSON` and `[Ctrl+J] Copy as JSON` are always the last two items. The help screen surfaces navigation actions under a dedicated **VIEWS** section.
 
@@ -103,9 +103,9 @@ Three files with distinct roles:
 
 | File | Purpose | Committed |
 |---|---|---|
-| `o8n-env.yaml` | Environment URLs, credentials, accent colors | No (git-ignored) |
-| `o8n-cfg.yaml` | Table definitions, columns, actions, drilldowns | Yes |
-| `o8n-stat.yml` | Runtime state (active env, skin, last position) | No (auto-generated) |
+| `o6n-env.yaml` | Environment URLs, credentials, accent colors | No (git-ignored) |
+| `o6n-cfg.yaml` | Table definitions, columns, actions, drilldowns | Yes |
+| `o6n-stat.yml` | Runtime state (active env, skin, last position) | No (auto-generated) |
 
 See [specification.md](specification.md) for the full configuration reference.
 
@@ -117,18 +117,18 @@ See [specification.md](specification.md) for the full configuration reference.
 
 **Light:** gruvbox-light, everforest-light, solarized-light, rose-pine-dawn, and more
 
-**Special:** o8n-cyber, transparent, stock, kiss
+**Special:** o6n-cyber, transparent, stock, kiss
 
 Add custom skins by placing a YAML file in `skins/`. All colors use 25 semantic roles — no hardcoded values.
 
 ## Debug Mode
 
 ```bash
-./o8n --debug
+./o6n --debug
 ```
 
 Creates `./debug/` with:
-- `o8n.log` — Error and debug messages
+- `o6n.log` — Error and debug messages
 - `last-screen.txt` — Last rendered TUI frame
 - `screen-*.txt` — Screen dumps on panic
 
@@ -144,7 +144,7 @@ Other flags: `--no-splash` (skip startup animation), `--skin <name>` (override t
 ### Commands
 
 ```bash
-make build      # Build binary to execs/o8n
+make build      # Build binary to execs/o6n
 make test       # Clear cache and run all tests
 make cover      # HTML coverage report
 go vet ./...    # Static analysis
@@ -162,7 +162,7 @@ Generates Go client from `resources/operaton-rest-api.json` into `internal/opera
 ### Project Structure
 
 ```
-o8n/
+o6n/
 ├── main.go                  # Entry point
 ├── internal/
 │   ├── app/                 # TUI logic (model, update, view, nav, commands)
@@ -174,9 +174,9 @@ o8n/
 │   └── operaton/            # Auto-generated OpenAPI client
 ├── skins/                   # 35 color theme YAML files
 ├── resources/               # OpenAPI specification
-├── o8n-env.yaml             # Environment credentials (git-ignored)
-├── o8n-cfg.yaml             # UI table definitions (version-controlled)
-└── o8n-stat.yml             # Runtime state (auto-generated)
+├── o6n-env.yaml             # Environment credentials (git-ignored)
+├── o6n-cfg.yaml             # UI table definitions (version-controlled)
+└── o6n-stat.yml             # Runtime state (auto-generated)
 ```
 
 ## Documentation
@@ -185,9 +185,9 @@ o8n/
 
 ## Security
 
-- `o8n-env.yaml` is git-ignored and should have `chmod 600` permissions
+- `o6n-env.yaml` is git-ignored and should have `chmod 600` permissions
 - Never commit credentials to version control
-- Use `o8n-env.yaml.example` as a template
+- Use `o6n-env.yaml.example` as a template
 
 ## License
 

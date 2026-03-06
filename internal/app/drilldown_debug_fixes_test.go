@@ -11,19 +11,19 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/kthoms/o8n/internal/config"
+	"github.com/kthoms/o6n/internal/config"
 )
 
-// ── AC-1..AC-4: drilldown target fields present in o8n-cfg.yaml ──────────────
+// ── AC-1..AC-4: drilldown target fields present in o6n-cfg.yaml ──────────────
 
 // TestDrilldownTargets_Config verifies that the four drilldown blocks in
-// o8n-cfg.yaml each carry a non-empty target field. Missing targets cause
+// o6n-cfg.yaml each carry a non-empty target field. Missing targets cause
 // findTableDef("") to match the first config table (external-task) and show
 // the wrong resource after Enter.
 func TestDrilldownTargets_Config(t *testing.T) {
-	appCfg, err := config.LoadAppConfig("o8n-cfg.yaml")
+	appCfg, err := config.LoadAppConfig("o6n-cfg.yaml")
 	if err != nil {
-		t.Fatalf("load o8n-cfg.yaml: %v", err)
+		t.Fatalf("load o6n-cfg.yaml: %v", err)
 	}
 
 	want := map[string]string{
@@ -146,7 +146,7 @@ func TestScreenDumpIsAnsiFree(t *testing.T) {
 	defer func() { lastRenderedView = origView }()
 
 	// Inject ANSI content into lastRenderedView to simulate a real rendered frame.
-	lastRenderedView = "\x1b[1mo8n 0.1.0\x1b[0m │ \x1b[38;2;195;64;67m✗\x1b[0m"
+	lastRenderedView = "\x1b[1mo6n 0.1.0\x1b[0m │ \x1b[38;2;195;64;67m✗\x1b[0m"
 
 	m.Update(errMsg{err: fmt.Errorf("GET http://x/y: simulated error")})
 

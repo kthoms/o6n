@@ -88,7 +88,7 @@ This mirrors the existing `esc`/`q` case exactly.
 - `internal/app/view.go` — help content rendering is complete
 - `internal/app/modal.go` — ModalHelp registration is complete
 - `internal/app/keyboard_convention_test.go` — content tests unrelated to this story
-- `o8n-cfg.yaml`, `o8n-env.yaml` — configuration files
+- `o6n-cfg.yaml`, `o6n-env.yaml` — configuration files
 
 ### Project Structure Notes
 

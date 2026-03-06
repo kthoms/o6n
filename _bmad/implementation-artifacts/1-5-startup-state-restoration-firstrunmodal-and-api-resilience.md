@@ -12,21 +12,21 @@ So that each session starts where I left off (or with a useful default I chose),
 
 ## Acceptance Criteria
 
-1. **Given** `o8n-stat.yaml` contains the last active context and environment from a previous session
+1. **Given** `o6n-stat.yaml` contains the last active context and environment from a previous session
    **When** the application starts
    **Then** it navigates directly to the last active context in the last active environment and loads data automatically
 
 2. **Given** no previous state file exists (first run)
    **When** the application starts
    **Then** `FirstRunModal` opens as an `OverlayCenter` modal prompting the operator to select their home context from the list of configured resource types
-   **And** the modal displays a searchable/filterable list of all resource types defined in `o8n-cfg.yaml`
-   **And** on selection, the chosen context is persisted to `o8n-stat.yaml` as the home context and the application navigates to it
+   **And** the modal displays a searchable/filterable list of all resource types defined in `o6n-cfg.yaml`
+   **And** on selection, the chosen context is persisted to `o6n-stat.yaml` as the home context and the application navigates to it
    **And** the modal cannot be dismissed with Esc — a home context selection is required to proceed
 
 3. **Given** the application is running (any session)
    **When** the operator presses `Ctrl+H`
    **Then** `FirstRunModal` opens, allowing the operator to change their home context
-   **And** on selection, the new home context is persisted to `o8n-stat.yaml`
+   **And** on selection, the new home context is persisted to `o6n-stat.yaml`
    **And** the application navigates to the newly selected context
 
 4. **Given** the API returns a malformed, partial, or empty JSON response for any resource type
@@ -432,7 +432,7 @@ func TestAPIResilience_NilFieldInItem(t *testing.T) {
 
 **Files NOT to modify:**
 - `internal/operaton/` — never modify
-- `o8n-cfg.yaml`, `o8n-env.yaml` — no changes
+- `o6n-cfg.yaml`, `o6n-env.yaml` — no changes
 - `internal/validation/`, `internal/contentassist/` — not touched
 
 **Naming convention reminder:**

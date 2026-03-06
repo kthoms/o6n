@@ -45,7 +45,7 @@ so that I can diagnose and correct stuck processes and extract resource data dir
 ## Tasks / Subtasks
 
 - [ ] **Variable Inspection & Editing (AC: 1, 2)**
-  - [ ] Audit `process-variables` TableDef in `o8n-cfg.yaml`: ensure `value` is `editable: true` with `input_type: auto`.
+  - [ ] Audit `process-variables` TableDef in `o6n-cfg.yaml`: ensure `value` is `editable: true` with `input_type: auto`.
   - [ ] Update `internal/app/edit.go`: ensure CAMUNDA type validation (String, Integer, Boolean, Json) is strictly enforced.
   - [ ] Ensure `editSavedMsg` triggers a data re-fetch for the variables context to ensure server-side sync.
 - [ ] **ModalJSONView Surgical Refactor (AC: 3, 6)**

@@ -12,7 +12,7 @@ so that I can traverse resource hierarchies (e.g., process definition → instan
 
 ## Acceptance Criteria
 
-1. **Given** the current resource type has drilldown rules configured in `o8n-cfg.yaml`
+1. **Given** the current resource type has drilldown rules configured in `o6n-cfg.yaml`
    **When** the operator presses Enter on a row
    **Then** `prepareStateTransition(TransitionDrillDown)` is called, the current view is pushed onto the navigation stack, and the child resource type loads filtered to the selected parent.
 

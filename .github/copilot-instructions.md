@@ -3,7 +3,7 @@
 
 ## Project Configuration
 
-- **Project**: o8n
+- **Project**: o6n
 - **User**: Karsten
 - **Communication Language**: English
 - **Document Output Language**: English

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kthoms/o8n/internal/client"
-	"github.com/kthoms/o8n/internal/config"
-	"github.com/kthoms/o8n/internal/dao"
-	"github.com/kthoms/o8n/internal/operaton"
+	"github.com/kthoms/o6n/internal/client"
+	"github.com/kthoms/o6n/internal/config"
+	"github.com/kthoms/o6n/internal/dao"
+	"github.com/kthoms/o6n/internal/operaton"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

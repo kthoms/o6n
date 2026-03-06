@@ -29,7 +29,7 @@ colors:
   btnSecondaryFg: "black"
 
 # Legacy schema retained for reference (ignored when colors: is present)
-o8n:
+o6n:
   body:
     fgColor: dodgerblue
     bgColor: black

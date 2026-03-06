@@ -26,7 +26,7 @@ inputDocuments:
   - "_bmad/implementation-artifacts-done/story-vim-mode-toggle.md"
 ---
 
-# UX Design Specification — o8n
+# UX Design Specification — o6n
 
 **Author:** Karsten
 **Date:** 2026-03-03
@@ -39,7 +39,7 @@ inputDocuments:
 
 ### Executive Summary
 
-o8n is a keyboard-first terminal UI for managing Operaton BPMN workflow engines, inspired by k9s. It gives DevOps engineers and BPMN operators a fast, discoverable interface to navigate process definitions, process instances, tasks, and associated variables — directly from the terminal without leaving their editor or switching to a browser.
+o6n is a keyboard-first terminal UI for managing Operaton BPMN workflow engines, inspired by k9s. It gives DevOps engineers and BPMN operators a fast, discoverable interface to navigate process definitions, process instances, tasks, and associated variables — directly from the terminal without leaving their editor or switching to a browser.
 
 The product's core value proposition is speed through keyboard mastery: every operation reachable by keystroke, every resource navigable in seconds, every action executable without mouse. It is a brownfield project with an evolving implementation; the UX design specification codifies patterns that are emerging but not yet fully consistent, and defines the target state for the complete system.
 
@@ -70,7 +70,7 @@ Extends the tool. Reads source, adds resource types, modifies config. Cares abou
 
 1. **Footer-as-HUD.** The hint bar is permanently visible and context-sensitive. Used well, it functions as an always-present ambient guide — not a help page users have to seek out.
 
-2. **Config-driven discoverability.** Because resource definitions and their associated actions live in `o8n-cfg.yaml`, the hint system can surface resource-specific keys at priority 1–2, ahead of global navigation. The config file becomes the UX specification for each resource type.
+2. **Config-driven discoverability.** Because resource definitions and their associated actions live in `o6n-cfg.yaml`, the hint system can surface resource-specific keys at priority 1–2, ahead of global navigation. The config file becomes the UX specification for each resource type.
 
 3. **Progressive disclosure.** Three tiers — footer hints → Ctrl+Space action menu → ? help screen — allow new users to discover gradually without overwhelming experts. Each tier is richer and more comprehensive than the last.
 
@@ -84,7 +84,7 @@ Extends the tool. Reads source, adds resource types, modifies config. Cares abou
 
 The following 20 design decisions were surfaced and confirmed during Step 2 Party Mode with Counselor Troi (UX Lead), UX Review, and Mary:
 
-1. **First-run home context selection** — On fresh start (no persisted state), o8n shows a context selection modal reusing the context switcher pattern. The selected resource becomes the home. Choice is persisted to `o8n-stat.yaml`. `Ctrl+H` revisits from any state.
+1. **First-run home context selection** — On fresh start (no persisted state), o6n shows a context selection modal reusing the context switcher pattern. The selected resource becomes the home. Choice is persisted to `o6n-stat.yaml`. `Ctrl+H` revisits from any state.
 
 2. **Hint hierarchy inversion** — Resource-specific action keys (from `TableDef.Actions` in config) are assigned hint priority 1–2. Global navigation keys (Esc, Ctrl+Space, /) drop to priority 4+. Most-used resource actions are always visible first.
 
@@ -96,7 +96,7 @@ The following 20 design decisions were surfaced and confirmed during Step 2 Part
 
 6. **Confirmation principle** — Confirmation dialogs are required for actions that are **both** irreversible **and** have a blast radius beyond a single row (delete, stop job, terminate, batch operations). Single-row reversible actions do not require confirmation.
 
-7. **Splash screen config** — `splash: bool` is an optional field in `o8n-cfg.yaml` (default: show splash). The `--no-splash` CLI flag overrides. Sequencing: splash → first-run prompt (if needed) → main view.
+7. **Splash screen config** — `splash: bool` is an optional field in `o6n-cfg.yaml` (default: show splash). The `--no-splash` CLI flag overrides. Sequencing: splash → first-run prompt (if needed) → main view.
 
 8. **Modal size classification** — Three tiers: `OverlayCenter` (compact dialogs, ~50%×auto), `OverlayLarge` (NEW, ~80%×80%, for rich content), `FullScreen` (immersive flows). All modals declare their size class.
 
@@ -128,7 +128,7 @@ The following 20 design decisions were surfaced and confirmed during Step 2 Part
 
 ### Defining Experience
 
-The defining o8n interaction is: **navigate to any resource, inspect it, and act on it — without leaving the keyboard.** Every session begins with the user arriving at a resource table (process instances, tasks, or wherever they persisted from last time), scanning rows, and taking a targeted action. The speed between "I need to see X" and "I'm looking at X" is the product's primary value.
+The defining o6n interaction is: **navigate to any resource, inspect it, and act on it — without leaving the keyboard.** Every session begins with the user arriving at a resource table (process instances, tasks, or wherever they persisted from last time), scanning rows, and taking a targeted action. The speed between "I need to see X" and "I'm looking at X" is the product's primary value.
 
 For Alex (DevOps), the core loop is: filter instances → inspect → kill or retry. For Priya (BPMN Operator), it is: find task → claim → review inputs → complete with outputs. Both loops share the same keyboard grammar — the product succeeds when both feel native.
 
@@ -138,7 +138,7 @@ For Alex (DevOps), the core loop is: filter instances → inspect → kill or re
 - **Keyboard-exclusive interaction.** Mouse input is unsupported by design. Every action reachable by keystroke.
 - **Primary target:** Linux and macOS native terminals (gnome-terminal, iTerm2, Terminal.app, Alacritty). Minimum viewport 120×20.
 - **Secondary target:** VSCode integrated terminal (for development workflows). IntelliJ IDEA terminal.
-- **No offline mode.** o8n is a live API client; network connectivity to an Operaton engine is a hard prerequisite.
+- **No offline mode.** o6n is a live API client; network connectivity to an Operaton engine is a hard prerequisite.
 - **Static binary.** No runtime dependencies; distributes as a single file per platform.
 
 ### Effortless Interactions
@@ -156,14 +156,14 @@ These interactions must require zero conscious effort for experienced users:
 1. **First successful task completion.** Priya claims a task, reviews input variables, fills in output variables with type validation, confirms, and sees the task disappear from the list. If this flow is confusing at any point, the product fails for its most consequential use case.
 2. **First context switch.** Alex types `:incidents` and lands on the incidents table in under 2 seconds. This moment establishes that the keyboard grammar works and learning it pays off.
 3. **First drill-down.** A new user presses Enter on a process instance row and arrives at the variables view with breadcrumb showing the path. They press Esc and return. Spatial model established.
-4. **First environment distinction.** A user opens o8n against a production environment and immediately sees the distinct env color in the header — before reading any text. Environment misidentification prevention.
+4. **First environment distinction.** A user opens o6n against a production environment and immediately sees the distinct env color in the header — before reading any text. Environment misidentification prevention.
 5. **First hint-driven discovery.** A user sees a hint in the footer, presses the key, and the action executes. The hint system proves its value in a single interaction.
 
 ### Experience Principles
 
 1. **Keyboard fluency compounds.** Every interaction is designed for users who will repeat it hundreds of times. Optimize for the 100th use, not the first — but use progressive disclosure to get users to their 100th use safely.
 2. **Context is never lost.** Navigation always shows breadcrumb. Modals preserve background. Esc always goes back. Users always know where they are and how they got there.
-3. **The config is the UX.** Resource actions, column visibility, drilldown rules, and hint priorities are defined in `o8n-cfg.yaml`. The tool's behavior is inspectable, not magic — contributors extend the UX by editing config.
+3. **The config is the UX.** Resource actions, column visibility, drilldown rules, and hint priorities are defined in `o6n-cfg.yaml`. The tool's behavior is inspectable, not magic — contributors extend the UX by editing config.
 4. **Color signals are semantic, not decorative.** Every color use carries a defined meaning (environment identity, resource state, action category, error/warning). Color is never used purely for aesthetics.
 5. **Trust the keyboard grammar.** A consistent, learnable grammar of keys (resource-specific at 1–2, global nav at 4+, modifiers explicit, case normalized) means users can guess correctly. Correctness of guesses is a design metric.
 
@@ -171,7 +171,7 @@ These interactions must require zero conscious effort for experienced users:
 
 ### Primary Emotional Goals
 
-o8n users should feel **in command** — the same focused, efficient feeling a vim or k9s expert has when their muscle memory fires correctly. The primary emotional goal is **controlled competence**: the sense that the tool amplifies your ability rather than placing friction between you and the engine.
+o6n users should feel **in command** — the same focused, efficient feeling a vim or k9s expert has when their muscle memory fires correctly. The primary emotional goal is **controlled competence**: the sense that the tool amplifies your ability rather than placing friction between you and the engine.
 
 The secondary feeling is **calm confidence** in high-stakes situations. When an operator is diagnosing a stuck process instance or completing a task under production pressure, the UI must not add anxiety. Clear state, predictable keys, explicit confirmations for destructive actions — the tool stays out of the way emotionally.
 
@@ -217,10 +217,10 @@ The secondary feeling is **calm confidence** in high-stakes situations. When an 
 ### Inspiring Products Analysis
 
 **k9s** (primary inspiration)
-k9s is the direct archetype for o8n. Its core UX achievements: `:` context switching with autocomplete gives instant resource type navigation; table views with configurable columns scale from 80-col terminals to wide displays; drilldown with Esc-to-back creates spatial navigation without page reloads; `/` live filter works on the current in-memory dataset. Crucially, k9s's footer hint bar — showing available keys contextually — teaches users without a separate tutorial. The combination of discoverable keys + muscle memory payoff is what o8n directly adopts.
+k9s is the direct archetype for o6n. Its core UX achievements: `:` context switching with autocomplete gives instant resource type navigation; table views with configurable columns scale from 80-col terminals to wide displays; drilldown with Esc-to-back creates spatial navigation without page reloads; `/` live filter works on the current in-memory dataset. Crucially, k9s's footer hint bar — showing available keys contextually — teaches users without a separate tutorial. The combination of discoverable keys + muscle memory payoff is what o6n directly adopts.
 
 **vim**
-vim's contribution to o8n is the keyboard grammar philosophy: every key is a verb, modifier, or object; the grammar is learnable rather than arbitrary; modes separate navigation from action. o8n doesn't implement full modal editing, but it borrows: `j/k` row navigation, `g/G` for top/bottom, `/` for search, and the vim mode toggle itself. The key insight from vim is that apparent complexity dissolves when the grammar becomes fluent — the investment pays dividends.
+vim's contribution to o6n is the keyboard grammar philosophy: every key is a verb, modifier, or object; the grammar is learnable rather than arbitrary; modes separate navigation from action. o6n doesn't implement full modal editing, but it borrows: `j/k` row navigation, `g/G` for top/bottom, `/` for search, and the vim mode toggle itself. The key insight from vim is that apparent complexity dissolves when the grammar becomes fluent — the investment pays dividends.
 
 **htop**
 htop demonstrates how to make a dense information display readable in a terminal. Its function key row at the bottom (F1–F10 with labels) is the ancestor of the hint bar pattern. It shows that an "always-visible legend" doesn't need to be a help screen — it can be part of the chrome. htop also demonstrates color as state signal: red/yellow/green process states read instantly without text labels.
@@ -237,7 +237,7 @@ MC's Space bar for selection (which informed the decision to reserve Space for f
 - **Stack-based navigation** (from k9s `navigationStack`) — Esc pops the stack; Enter pushes. Drill-down is spatial, not modal.
 
 **Interaction Patterns**
-- **Footer hint bar as ambient guide** (from k9s + htop) — always-present, context-sensitive, width-aware. The most important pattern in o8n's discoverability system.
+- **Footer hint bar as ambient guide** (from k9s + htop) — always-present, context-sensitive, width-aware. The most important pattern in o6n's discoverability system.
 - **Live filter on `/`** (from k9s + vim) — instant feedback, no submit step, Esc to clear.
 - **Progressive disclosure tiers** — footer hints → action menu → help screen. Power users stay in tier 1; new users use tier 3.
 - **Double-confirm for destructive actions** (from k9s) — first keypress shows confirmation; second executes. Prevents accidental operations.
@@ -267,34 +267,34 @@ MC's Space bar for selection (which informed the decision to reserve Space for f
 - htop/k9s color-as-state-signal with consistent palette per state category
 - vim `/` live filter with Esc-to-clear
 
-**Adapt for o8n's specifics:**
-- k9s double-confirm → o8n confirmation principle (irreversible + blast radius, not just destructive category)
-- htop F-key legend → o8n `Hint{Key, Label, Priority}` system with dynamic priority based on resource type
-- fzf overlay → o8n OverlayLarge modal class (~80%×80%) to preserve background context
-- k9s full-screen resource detail → o8n OverlayLarge detail view (background preserved)
+**Adapt for o6n's specifics:**
+- k9s double-confirm → o6n confirmation principle (irreversible + blast radius, not just destructive category)
+- htop F-key legend → o6n `Hint{Key, Label, Priority}` system with dynamic priority based on resource type
+- fzf overlay → o6n OverlayLarge modal class (~80%×80%) to preserve background context
+- k9s full-screen resource detail → o6n OverlayLarge detail view (background preserved)
 
 **Avoid bringing in:**
 - MC Space-for-action (conflicts with planned multi-row selection; reserved → Ctrl+Space instead)
-- vim full modal editing complexity (vim mode is optional and limited; o8n is not a text editor)
-- htop's function key row (terminal F-key conflicts; o8n uses alphabetic keys + modifiers)
+- vim full modal editing complexity (vim mode is optional and limited; o6n is not a text editor)
+- htop's function key row (terminal F-key conflicts; o6n uses alphabetic keys + modifiers)
 - Any GUI-derived hover/tooltip pattern (unsupported in TUI; replaced by hint bar)
 
 ## Design System Foundation
 
 ### Design System Choice
 
-o8n uses a **custom TUI design system** built on the Charmbracelet ecosystem (Lipgloss + Bubbles). The stack is established and in active use. The design system decision here concerns how the existing stack is governed, extended, and made consistent.
+o6n uses a **custom TUI design system** built on the Charmbracelet ecosystem (Lipgloss + Bubbles). The stack is established and in active use. The design system decision here concerns how the existing stack is governed, extended, and made consistent.
 
 The three-layer structure:
 1. **Lipgloss** — low-level styling primitives: colors, borders, padding, alignment. Renders ANSI escape sequences.
 2. **Bubbles** — high-level reusable components: table, viewport, textinput, spinner. Provides interaction behavior.
-3. **o8n Skin System** — 36 built-in color themes as YAML files in `skins/`. The brand/environment expression layer. Runtime-switchable. `ui_color` in `o8n-env.yaml` sets the per-environment accent.
+3. **o6n Skin System** — 36 built-in color themes as YAML files in `skins/`. The brand/environment expression layer. Runtime-switchable. `ui_color` in `o6n-env.yaml` sets the per-environment accent.
 
 ### Rationale for Selection
 
 - **Stack is established.** Lipgloss + Bubbles is the de facto standard for Go TUI development. Governing it is the task, not replacing it.
 - **Custom over off-the-shelf.** No TUI equivalent of Material Design exists at this maturity level.
-- **Config-driven extension.** New resource types and their visual representation are added through `o8n-cfg.yaml`, not code.
+- **Config-driven extension.** New resource types and their visual representation are added through `o6n-cfg.yaml`, not code.
 - **Skin system provides brand + environment expression.** All semantic color roles are resolved at runtime from the active skin, enabling the environment-color-signal pattern and user theming.
 
 ### Implementation Approach
@@ -322,7 +322,7 @@ The three-layer structure:
 ### Customization Strategy
 
 - **New skins:** Add a YAML file to `skins/`. Must define all required semantic color roles.
-- **New resource types:** Add a `TableDef` entry to `o8n-cfg.yaml`. Columns, actions, drilldown targets, and hint priorities are all config-driven.
+- **New resource types:** Add a `TableDef` entry to `o6n-cfg.yaml`. Columns, actions, drilldown targets, and hint priorities are all config-driven.
 - **New modal types:** Use the Modal factory (`renderModal(ModalConfig{Size: OverlayLarge, ...})`). Declare size class, title, and hint line. No layout arithmetic in calling code.
 - **New key bindings:** Added to the resource's `Actions` list in config for resource-specific keys. Global keys are governed by the keyboard grammar spec.
 
@@ -330,11 +330,11 @@ The three-layer structure:
 
 ### Core Defining Experience
 
-**o8n's defining experience: "Jump to any resource, act on it, move on — without lifting your hands from the keyboard."**
+**o6n's defining experience: "Jump to any resource, act on it, move on — without lifting your hands from the keyboard."**
 
 A DevOps engineer types `:processInstances`, filters for the stuck job, presses a key to cancel it, and is back to their editor in 15 seconds. A task operator sees their queue, claims the next item, fills in the outputs, and moves on. No browser tabs, no mouse, no context switch.
 
-The most consequential defining experience is **the human task completion flow.** The tool knows the task's input variables, presents them for review, validates the output variable types, and submits in one structured flow. When a user completes a task in o8n, they know they got it right.
+The most consequential defining experience is **the human task completion flow.** The tool knows the task's input variables, presents them for review, validates the output variable types, and submits in one structured flow. When a user completes a task in o6n, they know they got it right.
 
 ### User Mental Model
 
@@ -370,7 +370,7 @@ The most consequential defining experience is **the human task completion flow.*
 - Esc-to-back stack navigation — universal from browsers, k9s
 - `:resource` context switching — direct from k9s
 
-**Combination of familiar patterns (o8n synthesis):**
+**Combination of familiar patterns (o6n synthesis):**
 - Config-driven hint priority system — teaches itself through existing footer chrome
 - Three-tier discoverability (footer → action menu → help) — intentional hierarchy is novel; each tier is individually familiar
 - OverlayLarge modal class — familiar as IDE quick-open overlay, new in TUI context
@@ -400,7 +400,7 @@ The most consequential defining experience is **the human task completion flow.*
 
 ### Color System
 
-o8n uses a multi-theme skin system (36+ built-in skins). The visual foundation defines the **semantic color role system** that all skins must implement — not a specific palette.
+o6n uses a multi-theme skin system (36+ built-in skins). The visual foundation defines the **semantic color role system** that all skins must implement — not a specific palette.
 
 **Semantic color roles (skin contract):**
 
@@ -409,7 +409,7 @@ o8n uses a multi-theme skin system (36+ built-in skins). The visual foundation d
 | `primary` | Default table text | High contrast against background |
 | `secondary` | Muted/auxiliary text | Pagination, timestamps, secondary columns |
 | `accent` | Selected row, focused widget borders | Active state; environment-independent |
-| `env_name` | Environment label in header | Set per-env in `o8n-env.yaml`; the environment identity signal |
+| `env_name` | Environment label in header | Set per-env in `o6n-env.yaml`; the environment identity signal |
 | `header_bg` | Header bar background | Separates chrome from content area |
 | `border` | Widget borders | Neutral by default; demoted from `ui_color` |
 | `success` | Active/running/completed states | Green family |
@@ -573,7 +573,7 @@ Three directions were considered for the layout composition:
 
 **First-run home context selection — OverlayCenter:**
 ```
-                  ┌─── Welcome to o8n ──────────────────────────────┐
+                  ┌─── Welcome to o6n ──────────────────────────────┐
                   │                                                  │
                   │  Where would you like to start?                  │
                   │                                                  │
@@ -610,7 +610,7 @@ The most consequential user journey. Failure here is product failure.
 
 ```mermaid
 flowchart TD
-    A([Launch o8n]) --> B{First run?}
+    A([Launch o6n]) --> B{First run?}
     B -- Yes --> C[First-run context modal\nSelect: Tasks]
     B -- No --> D[Restore saved home context]
     C --> E[Tasks table]
@@ -656,7 +656,7 @@ The DevOps operator's primary loop — find, assess, act.
 
 ```mermaid
 flowchart TD
-    A([Launch o8n]) --> B[Process Instances table\nor restore last context]
+    A([Launch o6n]) --> B[Process Instances table\nor restore last context]
     B --> C[Scan table for anomalies\nSTATE column colors signal status]
 
     C --> D{Incident or failure spotted?}
@@ -699,11 +699,11 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Fresh install\nno o8n-stat.yaml]) --> B[Splash screen\nif splash: true in config]
+    A([Fresh install\nno o6n-stat.yaml]) --> B[Splash screen\nif splash: true in config]
     B --> C[First-run context modal\nOverlayCenter]
     C --> D[User navigates with ↑/↓\nto preferred home context]
     D --> E[Enter to confirm\nor Esc to skip → defaults to Process Instances]
-    E --> F[Home context saved to o8n-stat.yaml]
+    E --> F[Home context saved to o6n-stat.yaml]
     F --> G[Land on chosen resource table]
 
     G --> H{User wants different context?}
@@ -775,7 +775,7 @@ flowchart TD
 
 ### Foundation Components (Bubbles library)
 
-| Component | Usage in o8n |
+| Component | Usage in o6n |
 |---|---|
 | `table.Model` | Main data table in all resource views |
 | `viewport.Model` | Scrollable content inside OverlayLarge modals |
@@ -817,7 +817,7 @@ flowchart TD
 
 **FirstRunModal** (OverlayCenter — NEW)
 - One-time home context selection. Reused by Ctrl+H. Hint line: `Enter Select  ↑/↓ Navigate  Esc Skip`.
-- Saves selection to `o8n-stat.yaml`.
+- Saves selection to `o6n-stat.yaml`.
 
 **TaskCompleteDialog** (FullScreen)
 - Input variables section (read-only) + output variables section (type-validated editable fields) + hint line.
@@ -851,8 +851,8 @@ flowchart TD
 **Phase 3 — Onboarding + environment:**
 - FirstRunModal
 - Ctrl+H to revisit home context
-- `o8n-stat.yaml` persistence
-- `splash:` field in `o8n-cfg.yaml`
+- `o6n-stat.yaml` persistence
+- `splash:` field in `o6n-cfg.yaml`
 
 ## UX Consistency Patterns
 
@@ -978,7 +978,7 @@ Column visibility is governed by each column's `MinWidth` in `TableDef`. The lay
 
 ### Accessibility Strategy
 
-o8n targets **partial WCAG AA compliance**, adapted for the terminal medium.
+o6n targets **partial WCAG AA compliance**, adapted for the terminal medium.
 
 **In scope:**
 - Color contrast: all skin foreground/background pairs must pass WCAG AA (4.5:1). Documented in skin YAML.

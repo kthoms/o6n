@@ -6,8 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/kthoms/o8n/internal/config"
-	"github.com/kthoms/o8n/internal/operaton"
+	"github.com/kthoms/o6n/internal/config"
+	"github.com/kthoms/o6n/internal/operaton"
 )
 
 // testTaskConfig returns a minimal config with a task table that has id, name, assignee columns.

@@ -3,8 +3,8 @@ package app
 import (
 	"testing"
 
-	"github.com/kthoms/o8n/internal/client"
-	"github.com/kthoms/o8n/internal/config"
+	"github.com/kthoms/o6n/internal/client"
+	"github.com/kthoms/o6n/internal/config"
 )
 
 // TestLiveAPIIntegration tests against running Operaton instance at http://localhost:8080/engine-rest

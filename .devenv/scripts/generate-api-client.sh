@@ -11,7 +11,7 @@ SPEC_FILE="resources/operaton-rest-api.json"
 OUTPUT_DIR="internal/operaton"
 PACKAGE_NAME="operaton"
 GIT_USER_ID="kthoms"
-GIT_REPO_ID="o8n"
+GIT_REPO_ID="o6n"
 
 # Colors for output
 GREEN='\033[0;32m'

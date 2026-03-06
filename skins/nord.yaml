@@ -17,8 +17,8 @@ red: &red "#BF616A"
 yellow: &yellow "#EBCB8B"
 
 # Skin...
-o8n:
-  # General o8n styles
+o6n:
+  # General o6n styles
   body:
     fgColor: *foreground
     bgColor: default

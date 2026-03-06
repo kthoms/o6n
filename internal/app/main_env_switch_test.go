@@ -3,8 +3,8 @@ package app
 import (
 	"testing"
 
-	"github.com/kthoms/o8n/internal/config"
-	"github.com/kthoms/o8n/internal/dao"
+	"github.com/kthoms/o6n/internal/config"
+	"github.com/kthoms/o6n/internal/dao"
 )
 
 func applyEnvSwitchSequence(m *model, targetEnv string) {

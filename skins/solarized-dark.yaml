@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 # Solarized Dark Skin
-# Based on: o8n Solarized Dark Skin
+# Based on: o6n Solarized Dark Skin
 # Author:   [@danmikita](danmikita@gmail.com)
 # -----------------------------------------------------------------------------
 
@@ -18,7 +18,7 @@ blue: &blue "#2aa198"
 red: &red "#dc312e"
 
 # Skin...
-o8n:
+o6n:
   body:
     fgColor: *foreground
     bgColor: *background

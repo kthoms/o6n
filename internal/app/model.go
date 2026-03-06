@@ -13,8 +13,8 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kthoms/o8n/internal/config"
-	"github.com/kthoms/o8n/internal/dao"
+	"github.com/kthoms/o6n/internal/config"
+	"github.com/kthoms/o6n/internal/dao"
 	"golang.org/x/term"
 )
 
@@ -428,7 +428,7 @@ type model struct {
 	activeSkin  string
 	skin        *Skin
 	showLatency bool   // toggleable latency display (default off)
-	statePath   string // path to o8n-stat.yml
+	statePath   string // path to o6n-stat.yml
 
 	// FirstRunModal state
 	firstRunNeeded bool   // set true by run.go when no saved navigation state (fresh start)

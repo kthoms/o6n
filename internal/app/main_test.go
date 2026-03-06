@@ -8,15 +8,15 @@ import (
 
 // TestMain wraps the entire test suite to protect sensitive files from being
 // overwritten by tests that trigger UI actions (e.g. environment switching,
-// which calls SaveConfig → writes o8n-env.yaml).
+// which calls SaveConfig → writes o6n-env.yaml).
 func TestMain(m *testing.M) {
 	// Tests run with CWD = internal/app; walk up to project root so
-	// relative paths like o8n-env.yaml and o8n-cfg.yaml resolve correctly.
+	// relative paths like o6n-env.yaml and o6n-cfg.yaml resolve correctly.
 	if root := findProjectRoot(); root != "" {
 		_ = os.Chdir(root)
 	}
 
-	const envFile = "o8n-env.yaml"
+	const envFile = "o6n-env.yaml"
 
 	// Back up the current env file before any test runs.
 	original, readErr := os.ReadFile(envFile)

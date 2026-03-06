@@ -1,4 +1,4 @@
-NAME            := o8n
+NAME            := o6n
 VERSION         ?= v0.1.0
 PACKAGE         := github.com/kthoms/$(NAME)
 OUTPUT_BIN      ?= execs/${NAME}
@@ -7,7 +7,7 @@ GO_TAGS	        ?= netgo
 CGO_ENABLED     ?=0
 GIT_REV         ?= $(shell git rev-parse --short HEAD)
 
-IMG_NAME        := kthoms/o8n
+IMG_NAME        := kthoms/o6n
 IMAGE           := ${IMG_NAME}:${VERSION}
 BUILD_PLATFORMS ?= linux/amd64,linux/arm64
 
@@ -22,10 +22,10 @@ default: help
 
 verify-config:           ## Verify critical config files are not corrupted
 	@echo "Verifying critical config files..."
-	@[ -f o8n-cfg.yaml ] || (echo "ERROR: o8n-cfg.yaml not found"; exit 1)
-	@[ -f o8n-env.yaml ] || (echo "ERROR: o8n-env.yaml not found"; exit 1)
-	@[ $$(wc -l < o8n-cfg.yaml) -gt 700 ] || (echo "ERROR: o8n-cfg.yaml is corrupted ($(shell wc -l < o8n-cfg.yaml) lines, expected ~760)"; exit 1)
-	@[ $$(wc -l < o8n-env.yaml) -gt 5 ] || (echo "ERROR: o8n-env.yaml is corrupted"; exit 1)
+	@[ -f o6n-cfg.yaml ] || (echo "ERROR: o6n-cfg.yaml not found"; exit 1)
+	@[ -f o6n-env.yaml ] || (echo "ERROR: o6n-env.yaml not found"; exit 1)
+	@[ $$(wc -l < o6n-cfg.yaml) -gt 700 ] || (echo "ERROR: o6n-cfg.yaml is corrupted ($(shell wc -l < o6n-cfg.yaml) lines, expected ~760)"; exit 1)
+	@[ $$(wc -l < o6n-env.yaml) -gt 5 ] || (echo "ERROR: o6n-env.yaml is corrupted"; exit 1)
 	@echo "✓ Config files verified"
 
 test:                    ## Run all tests

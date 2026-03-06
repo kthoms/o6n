@@ -12,7 +12,7 @@ so that I can reach any operational view in seconds from anywhere in the applica
 
 ## Acceptance Criteria
 
-1. **Given** 35 resource types are defined in `o8n-cfg.yaml`
+1. **Given** 35 resource types are defined in `o6n-cfg.yaml`
    **When** the operator presses `:` to open the context switcher
    **Then** a searchable list of all configured resource types is displayed in an `OverlayCenter` modal.
 
@@ -24,7 +24,7 @@ so that I can reach any operational view in seconds from anywhere in the applica
 
 3. **Given** the selected resource type returns data from the API
    **When** the table loads
-   **Then** the correct columns for that resource type (as defined in `o8n-cfg.yaml`) are displayed and the first row is selected.
+   **Then** the correct columns for that resource type (as defined in `o6n-cfg.yaml`) are displayed and the first row is selected.
 
 ## Tasks / Subtasks
 
@@ -54,7 +54,7 @@ so that I can reach any operational view in seconds from anywhere in the applica
 
 - **Architecture Compliance:** Must use the `ModalConfig` and `renderModal()` factory established in Story 1.1. Do NOT add a `case ModalContextSwitcher` to the main `View` render switch.
 - **State Transition Contract:** Mandatory use of `prepareStateTransition(TransitionFull)` from Story 1.2 to ensure zero state leakage between resource contexts.
-- **Config-Driven:** Resource list is already filtered to only those with `TableDef` in `o8n-cfg.yaml` within `newModel`.
+- **Config-Driven:** Resource list is already filtered to only those with `TableDef` in `o6n-cfg.yaml` within `newModel`.
 - **Legacy Cleanup:** The current `:` implementation in `update.go` (line ~708) and `view.go` (line ~630) is a legacy "popup" system. Migrating it to the modal factory is a key architectural goal of this story.
 
 ### Project Structure Notes
@@ -68,7 +68,7 @@ so that I can reach any operational view in seconds from anywhere in the applica
 - Epic 3 section: `_bmad/planning-artifacts/epics.md`
 - Modal Factory: `internal/app/modal.go`
 - State Transition Contract: `internal/app/nav.go` (check `prepareStateTransition`)
-- Resource definitions: `o8n-cfg.yaml`
+- Resource definitions: `o6n-cfg.yaml`
 
 ## Dev Agent Record
 

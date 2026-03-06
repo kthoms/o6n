@@ -6,7 +6,7 @@ Status: done
 
 ## Story
 
-As a **developer contributing to o8n**,
+As a **developer contributing to o6n**,
 I want a `ModalConfig` struct and `renderModal()` factory function in `internal/app/modal.go`,
 so that all modal types are rendered from a single, consistent code path with no per-type layout logic in the view render path.
 
@@ -215,7 +215,7 @@ Use the existing test pattern from `internal/app/overlay_modal_test.go` and `int
 - **New files:** `internal/app/modal.go`, `internal/app/hints.go` (stub), `internal/app/main_modal_test.go`
 - **Modified files:** `internal/app/view.go` (replace if-else chain, keep individual body render helpers as private functions), `internal/app/model.go` (no enum changes — do not add new ModalType constants in this story)
 - **Off-limits:** `internal/operaton/` — never modify
-- **`o8n-cfg.yaml` and `o8n-env.yaml`** — no changes required by this story
+- **`o6n-cfg.yaml` and `o6n-env.yaml`** — no changes required by this story
 - The actions menu (`showActionsMenu` bool flag + `renderActionsMenu()`) is **not part of the modal factory** in this story — it uses a separate `bool` flag. `ModalActionMenu` integration is a future story.
 
 ### Async / Bubble Tea Constraints

@@ -21,7 +21,7 @@ aqua: &aqua "aqua"
 mslate: &mslate "mediumslateblue"
 
 # Skin...
-o8n:
+o6n:
   body:
     fgColor: *fg
     bgColor: *bg

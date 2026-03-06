@@ -37,7 +37,7 @@ so that I always know whether an action succeeded or failed without guessing.
   - [ ] Verify it triggers a data re-fetch for the current root.
 - [ ] Audit `errMsg` handler in `internal/app/update.go` (AC: 3)
   - [ ] Verify it uses `setFooterStatus` with `footerStatusError` and 5s auto-clear.
-  - [ ] Verify it logs the error to `debug/o8n.log`.
+  - [ ] Verify it logs the error to `debug/o6n.log`.
 - [ ] Verify Destructive Action Flow (AC: 2)
   - [ ] Check `buildActionsForRoot` in `internal/app/nav.go` correctly sets `m.activeModal = ModalConfirmDelete` for actions with `Confirm: true`.
   - [ ] Verify the `ModalConfirmDelete` handler in `update.go` correctly calls `executeActionCmd` on confirmation.

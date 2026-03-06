@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/kthoms/o8n/internal/config"
-	"github.com/kthoms/o8n/internal/validation"
+	"github.com/kthoms/o6n/internal/config"
+	"github.com/kthoms/o6n/internal/validation"
 )
 
 func (m *model) editableColumnsFor(tableKey string) []editableColumn {

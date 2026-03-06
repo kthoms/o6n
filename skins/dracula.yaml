@@ -17,8 +17,8 @@ red: &red "#ff5555"
 yellow: &yellow "#f1fa8c"
 
 # Skin...
-o8n:
-  # General o8n styles
+o6n:
+  # General o6n styles
   body:
     fgColor: *foreground
     bgColor: *background

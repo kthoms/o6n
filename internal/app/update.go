@@ -13,9 +13,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/kthoms/o8n/internal/dao"
-	"github.com/kthoms/o8n/internal/operaton"
-	"github.com/kthoms/o8n/internal/validation"
+	"github.com/kthoms/o6n/internal/dao"
+	"github.com/kthoms/o6n/internal/operaton"
+	"github.com/kthoms/o6n/internal/validation"
 )
 
 func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
@@ -29,7 +29,7 @@ func (m model) Update(msg tea.Msg) (retModel tea.Model, retCmd tea.Cmd) {
 			log.Printf("[panic] %v | screen: debug/screen-%s.txt\n%s", r, id, stack)
 			// Mutate return values to surface error in UI without crashing
 			recovered := m
-			recovered.footerError = fmt.Sprintf("internal error: %v — see debug/o8n.log", r)
+			recovered.footerError = fmt.Sprintf("internal error: %v — see debug/o6n.log", r)
 			recovered.footerStatusKind = footerStatusError
 			recovered.isLoading = false
 			retModel = recovered

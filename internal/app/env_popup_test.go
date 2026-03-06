@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	"github.com/kthoms/o8n/internal/config"
+	"github.com/kthoms/o6n/internal/config"
 )
 
 func TestEnvPopupOpens(t *testing.T) {

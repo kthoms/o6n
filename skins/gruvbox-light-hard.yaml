@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# o8n Gruvbox Light Skin
+# o6n Gruvbox Light Skin
 # -----------------------------------------------------------------------------
 
 # Styles...
@@ -15,7 +15,7 @@ magenta: &magenta "#b16185"
 blue: &blue "#448488"
 red: &red "#cc231c"
 
-o8n:
+o6n:
   body:
     fgColor: *foreground
     bgColor: *background

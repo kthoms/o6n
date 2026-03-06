@@ -10,7 +10,7 @@ inputDocuments:
   - "README.md"
   - "specification.md"
 workflowType: 'architecture'
-project_name: 'o8n'
+project_name: 'o6n'
 user_name: 'Karsten'
 date: '2026-03-03'
 ---
@@ -34,7 +34,7 @@ must not require Go source changes.
   async API calls — no blocking the event loop (NFR1-3)
 - Reliability: Panic-safe render with defer/recover; all errors surface as footer messages,
   never silently swallowed; 5s auto-clear (NFR4-7)
-- Security: Credentials isolated to git-ignored `o8n-env.yaml` at 0600 perms; never appear
+- Security: Credentials isolated to git-ignored `o6n-env.yaml` at 0600 perms; never appear
   in logs, debug output, or clipboard (NFR8-9)
 - Terminal Compatibility: 120×20 primary target in VSCode and IntelliJ IDEA; column
   hide-order and priority-based hint system handle narrower widths; resize events must not
@@ -53,7 +53,7 @@ must not require Go source changes.
   `tea.Cmd`; no goroutines may write to model directly — event loop is single-threaded
 - **Generated API client:** `internal/operaton/` is regenerated from
   `resources/operaton-rest-api.json` — never edited manually
-- **Config authority:** `o8n-cfg.yaml` is the single source of truth for resource types,
+- **Config authority:** `o6n-cfg.yaml` is the single source of truth for resource types,
   columns, actions, drilldowns; architecture must not duplicate this authority in Go
 - **Static binary:** `CGO_ENABLED=0`, `GO_TAGS=netgo` — no dynamic linking
 - **Single binary, no subcommands:** All behavior is runtime-configured, not compile-time
@@ -73,7 +73,7 @@ must not require Go source changes.
    through Update; footer as the sole error display surface
 5. **Responsive Layout** — Column `hide_order`, hint priority system (1-9), width
    thresholds; layout decisions must use the established sizing contract
-6. **Credential Security** — `o8n-env.yaml` must never appear in git, logs, or clipboard;
+6. **Credential Security** — `o6n-env.yaml` must never appear in git, logs, or clipboard;
    Basic Auth is the only supported mechanism
 7. **Theming** — 26 semantic color roles (including `env_name`); `env_name` per skin
    governs the environment label color in the fixed top-right header — the primary
@@ -92,7 +92,7 @@ This is a brownfield project. No starter template selection was required; the te
 stack is fully established and documented in `specification.md`. The evaluation below
 documents the existing foundation for AI agent consistency.
 
-### Established Foundation: o8n Codebase
+### Established Foundation: o6n Codebase
 
 **Rationale:** Existing codebase with active development, comprehensive specification,
 and stable architecture. No migration or starter overlay warranted.
@@ -109,9 +109,9 @@ OpenAPI Generator (Docker). Lives in `internal/operaton/` — never edited manua
 Regenerated via `.devenv/scripts/generate-api-client.sh`.
 
 **Configuration:** Three-file YAML split:
-- `o8n-env.yaml` — credentials, URLs, accent colors (git-ignored, 0600)
-- `o8n-cfg.yaml` — tables, columns, actions, drilldowns (version-controlled)
-- `o8n-stat.yaml` — runtime state (auto-managed, git-ignored)
+- `o6n-env.yaml` — credentials, URLs, accent colors (git-ignored, 0600)
+- `o6n-cfg.yaml` — tables, columns, actions, drilldowns (version-controlled)
+- `o6n-stat.yaml` — runtime state (auto-managed, git-ignored)
 
 **Theming:** 35 built-in skins as YAML files in `skins/`. 26 semantic color roles —
 no hardcoded color values. `env_name` semantic role governs the environment label color
@@ -139,7 +139,7 @@ resources/       — OpenAPI specification (operaton-rest-api.json)
 ```bash
 make test       # Clear cache and run all tests
 make cover      # HTML coverage report
-make build      # Build binary to execs/o8n
+make build      # Build binary to execs/o6n
 go vet ./...    # Static analysis
 gofmt -w .      # Format code
 ```
@@ -168,14 +168,14 @@ gofmt -w .      # Format code
 
 **Data Source:** Operaton REST API only. No local database, no persistent cache.
 All application data is fetched on demand via `tea.Cmd` and discarded on navigation
-transitions. The only local persistence is `o8n-stat.yaml` (runtime state: active env,
-skin, last nav position) and `o8n-env.yaml` (credentials).
+transitions. The only local persistence is `o6n-stat.yaml` (runtime state: active env,
+skin, last nav position) and `o6n-env.yaml` (credentials).
 
 **In-Memory Cache:** `internal/contentassist` — thread-safe (`sync.RWMutex`) suggestion
 cache for user name completions. Populated from API responses. No TTL — refreshed on data
 loads. This pattern is reusable for future completion types (variable names, process keys).
 
-**Config as Schema:** `o8n-cfg.yaml` is the authoritative schema for resource types,
+**Config as Schema:** `o6n-cfg.yaml` is the authoritative schema for resource types,
 columns, actions, and drilldown relationships. It is read-only at runtime — never written
 by the application. Architecture decisions that would require runtime writes to this file
 are rejected.
@@ -188,7 +188,7 @@ are rejected.
 per-request from the active environment's credentials. No token caching, no session
 management, no OAuth.
 
-**Credential Isolation:** Credentials live exclusively in `o8n-env.yaml` (git-ignored,
+**Credential Isolation:** Credentials live exclusively in `o6n-env.yaml` (git-ignored,
 `chmod 600`). They must never appear in: log files, debug output (`./debug/`), clipboard
 operations (`J`/`Ctrl+J` copies row data as JSON, not credentials), or any serialized state.
 
@@ -327,21 +327,21 @@ the corresponding action. `Esc` closes the menu. The modal uses `OverlayCenter` 
 action menu.
 
 **Rationale:** Gives the action dialog full visual consistency with other modals (border,
-Esc/Enter). Keeps action definitions in `o8n-cfg.yaml` — the factory reads config, it does
+Esc/Enter). Keeps action definitions in `o6n-cfg.yaml` — the factory reads config, it does
 not duplicate it. Satisfies FR16 (context-sensitive action menu via `Ctrl+Space`).
 
 ---
 
 ### Infrastructure & Deployment
 
-**Build:** `make build` produces a static binary at `execs/o8n` with `CGO_ENABLED=0` and
-`GO_TAGS=netgo`. No Docker, no containers, no cloud deployment — o8n is a local developer
+**Build:** `make build` produces a static binary at `execs/o6n` with `CGO_ENABLED=0` and
+`GO_TAGS=netgo`. No Docker, no containers, no cloud deployment — o6n is a local developer
 tool distributed as a binary.
 
 **Distribution:** Direct binary download or community package manager (e.g., Homebrew).
 No server-side infrastructure required or planned for MVP.
 
-**Debug Mode:** `--debug` flag creates `./debug/` with `o8n.log` (errors/debug messages),
+**Debug Mode:** `--debug` flag creates `./debug/` with `o6n.log` (errors/debug messages),
 `last-screen.txt` (last rendered frame), and `screen-{timestamp}.txt` (panic dumps). Debug
 output must never contain credentials.
 
@@ -360,7 +360,7 @@ output must never contain credentials.
 - Modal factory (TUI arch) → requires `internal/app/` refactor; no config or client changes
 - State transition contract → affects all navigation paths in `internal/app/update.go` and nav files
 - Footer hints → affects `internal/app/view.go` and all per-view render functions
-- `ModalActionMenu` → depends on modal factory; reads `o8n-cfg.yaml` action config at render time
+- `ModalActionMenu` → depends on modal factory; reads `o6n-cfg.yaml` action config at render time
 
 ## Implementation Patterns & Consistency Rules
 
@@ -384,8 +384,8 @@ output must never contain credentials.
 - ✅ `ModalNone`, `ModalConfirmDelete`, `ModalActionMenu`
 - ❌ `DeleteModal`, `ConfirmModal`
 
-**Config Keys (YAML):** `snake_case` for all YAML keys in `o8n-cfg.yaml`,
-`o8n-env.yaml`, and skin files:
+**Config Keys (YAML):** `snake_case` for all YAML keys in `o6n-cfg.yaml`,
+`o6n-env.yaml`, and skin files:
 - ✅ `api_path`, `hide_order`, `id_column`
 - ❌ `apiPath`, `hideOrder`
 
@@ -506,7 +506,7 @@ function is introducing a state leakage bug.
 - Never hardcode hex values or ANSI codes in Go source
 - `env_name` semantic role: applied to the environment label in the fixed top-right
   header position — this is the primary environment identity signal. Set per-skin;
-  configured in `o8n-env.yaml` per environment to distinguish prod/staging/dev.
+  configured in `o6n-env.yaml` per environment to distinguish prod/staging/dev.
 - Environment `ui_color` is applied only to border accent — never to text content colors.
   It is a secondary accent, not the primary environment signal.
 
@@ -538,7 +538,7 @@ function is introducing a state leakage bug.
 ### Complete Project Directory Structure
 
 ```
-o8n/
+o6n/
 ├── main.go                          # Entry point — calls internal/app.Run()
 ├── go.mod                           # Module: Go 1.24+
 ├── go.sum
@@ -547,10 +547,10 @@ o8n/
 ├── README.md                        # User-facing documentation
 ├── specification.md                 # Authoritative technical spec (keep updated)
 │
-├── o8n-env.yaml                     # [git-ignored] Credentials, URLs, ui_color
-├── o8n-env.yaml.example             # Template for first-time setup
-├── o8n-cfg.yaml                     # [version-controlled] Resource definitions
-├── o8n-stat.yml                     # [git-ignored, auto-generated] Runtime state
+├── o6n-env.yaml                     # [git-ignored] Credentials, URLs, ui_color
+├── o6n-env.yaml.example             # Template for first-time setup
+├── o6n-cfg.yaml                     # [version-controlled] Resource definitions
+├── o6n-stat.yml                     # [git-ignored, auto-generated] Runtime state
 │
 ├── internal/
 │   ├── app/                         # All TUI logic — primary sprint work area
@@ -605,10 +605,10 @@ o8n/
 │   └── operaton-rest-api.json       # OpenAPI spec — source for client generation
 │
 ├── execs/
-│   └── o8n                          # Build output (git-ignored)
+│   └── o6n                          # Build output (git-ignored)
 │
 ├── debug/                           # [git-ignored] Created by --debug flag
-│   ├── o8n.log
+│   ├── o6n.log
 │   ├── last-screen.txt
 │   └── screen-{timestamp}.txt
 │
@@ -645,7 +645,7 @@ User keypress
 ```
 
 **Config Authority Boundary:**
-- `o8n-cfg.yaml` is the sole authority for: resource type names, columns, actions,
+- `o6n-cfg.yaml` is the sole authority for: resource type names, columns, actions,
   drilldown relationships, key bindings per resource
 - Go code reads and interprets config — it never duplicates config knowledge
 - If a behavior can be expressed in config, it must not be hardcoded in Go
@@ -666,7 +666,7 @@ User keypress
 
 **Pre-existing Files (read-only during sprint unless fixing bugs):**
 - `internal/client/`, `internal/config/`, `internal/validation/`, `internal/contentassist/`
-- `o8n-cfg.yaml`, `o8n-env.yaml`, `skins/`
+- `o6n-cfg.yaml`, `o6n-env.yaml`, `skins/`
 
 ### Integration Points
 
@@ -683,7 +683,7 @@ User keypress
 
 **Data Boundaries:**
 - No inter-process communication — single binary, single process
-- No database — all state in memory during session; `o8n-stat.yaml` on clean exit
+- No database — all state in memory during session; `o6n-stat.yaml` on clean exit
 - No network state persistence — each session starts fresh from the API
 
 ## Architecture Validation Results
@@ -692,7 +692,7 @@ User keypress
 
 **Decision Compatibility:** All technology choices are mutually compatible. Bubble Tea,
 Bubbles, and Lipgloss are pure Go — no CGO requirements, compatible with static binary
-build. Modal factory (`ModalConfig`) reads from `o8n-cfg.yaml` without duplicating its
+build. Modal factory (`ModalConfig`) reads from `o6n-cfg.yaml` without duplicating its
 authority. State transition contract operates as pure model mutations in `Update()` —
 fully compatible with Bubble Tea's immutable model pattern.
 
@@ -710,7 +710,7 @@ aligns with `View()` purity requirement. `tea.Cmd` async pattern aligns with
 **Functional Requirements:** All 39 FRs across 10 categories have architectural support.
 Sprint-critical FRs (FR11-17, FR20) are mapped to specific new or modified files.
 FR28 and NFR13/15 (config-driven extensibility) are enforced by the modal factory pattern
-and `o8n-cfg.yaml` authority boundary.
+and `o6n-cfg.yaml` authority boundary.
 
 **Non-Functional Requirements:** All 15 NFRs covered. Performance (NFR1-3): `tea.Cmd`
 async contract and footer loading state. Reliability (NFR4-7): `defer/recover` in view

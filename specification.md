@@ -1,6 +1,6 @@
-# o8n Specification
+# o6n Specification
 
-The authoritative technical specification for o8n — a k9s-inspired terminal UI for managing Operaton workflow engines. This document fully describes the architecture, behavior, and design of the application. A developer can reimplement the same structure and behavior from this specification alone.
+The authoritative technical specification for o6n — a k9s-inspired terminal UI for managing Operaton workflow engines. This document fully describes the architecture, behavior, and design of the application. A developer can reimplement the same structure and behavior from this specification alone.
 
 ---
 
@@ -41,7 +41,7 @@ All async operations (API calls) return `tea.Cmd` and communicate results back v
 ### Repository Layout
 
 ```
-o8n/
+o6n/
 ├── main.go                    # Thin entry point, calls internal/app.Run()
 ├── internal/
 │   ├── app/                   # All TUI logic: model, update, view, nav, commands, skin, styles, table, util, edit
@@ -53,10 +53,10 @@ o8n/
 │   └── operaton/              # Auto-generated OpenAPI client — do not edit manually
 ├── skins/                     # 35 color theme YAML files
 ├── resources/                 # OpenAPI spec (operaton-rest-api.json)
-├── o8n-env.yaml               # Environment credentials (git-ignored, 0600 perms)
-├── o8n-cfg.yaml               # Table definitions, column specs, actions (version-controlled)
-├── o8n-stat.yml               # Runtime state (auto-generated, git-ignored)
-└── o8n-env.yaml.example       # Template for environment configuration
+├── o6n-env.yaml               # Environment credentials (git-ignored, 0600 perms)
+├── o6n-cfg.yaml               # Table definitions, column specs, actions (version-controlled)
+├── o6n-stat.yml               # Runtime state (auto-generated, git-ignored)
+└── o6n-env.yaml.example       # Template for environment configuration
 ```
 
 ### Messages and Commands
@@ -89,7 +89,7 @@ Package `internal/contentassist` provides a thread-safe suggestion cache used fo
 - All API errors propagate as `errMsg` messages
 - `Update()` stores error text in `m.footerError` and schedules auto-clear after **5 seconds**
 - Rendering functions use `defer/recover` to catch panics — the TUI never crashes from malformed API responses
-- Panic recovery in `Update()` logs to `debug/o8n.log` and shows a user-friendly error
+- Panic recovery in `Update()` logs to `debug/o6n.log` and shows a user-friendly error
 
 ---
 
@@ -97,7 +97,7 @@ Package `internal/contentassist` provides a thread-safe suggestion cache used fo
 
 Three files with distinct responsibilities:
 
-### o8n-env.yaml (Environment Credentials)
+### o6n-env.yaml (Environment Credentials)
 
 Git-ignored. File permissions 0600. Contains only credentials and environment definitions — no mutable runtime state.
 
@@ -115,7 +115,7 @@ environments:
     password: secret
 ```
 
-### o8n-cfg.yaml (Application Configuration)
+### o6n-cfg.yaml (Application Configuration)
 
 Version-controlled. Static — never written at runtime. Defines all tables, columns, drilldowns, and actions.
 
@@ -163,7 +163,7 @@ tables:
 - Implicit: columns named `id` or ending with `Id` are treated as type `id`
 - `DisplayName` defaults to `name` capitalized with `-` replaced by space
 
-### o8n-stat.yml (Runtime State)
+### o6n-stat.yml (Runtime State)
 
 Auto-generated. Git-ignored. Updated on every navigation transition and on clean exit.
 
@@ -181,7 +181,7 @@ navigation:
 
 ### Config Loading
 
-- `LoadSplitConfig()` merges `o8n-env.yaml` and `o8n-cfg.yaml` into a unified `Config` struct at runtime
+- `LoadSplitConfig()` merges `o6n-env.yaml` and `o6n-cfg.yaml` into a unified `Config` struct at runtime
 - Backward-compatible: `LoadConfig(path)` supports legacy single-file format used by tests
 - `LoadEnvConfig`, `LoadAppConfig`, and `Save` helpers available
 
@@ -203,14 +203,14 @@ Examples of config-driven drilldown chains:
 - Process Definition -> Process Instances -> Variables
 - Job Definition -> Jobs
 - Deployment -> Process Definitions or Decision Definitions
-- 10+ additional chains defined in `o8n-cfg.yaml`
+- 10+ additional chains defined in `o6n-cfg.yaml`
 
 ### Navigation Stack
 
 - **`viewState`** struct: captures a complete snapshot — viewMode, breadcrumb, contentHeader, selectedDefinitionKey, selectedInstanceID, tableRows, tableCursor, cachedDefinitions, tableColumns
 - **`navigationStack []viewState`** — LIFO stack. Enter pushes, Esc pops
 - **Full state restoration** on Esc: rows, cursor position, columns, filters all restored
-- **State persisted to `o8n-stat.yml`** — the app reopens at the last resource/drilldown level
+- **State persisted to `o6n-stat.yml`** — the app reopens at the last resource/drilldown level
 
 ### Breadcrumb
 
@@ -322,7 +322,7 @@ Columns with `hide_order` auto-hide on narrow terminals. Low-priority columns sh
 
 ### Config-Driven Actions
 
-Defined per table in `o8n-cfg.yaml`. Each action specifies:
+Defined per table in `o6n-cfg.yaml`. Each action specifies:
 - Key binding, label, HTTP method, URL path template, optional JSON body
 - `confirm: true` triggers the two-step confirmation pattern
 - `{id}` placeholder resolved from the row's ID column (configurable via `id_column`)
@@ -361,7 +361,7 @@ Resource-specific action examples:
 
 ### Navigate Actions
 
-- Actions in `o8n-cfg.yaml` can declare `type: navigate` along with `target`, `param`, and optional `column` (defaults to `id`). These actions reuse the drill-down flow (`executeDrilldown`) and do not perform HTTP mutations.
+- Actions in `o6n-cfg.yaml` can declare `type: navigate` along with `target`, `param`, and optional `column` (defaults to `id`). These actions reuse the drill-down flow (`executeDrilldown`) and do not perform HTTP mutations.
 - The actions menu inserts a visual separator before the first `type: navigate` entry and appends `→` to its label so view-style actions are distinguished from mutations.
 - The help screen shows `Enter` and drill-down hints only when the current resource defines its canonical `drilldown`, and lists `type: navigate` actions under a dedicated **VIEWS** section for quick access.
 
@@ -469,7 +469,7 @@ All 8 modal types dismiss on `Esc`. This is the universal close key — no modal
 
 **Material:** gruvbox-material-dark (3 variants)
 
-**Special:** o8n-cyber, transparent, stock, kiss, axual, solarized-16
+**Special:** o6n-cyber, transparent, stock, kiss, axual, solarized-16
 
 ### Semantic Color Roles
 
@@ -485,7 +485,7 @@ Environment `ui_color` always overrides the border accent color.
 
 - `Ctrl+T` opens the picker
 - `Up/Down` to preview live (instant application)
-- `Enter` applies and persists to `o8n-stat.yml`
+- `Enter` applies and persists to `o6n-stat.yml`
 - `Esc` reverts to the previous skin
 - Scrollable list — no truncation
 - `--skin <name>` CLI flag overrides startup skin
@@ -513,9 +513,9 @@ High-contrast friendly skins: `stock`, `black-and-wtf`, `solarized-16`.
 
 ### Multi-Environment Support
 
-- Configure unlimited environments in `o8n-env.yaml`
+- Configure unlimited environments in `o6n-env.yaml`
 - Each environment has: URL, username, password, ui_color, default_timeout
-- Active environment persisted in `o8n-stat.yml`
+- Active environment persisted in `o6n-stat.yml`
 - Credentials isolated per environment
 
 ### Environment Switching
@@ -541,7 +541,7 @@ High-contrast friendly skins: `stock`, `black-and-wtf`, `solarized-16`.
 
 ```
 +------------------------------------------------------------------+
-| o8n v0.1.0 | local ●            ? help  : switch  ↑↓ nav  / find | <- Header row 1 (status + hints)
+| o6n v0.1.0 | local ●            ? help  : switch  ↑↓ nav  / find | <- Header row 1 (status + hints)
 | Ctrl+E env  Ctrl+T skin  s sort  Space actions  r refresh        | <- Header row 2 (more hints)
 +------------------------------------------------------------------+
 | proc|ess-definitions                              (ghost suffix) | <- Context popup (:) - shown/hidden
@@ -700,7 +700,7 @@ All default keys plus:
 
 ## 12. Resource Types
 
-35 resource types defined in `o8n-cfg.yaml`:
+35 resource types defined in `o6n-cfg.yaml`:
 
 **Core:** process-definition, process-instance, process-variables, task, job, job-definition, external-task, incident, execution, variable-instance
 
@@ -714,7 +714,7 @@ All default keys plus:
 
 ## 13. State Persistence
 
-### What Is Persisted (o8n-stat.yml)
+### What Is Persisted (o6n-stat.yml)
 
 - Active environment name
 - Active skin name
@@ -748,7 +748,7 @@ When no saved navigation state exists (fresh install or state cleared), the app 
 
 - `--debug` flag enables verbose logging
 - Creates `./debug/` directory automatically
-- `debug/o8n.log` — error and debug messages (appended continuously)
+- `debug/o6n.log` — error and debug messages (appended continuously)
 - `debug/screen-{timestamp}.txt` — screen dump on panic
 - `debug/last-screen.txt` — last rendered frame (updated each render cycle)
 
@@ -782,14 +782,14 @@ go vet ./...    # Static analysis
 
 ```bash
 # Build
-go build -o o8n .
+go build -o o6n .
 
 # Run
-./o8n                   # Normal startup
-./o8n --debug           # Enable debug logging
-./o8n --no-splash       # Skip splash screen
-./o8n --skin dracula    # Override skin at startup
-./o8n --vim             # Enable vim-style keybindings (j/k, gg/G, Ctrl+U/D)
+./o6n                   # Normal startup
+./o6n --debug           # Enable debug logging
+./o6n --no-splash       # Skip splash screen
+./o6n --skin dracula    # Override skin at startup
+./o6n --vim             # Enable vim-style keybindings (j/k, gg/G, Ctrl+U/D)
 
 # Regenerate API client (requires Docker)
 ./.devenv/scripts/generate-api-client.sh

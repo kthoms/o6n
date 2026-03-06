@@ -342,7 +342,7 @@ Both files are co-located with the production files they test (in `internal/app/
 - `internal/app/transition.go` — already correct
 - `internal/app/nav.go` — Story 1.2 handles nav.go callsites
 - `internal/operaton/` — never modify
-- `o8n-cfg.yaml` / `o8n-env.yaml` — no changes
+- `o6n-cfg.yaml` / `o6n-env.yaml` — no changes
 
 ### Specification Update Obligation
 

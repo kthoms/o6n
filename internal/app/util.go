@@ -74,8 +74,8 @@ func (m *model) deriveFocusBackgroundColor(accentColor string) string {
 // Returns an error if config files appear corrupted or missing.
 func validateConfigFiles() error {
 	criticalFiles := map[string]int{
-		"o8n-cfg.yaml": 700, // Config should have ~760 lines
-		"o8n-env.yaml": 5,   // Env should have ~10-11 lines (absolute minimum)
+		"o6n-cfg.yaml": 700, // Config should have ~760 lines
+		"o6n-env.yaml": 5,   // Env should have ~10-11 lines (absolute minimum)
 	}
 
 	for file, minLines := range criticalFiles {

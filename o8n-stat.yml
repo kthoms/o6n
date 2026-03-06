@@ -1,0 +1,7 @@
+active_env: local
+skin: gruvbox-light-hard
+navigation:
+    root: tasks
+    breadcrumb:
+        - tasks
+    selected_instance_id: 551ccf83-0e50-11f1-bbe9-0242ac110002
