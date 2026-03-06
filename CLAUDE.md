@@ -101,3 +101,4 @@ Test files live next to the code they test. New feature tests use the pattern `m
 - Errors display in the footer with auto-clear after 5 seconds
 - Responsive layout: columns auto-hide below certain terminal widths; hints have visibility priority 1–9
 - Build uses `CGO_ENABLED=0` and `GO_TAGS=netgo` for static binaries
+

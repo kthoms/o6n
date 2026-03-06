@@ -1,0 +1,77 @@
+# Story 3.3: Action Execution with Feedback
+
+Status: ready-for-dev
+
+<!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
+
+## Story
+
+As an **operator**,
+I want to execute any configured action on a selected row and receive clear success or error feedback,
+so that I always know whether an action succeeded or failed without guessing.
+
+## Acceptance Criteria
+
+1. **Given** the operator selects a row and presses the configured action key
+   **When** the action executes successfully
+   **Then** a success message appears in the footer (e.g., `✓ Job retried`)
+   **And** the table refreshes to reflect the updated state
+
+2. **Given** a destructive action key is pressed (e.g., delete)
+   **When** the operator presses the key
+   **Then** a confirmation modal is shown before the action executes
+   **And** confirming executes the action; Esc cancels without any side effect
+
+3. **Given** an action's API call fails
+   **When** the error is received
+   **Then** an error message appears in the footer and auto-clears after 5 seconds
+   **And** no silent failure occurs
+
+## Tasks / Subtasks
+
+- [ ] Audit `executeActionCmd` in `internal/app/commands.go` (AC: 1, 3)
+  - [ ] Ensure it returns `actionExecutedMsg` with the correct label on success.
+  - [ ] Ensure it returns `errMsg` on failure.
+- [ ] Audit `actionExecutedMsg` handler in `internal/app/update.go` (AC: 1)
+  - [ ] Verify it uses `setFooterStatus` with `footerStatusSuccess`.
+  - [ ] Verify it triggers a data re-fetch for the current root.
+- [ ] Audit `errMsg` handler in `internal/app/update.go` (AC: 3)
+  - [ ] Verify it uses `setFooterStatus` with `footerStatusError` and 5s auto-clear.
+  - [ ] Verify it logs the error to `debug/o8n.log`.
+- [ ] Verify Destructive Action Flow (AC: 2)
+  - [ ] Check `buildActionsForRoot` in `internal/app/nav.go` correctly sets `m.activeModal = ModalConfirmDelete` for actions with `Confirm: true`.
+  - [ ] Verify the `ModalConfirmDelete` handler in `update.go` correctly calls `executeActionCmd` on confirmation.
+- [ ] Tests and Validation (AC: 1, 2, 3)
+  - [ ] Create `internal/app/main_action_feedback_test.go`.
+  - [ ] Test success path: verify footer message and re-fetch command.
+  - [ ] Test failure path: verify footer error message and auto-clear timer.
+  - [ ] Test confirmation path: verify modal appears and action only runs on confirm.
+
+## Dev Notes
+
+- **Footer Status Model:** Use `setFooterStatus(kind, msg, duration)` helper in `update.go` to ensure consistency.
+- **Async Feedback:** Feedback must be non-blocking. The user should be able to continue navigating while the feedback message is displayed.
+- **Refresh Strategy:** Data re-fetch after success ensures the UI reflects the server-side state change (e.g., instance removed, variable updated).
+
+### Project Structure Notes
+
+- Logic distributed between `commands.go` (cmd creation), `nav.go` (action routing), and `update.go` (message handling).
+- Co-locate tests in `internal/app/`.
+
+### References
+
+- Epic 3 Story 3.3: `_bmad/planning-artifacts/epics.md`
+- Footer Hint Push Model: `internal/app/hints.go`
+- State Transition Contract: `internal/app/transition.go`
+
+## Dev Agent Record
+
+### Agent Model Used
+
+Gemini 2.0 Flash
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List

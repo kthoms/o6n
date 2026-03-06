@@ -55,14 +55,14 @@ development_status:
   2-4-full-key-binding-reference: done
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-resource-navigation-and-context-switcher: backlog
-  3-2-drill-down-navigation-and-breadcrumb: backlog
-  3-3-action-execution-with-feedback: backlog
-  3-4-incident-operations-retry-and-annotate: backlog
-  3-5-task-claim-unclaim-and-complete: backlog
-  3-6-process-variable-inspection-editing-and-json-view: backlog
-  3-7-search-filter-and-auto-refresh: backlog
+  epic-3: in-progress
+  3-1-resource-navigation-and-context-switcher: ready-for-dev
+  3-2-drill-down-navigation-and-breadcrumb: ready-for-dev
+  3-3-action-execution-with-feedback: ready-for-dev
+  3-4-incident-operations-retry-and-annotate: ready-for-dev
+  3-5-task-claim-unclaim-and-complete: ready-for-dev
+  3-6-process-variable-inspection-editing-and-json-view: ready-for-dev
+  3-7-search-filter-and-auto-refresh: ready-for-dev
   epic-3-retrospective: optional
 
   epic-4: backlog
